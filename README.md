@@ -31,6 +31,16 @@ The class architecture is as follows:
 6. **ProcessAudio** classes - these use pyaudio to capture frames and process the samples into RMS values for VU or ffts for spectrum analysers.  These are configurable for the number of octaves and frequency.  Filters are available too.
 7. **Roon** classes - this is based on pyroon and creates a set of attributes for displaying metadata eg Album art, track titles etc.  An MPD version of this exists too and will be uploaded in the Beta
 
+Here are some example test screens, some screens with multiple test screens:
+<img width="1280" alt="IMG_0872" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/c34503cb-27e0-432d-b0e5-0b425baca7df">
+<img width="1278" alt="IMG_4629" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/43182ad4-0f68-4404-8bc5-1a03b75bceaa">
+<img width="1278" alt="IMG_9947" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/a27c28a6-7423-4110-b5d3-e0119ac36b31">
+<img width="1276" alt="IMG_2570" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/baa544bc-55a1-4a7d-bc03-f84d873d10c6">
+<img width="1277" alt="IMG_5514" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/c5a655c7-c769-4649-8047-7d2d8aa16d7d">
+<img width="1278" alt="IMG_6812" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/37d28da0-36f0-4493-b610-f2a7ea1cdbe7">
+<img width="1282" alt="IMG_4973" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/e6fc5ddf-9577-4c3c-969e-4ab48f587c77">
+
+
 Collaboration welcome!
 
 I want to give credit to https://github.com/project-owner/PeppyMeter  for use of some of the VU images.  These have been incorporated as VU meter images
