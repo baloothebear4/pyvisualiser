@@ -5,18 +5,30 @@ The package is in the alpha test stage with a Roon API for use on MacOS desktop.
 
 **Installation Instructions (MacOS)**
 1. Create a home for the project
-  cd path/to/your/project
-2. Create a virtual environment to protect your wider config
-  python3 -m venv venv
-  virtualenv venv
-  source venv/bin/activate
-3. Clone the package
-   git clone https://github.com/baloothebear4/pyvisualiser.git
-4. Setup the dependencies
-   pip install -r requirements.txt
-5. Execute the example visualiser (NB: this is configured for roon metadata, which will require authentication in the roon display/Extensions settings)
-   python 3 visualiser.py
-6. The left and right arrow keys will allow you to scroll across a number of test screens,  virtually all parameters are configurable.  Spacebar will exit
+   
+`cd path/to/your/project`
+
+3. Create a virtual environment to protect your wider config
+
+`python3 -m venv venv`
+
+`virtualenv venv`
+
+`source venv/bin/activate`
+
+4. Clone the package
+   
+`git clone https://github.com/baloothebear4/pyvisualiser.git`
+   
+6. Setup the dependencies
+   
+`pip install -r requirements.txt`
+   
+8. Execute the example visualiser (NB: this is configured for roon metadata, which will require authentication in the roon display/Extensions settings)
+
+`python 3 visualiser.py`
+  
+9. The left and right arrow keys will allow you to scroll across a number of test screens,  virtually all parameters are configurable.  Spacebar will exit
 
 
 **Package overview**
