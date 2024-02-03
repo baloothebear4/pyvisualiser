@@ -725,7 +725,7 @@ class SpectrumFrame(Frame, Spectrum):
         Spectrum.__init__(self, self.w, bar_space, barw_min, barw_max, decay=decay)
         self.bar = Bar(display, self.coords, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, theme=theme, flip=flip, radius=radius, tip=tip)
 
-        print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
+        # print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
 
     def draw(self):
         """
@@ -854,7 +854,7 @@ class OscilogrammeBar(Frame):
         self.current  = [ Smoother(1.0) for i in range(self.bars)]    #array of smoothers
         self.bar      = Bar(display, self.coords, Valign='middle', box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, theme=theme, flip=flip, radius=radius, tip=tip, col_mode='horz')
 
-        print("OscilogrammeBar.__init__> width=%s, reduce_by=%d, bars %s, bar_gap %d, barw %d, frame> %s" % (self.width, self.reduce_by, self.bars, self.bar_gap, self.barw, self.geostr()))
+        # print("OscilogrammeBar.__init__> width=%s, reduce_by=%d, bars %s, bar_gap %d, barw %d, frame> %s" % (self.width, self.reduce_by, self.bars, self.bar_gap, self.barw, self.geostr()))
 
     @property
     def width(self):
@@ -952,7 +952,7 @@ class Diamondiser(Frame, Spectrum):
 
         self.rays        = [Line(display, self.coords, endstops=(PI/2, 5*PI/2), width=bar_space*2, tick_pc=self.centre_pc, centre_offset=0, radius=self.max_radius, theme=theme, colour_index='mid') \
                              for _ in range(self.bars)]
-        print("Diamondiser.__init__>", self.bars, self.max_radius, self.geostr(), self.anglestr())
+        # print("Diamondiser.__init__>", self.bars, self.max_radius, self.geostr(), self.anglestr())
 
     def draw(self, channel='left'):
         self.read(self.channel)
