@@ -301,7 +301,7 @@ class Image(Geometry):
             wh=(new_width, new_height)
             self.image = pygame.transform.scale(imagesurface, wh)
             self.image_cache[image_ref]=self.image
-            print("Image.scaleInProportion> placed in cache", image_ref, len(self.image_cache)) #, original_width, original_height, wh)# Resize the image in proportion
+            # print("Image.scaleInProportion> placed in cache", image_ref, len(self.image_cache)) #, original_width, original_height, wh)# Resize the image in proportion
 
         else:
             self.image = self.image_cache[image_ref]
