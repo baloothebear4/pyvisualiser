@@ -4,3 +4,5 @@ A generic music visualisation package intended for use on MacOS, Windows and lin
 The package is in the alpha test stage with a Roon API for use on MacOS desktop.  The first port will be to a Rasberry Pi headless display.
 
 Collaboration welcome!
+
+I want to give credit to https://github.com/project-owner/PeppyMeter  for use of some of the VU images.  These have been incorporated as VU meter images
