@@ -1,0 +1,9 @@
+black-white-bgr.png
+blue-bgr.png
+emerald-bgr.jpeg
+gold-bgr.png
+images.txt
+rainbow-bgr.png
+red-bgr.jpeg
+vintage-bgr.jpeg
+white-red-bgr.png
