@@ -247,7 +247,7 @@ class Roon(RoonMetaData):
         discover = RoonDiscovery(None)
         servers = discover.all()
 
-        print("Shutdown discovery")
+        # print("Shutdown discovery")
         discover.stop()
 
 
