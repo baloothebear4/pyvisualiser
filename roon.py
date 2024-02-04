@@ -282,32 +282,6 @@ class Roon(RoonMetaData):
 
         return core_id, token
 
-
-    # def download_image(self, url):
-    #     response = requests.get(url)
-    #     return BytesIO(response.content)
-    #
-    #
-    # # Function to download and cache an image in memory
-    # def download_image_in_cache(self, url):
-    #     # Check if the image is already in the cache
-    #     if url in self.image_cache:
-    #         print("Roon.download_image_in_cache> image found in cache", url)
-    #         return BytesIO(self.image_cache[url])
-    #
-    #     # Download the image from the URL
-    #     response = requests.get(url)
-    #     if response.status_code == 200:
-    #         # Cache the image data in memory
-    #         image_data = response.content
-    #         self.image_cache[url] = image_data
-    #
-    #         return BytesIO(image_data)
-    #     else:
-    #         print(f"Failed to download image from {url}")
-    #         return None
-
-
     def roon_callback(self, event, changed_zone):
         """Call when something changes in roon."""
 

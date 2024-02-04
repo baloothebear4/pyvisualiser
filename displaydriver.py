@@ -175,7 +175,7 @@ class Bar(Geometry):
         self.right_offset = right_offset
         self.alignment  = align
 
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         self.resize( box_size )
         self.align(self.alignment)
 
@@ -276,7 +276,7 @@ class Image(Geometry):
     def __init__(self, platform, bounds, wh=None, align=('centre', 'middle'), path=None):
         self.platform     = platform
         self.image_cache = {}
-        Geometry.__init__(self, bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         if wh is None:
             self.resize( self.boundswh )
             self.align(align)
@@ -321,7 +321,7 @@ class Lightback(Geometry):
     # Draw the colorful arc background for the full frame
     def __init__(self, platform, bounds, wh=None):
         self.platform = platform
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         if wh is None: wh = self.boundswh
         self.resize( wh )
         dark_blue = (0, 0, 100)  # Dark blue color
@@ -353,7 +353,7 @@ class ArcsOctaves(Geometry):
 
 
         self.NumOcts = NumOcts
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         if wh==None: wh=self.boundswh
         self.resize( wh )
         self.align(self.alignment)
@@ -396,7 +396,7 @@ class Box(Geometry):
         self.radius   = radius
         self.alignment    = align
 
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         box = self.boundswh if box is None else box
         self.resize( box )
         self.align(self.alignment)
@@ -437,7 +437,7 @@ class Line(Geometry):
         self.tick_pc   = tick_pc
         self.linespace = []   # array of line circles
         self.amp_scale = amp_scale
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         self.resize( self.boundswh )
         self.align(self.alignment)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
@@ -557,7 +557,7 @@ class Text(Geometry):
         self.theme    = theme
         self.colours  = Colour(theme, 100)
         self.colour_index = colour_index
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         self.resize( self.boundswh )
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
@@ -624,7 +624,7 @@ class Dots(Geometry):
         self.dotspace   = []
         self.dotcount   = dotcount
         self.amp_scale  = amp_scale
-        Geometry.__init__(self, bounds=bounds)
+        Geometry.__init__(self, bounds, platform.wh)
         self.resize( self.boundswh )
         self.align(self.alignment)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1

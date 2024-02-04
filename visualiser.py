@@ -52,7 +52,7 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TestScreen'
+        self.baseScreen     = 'TrackSpectrumScreen3'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
 
