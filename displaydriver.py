@@ -2,7 +2,7 @@
 """
 7.9" DSI Display driver classes
 
-Low level display dynamics
+Low level platform dynamics
 
 baloothebear4
 
@@ -167,17 +167,17 @@ class Bar(Geometry):
         - left or right
         - peak lines
     """
-    def __init__(self, display, bounds, Halign='centre', Valign='bottom', \
+    def __init__(self, platform, bounds, align=('centre', 'bottom'), \
                  box_size=(100,100), led_h=10, led_gap=4, peak_h=1, right_offset=0, \
                  theme='std', flip=False, radius=0, tip=False, orient='vert', col_mode=None):
 
-        self.display = display
+        self.platform = platform
         self.right_offset = right_offset
-        self.Halign  = Halign
-        self.Valign  = Valign
+        self.alignment  = align
+
         Geometry.__init__(self, bounds=bounds)
         self.resize( box_size )
-        self.align(self.Halign, self.Valign)
+        self.align(self.alignment)
 
         self.led_h      = led_h
         self.led_gap    = led_gap
@@ -194,45 +194,47 @@ class Bar(Geometry):
     def draw_peak(self, peak_h, flip, peak_coords):
         if peak_h> 0.0:
             colour = self.colours.get( colour_index=peak_h , flip=flip)  #
-            pygame.draw.rect(self.display.screen, colour, peak_coords)
+            pygame.draw.rect(self.platform.screen, colour, peak_coords)
 
     def draw(self, offset, ypc, w, peak=0, colour_index=None):
         self.tip_radius = int(w/2)
         if self.orient == 'horz':
             self.drawH(offset, ypc, w, peak, colour_index)
-            return()
+        else:
+            self.drawV(offset, ypc, w, peak, colour_index)
 
+    def drawV(self, offset, ypc, w, peak=0, colour_index=None):
         """ Draw Vertical Bar """
         if self.flip:
-            coords = self.abs_rect( self.display.h, offset=(offset, 0),  wh=[w, self.h*ypc] )
+            coords = self.abs_rect( offset=(offset, 0),  wh=[w, self.h*ypc] )
 
             for led_y in range( int(coords[1]), int(coords[1]+coords[3]) ,(self.led_h+self.led_gap)):
                 colour = self.colours.get(led_y-coords[1], False) if colour_index is None else self.colours.get(colour_index) # height based
-                pygame.draw.rect(self.display.screen, colour, (coords[0], led_y, coords[2], self.led_h), border_radius=self.radius)
+                pygame.draw.rect(self.platform.screen, colour, (coords[0], led_y, coords[2], self.led_h), border_radius=self.radius)
             else:
                 if self.tip and ypc>0:
                     colour = self.colours.get(coords[3], not self.flip) if colour_index is None else self.colours.get(colour_index)
-                    pygame.draw.rect(self.display.screen, colour, (coords[0], coords[1]+coords[3], coords[2], self.led_h), border_bottom_left_radius=self.tip_radius, border_bottom_right_radius=self.tip_radius )
+                    pygame.draw.rect(self.platform.screen, colour, (coords[0], coords[1]+coords[3], coords[2], self.led_h), border_bottom_left_radius=self.tip_radius, border_bottom_right_radius=self.tip_radius )
 
-            pcoords = self.abs_rect( self.display.h, offset=(offset, peak*self.h),  wh=[w, self.peak_h] )
+            pcoords = self.abs_rect( offset=(offset, peak*self.h),  wh=[w, self.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw (flip)> coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak)
         else:
-            coords = self.abs_rect( self.display.h, offset=(offset, self.h*(1-ypc)),  wh=[w, self.h*ypc] )
+            coords = self.abs_rect( offset=(offset, self.h*(1-ypc)),  wh=[w, self.h*ypc] )
             # print("Bar.draw V> coords", coords)
             for led_y in range( int(coords[1]+coords[3]), int(coords[1]) ,-(self.led_h+self.led_gap)):
                 col    = coords[1] + coords[3]-led_y
                 colour = self.colours.get(col, False) if colour_index is None else self.colours.get(colour_index) # height based
 
-                pygame.draw.rect(self.display.screen, colour, (coords[0], led_y , coords[2], self.led_h), border_radius=self.radius )
+                pygame.draw.rect(self.platform.screen, colour, (coords[0], led_y , coords[2], self.led_h), border_radius=self.radius )
             else:
                 if self.tip and ypc>0:
                     col    = coords[3] #self.led_h+self.led_gap
                     colour = self.colours.get(col, self.flip) if colour_index is None else self.colours.get(colour_index) # height based
-                    pygame.draw.rect(self.display.screen, colour, (coords[0], coords[1], coords[2], self.led_h), border_top_left_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
+                    pygame.draw.rect(self.platform.screen, colour, (coords[0], coords[1], coords[2], self.led_h), border_top_left_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
 
-            pcoords = self.abs_rect( self.display.h, offset=(offset, self.h*(1-peak)),  wh=[w, self.peak_h] )
+            pcoords = self.abs_rect( offset=(offset, self.h*(1-peak)),  wh=[w, self.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw > coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak, "col", col)
@@ -241,47 +243,47 @@ class Bar(Geometry):
     def drawH(self, offset, ypc, w, peak=0, colour_index=None):
 
         if self.flip:
-            coords = self.abs_rect( self.display.h, offset=(self.w*(1-ypc), offset),  wh=[self.w*ypc, w] )
+            coords = self.abs_rect( offset=(self.w*(1-ypc), offset),  wh=[self.w*ypc, w] )
             # print("Bar.drawH - flip> coords", coords)
             for led_l in range( int(coords[0]+ coords[2]), int(coords[0]) ,-(self.led_h+self.led_gap)):
                 colour = self.colours.get(coords[0]+ coords[2]-led_l, False) if colour_index is None else self.colours.get(colour_index)
-                pygame.draw.rect(self.display.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
+                pygame.draw.rect(self.platform.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
             else:
                 if self.tip and ypc>0:
                     colour = self.colours.get(coords[2], True) if colour_index is None else self.colours.get(colour_index)
-                    pygame.draw.rect(self.display.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_left_radius=self.tip_radius, border_top_left_radius=self.tip_radius )
+                    pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_left_radius=self.tip_radius, border_top_left_radius=self.tip_radius )
 
             peak_w  = self.w*(1-peak)
-            pcoords = self.abs_rect( self.display.h, offset=(peak_w, offset),  wh=[self.peak_h, w] )
+            pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
             self.draw_peak(peak_w, True, pcoords)
 
         else:
-            coords = self.abs_rect( self.display.h, offset=(0, offset),  wh=[self.w*ypc, w] )
+            coords = self.abs_rect( offset=(0, offset),  wh=[self.w*ypc, w] )
             # print("Bar.drawH> coords", coords)
             for led_l in range( int(coords[0]), int(coords[0]+ coords[2]) ,(self.led_h+self.led_gap)):
                 colour = self.colours.get(led_l-coords[0], self.flip) if colour_index is None else self.colours.get(colour_index)
-                pygame.draw.rect(self.display.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
+                pygame.draw.rect(self.platform.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
             else:
                 if self.tip and ypc>0:
                     colour = self.colours.get(coords[2], False) if colour_index is None else self.colours.get(colour_index)
-                    pygame.draw.rect(self.display.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_right_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
+                    pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_right_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
 
             peak_w  = peak * self.w
-            pcoords = self.abs_rect( self.display.h, offset=(peak_w, offset),  wh=[self.peak_h, w] )
+            pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
 class Image(Geometry):
-    def __init__(self, display, bounds, wh=None, Halign='centre', Valign='bottom', path=None):
-        self.display     = display
+    def __init__(self, platform, bounds, wh=None, align=('centre', 'middle'), path=None):
+        self.platform     = platform
         self.image_cache = {}
         Geometry.__init__(self, bounds)
         if wh is None:
             self.resize( self.boundswh )
-            self.align(Halign, Valign)
+            self.align(align)
         if path is not None:
             wh = self.scaleInProportion(path, self.wh[1])
             self.resize( wh )
-            self.align(Halign, Valign)
+            self.align(align)
 
     def download_image(self, url):
         response = requests.get(url)
@@ -313,12 +315,12 @@ class Image(Geometry):
         if image_data is not None:
             self.scaleInProportion(image_data, self.h)
 
-        self.display.screen.blit(self.image, self.abs_origin(self.display.h))
+        self.platform.screen.blit(self.image, self.abs_origin())
 
 class Lightback(Geometry):
     # Draw the colorful arc background for the full frame
-    def __init__(self, display, bounds, wh=None):
-        self.display = display
+    def __init__(self, platform, bounds, wh=None):
+        self.platform = platform
         Geometry.__init__(self, bounds=bounds)
         if wh is None: wh = self.boundswh
         self.resize( wh )
@@ -340,21 +342,21 @@ class Lightback(Geometry):
 
     def draw(self):
         # Blit the glow surface onto the screen
-        self.display.screen.blit(self.glow_surface, self.abs_origin(self.display.h) )
+        self.platform.screen.blit(self.glow_surface, self.abs_origin() )
 
 
 class ArcsOctaves(Geometry):
     """ Lines are for drawing meter needles, oscilogrammes etc """
-    def __init__(self, display, bounds, wh=None, colour=None, Halign='centre', Valign='middle', theme='std', NumOcts=5):
-        self.display = display
-        self.Halign  = Halign
-        self.Valign  = Valign
+    def __init__(self, platform, bounds, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5):
+        self.platform = platform
+        self.alignment  = align
+
 
         self.NumOcts = NumOcts
         Geometry.__init__(self, bounds=bounds)
         if wh==None: wh=self.boundswh
         self.resize( wh )
-        self.align(self.Halign, self.Valign)
+        self.align(self.alignment)
         self.scalar  = self.h/(NumOcts)/2
         self.colour  = Colour(theme,12)
 
@@ -376,7 +378,7 @@ class ArcsOctaves(Geometry):
             if np.isinf(notes[i]): break
             amp = int(self.bounds( (notes[i]*self.scalar),0,100))
             colour = self.colour.get(i) #need to work out how many colours there needs to be
-            pygame.draw.arc(self.display.screen, colour, [self.centre[0]-box//2,self.centre[1]-box//2, box, box], arc*i+top, arc*i+(0.9*arc)+top, amp)
+            pygame.draw.arc(self.platform.screen, colour, [self.centre[0]-box//2,self.centre[1]-box//2, box, box], arc*i+top, arc*i+(0.9*arc)+top, amp)
             # print("ArcsOctaves.draw> a", a, "note", i, "octave", octave)
 
     def bounds(self, v, a=0, b=255):
@@ -388,16 +390,16 @@ class ArcsOctaves(Geometry):
             return v
 
 class Box(Geometry):
-    def __init__( self, display, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, Halign='centre', Valign='middle' ):
-        self.display = display
-        self.width   = box[1] if width is None else width
-        self.radius  = radius
-        self.Halign  = Halign
-        self.Valign  = Valign
+    def __init__( self, platform, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
+        self.platform = platform
+        self.width    = box[1] if width is None else width
+        self.radius   = radius
+        self.alignment    = align
+
         Geometry.__init__(self, bounds=bounds)
         box = self.boundswh if box is None else box
         self.resize( box )
-        self.align(self.Halign, self.Valign)
+        self.align(self.alignment)
         self.colour_index = colour_index
         self.colours      = Colour(theme, self.w)
         # print("Box.init> wh", bounds, self.wh, self.geostr())
@@ -406,38 +408,38 @@ class Box(Geometry):
         if colour_index is None: colour_index = self.colour_index
         if wh is None: wh = self.wh
         if pc is not None: wh = [self.wh[0]*pc, self.wh[1]]
-        coords = self.abs_rect(offset=offset, screen_h=self.display.h, wh=wh)
+        coords = self.abs_rect(offset=offset,  wh=wh)
         colour = self.colours.get(colour_index)
-        pygame.draw.rect(self.display.screen, colour, coords, self.width)
-        # print("Box.draw> offset", self.display.h, offset, "coords", coords, "top", self.top, self.geostr())
+        pygame.draw.rect(self.platform.screen, colour, coords, self.width)
+        # print("Box.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
     def drawH(self, pc, flip=False, colour_index=None, offset=(0,0)):
         if flip:
-            coords = self.abs_rect( self.display.h, offset=(self.w*pc+offset[0], offset[1]),  wh=[self.w*(1-pc), self.width] )
+            coords = self.abs_rect( offset=(self.w*pc+offset[0], offset[1]),  wh=[self.w*(1-pc), self.width] )
         else:
-            coords = self.abs_rect( self.display.h, offset=offset,  wh=[self.w*pc, self.width] )
+            coords = self.abs_rect( offset=offset,  wh=[self.w*pc, self.width] )
 
         colour = self.colours.get(self.w*pc, False) if colour_index is None else self.colours.get(colour_index)
-        pygame.draw.rect(self.display.screen, colour, coords, border_radius=self.radius )
+        pygame.draw.rect(self.platform.screen, colour, coords, border_radius=self.radius )
 
 """
 Lines are for drawing meter needles, oscilogrammes etc
 """
 class Line(Geometry):
-    def __init__( self, display, bounds, colour_index=None, width=1, Halign='centre', Valign='middle', theme='std', \
+    def __init__( self, platform, bounds, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, tick_pc=1.0, amp_scale=0.9):
-        self.display = display
-        self.width   = width
-        self.Halign  = Halign
-        self.Valign  = Valign
-        self.circle  = circle
-        self.radius  = radius
-        self.tick_pc = tick_pc
+        self.platform  = platform
+        self.width     = width
+        self.alignment     = align
+
+        self.circle    = circle
+        self.radius    = radius
+        self.tick_pc   = tick_pc
         self.linespace = []   # array of line circles
         self.amp_scale = amp_scale
         Geometry.__init__(self, bounds=bounds)
         self.resize( self.boundswh )
-        self.align(self.Halign, self.Valign)
+        self.align(self.alignment)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
@@ -446,10 +448,10 @@ class Line(Geometry):
 
     def draw(self, offset, colour_index=0):   #(x,y) offset
         if colour_index is None: colour_index = self.colour_index
-        coords = self.abs_rect(self.display.h)
+        coords = self.abs_rect()
         colour = self.colours.get(colour_index)
-        pygame.draw.line(self.display.screen, colour, coords, self.width)
-        # print("Line.draw> offset", self.display.h, offset, "coords", coords, "top", self.top, self.geostr())
+        pygame.draw.line(self.platform.screen, colour, coords, self.width)
+        # print("Line.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
 
     def drawFrameCentredVector(self, val, colour_index=None, width=0, amplitude=1.0, gain=0, tick_pc=None):
@@ -459,12 +461,12 @@ class Line(Geometry):
         if colour_index is None: colour_index = self.colour_index
         if width == 0: width = self.width
         if tick_pc is None: tick_pc = self.tick_pc
-        xy         = self.anglexy(val, self.radius, screen_h=self.display.h, amp_scale=amplitude, gain=gain)#, xyscale=self.xyscale)
-        ab         = self.anglexy(val, self.radius*(1-tick_pc), screen_h=self.display.h)#, xyscale=self.xyscale)
+        xy         = self.anglexy(val, self.radius,  amp_scale=amplitude, gain=gain)#, xyscale=self.xyscale)
+        ab         = self.anglexy(val, self.radius*(1-tick_pc))#, xyscale=self.xyscale)
 
         colour = self.colours.get(colour_index)  # Add a get col
         # print("Line.drawFrameCentredVector: val %f, ab %s, xy %s, yoff %f, len %d" % (val, ab, xy, self.centre_offset, self.radius))
-        pygame.draw.line(self.display.screen, colour, ab, xy, width)
+        pygame.draw.line(self.platform.screen, colour, ab, xy, width)
 
 
     def draw_mod_line(self, points, colour_index=None, amplitude=1.0):
@@ -478,25 +480,25 @@ class Line(Geometry):
 
         for i, v in enumerate(points):
             if self.circle:
-                line.append(self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude, screen_h=self.display.h, xyscale=self.xyscale) )
+                line.append(self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale) )
             else:
-                line.append(self.abs_origin( screen_h=self.display.h, offset=(xscale*i, yscale*(0.5+v)*amplitude) ))
+                line.append(self.abs_origin(  offset=(xscale*i, yscale*(0.5+v)*amplitude) ))
 
         colour_index = self.radius*(self.amp_scale*amplitude) if colour_index is None else 'alert' # Add a get col
         colour = self.colours.get(colour_index)
-        pygame.draw.lines(self.display.screen, colour, self.circle, line)
+        pygame.draw.lines(self.platform.screen, colour, self.circle, line)
         return line
 
     def make_ripple(self, size):
         wh     = (self.xyscale[0]*size, self.xyscale[1]*size)
-        xy     = self.abs_origin(screen_h=self.display.h, offset=(self.centre[0]-wh[0]//2, self.centre[1]-wh[1]//2))
+        xy     = self.abs_origin( offset=(self.centre[0]-wh[0]//2, self.centre[1]-wh[1]//2))
         return pygame.Rect(xy, wh)
 
     def draw_mod_ripples(self, points, trigger={}, colour_index=None, amplitude=1.0):
         xc, yc       = self.centre[0], self.centre[1]
         aspect_ratio = self.w/self.h
         xyscale      = (aspect_ratio, 1.0) if self.w > self.h else (1.0, aspect_ratio)
-        frame        = pygame.Rect(self.abs_rect(screen_h=self.display.h))
+        frame        = pygame.Rect(self.abs_rect(screen_h=self.platform.h))
         gain         = 1.01
         col          = 'light'
 
@@ -521,16 +523,16 @@ class Line(Geometry):
             self.linespace.append((ripple,colour))
 
         for ripple in self.linespace:
-            pygame.draw.ellipse(self.display.screen, ripple[1], ripple[0], width=1)
+            pygame.draw.ellipse(self.platform.screen, ripple[1], ripple[0], width=1)
 
     def drawFrameCentredArc(self, val, colour_index=None):
         if colour_index is None: colour_index = self.colour_index
-        xy     = self.anglexy(val, self.radius, screen_h=self.display.h)
+        xy     = self.anglexy(val, self.radius)
         colour = self.colours.get(colour_index)  # Add a get col
         arcwh  = [self.radius*2, self.radius*2]
-        coords = self.abs_centre(screen_h=self.display.h, offset=(-arcwh[0]/2, -arcwh[1]/2) )+arcwh
+        coords = self.abs_centre( offset=(-arcwh[0]/2, -arcwh[1]/2) )+arcwh
         # print("Line.drawFrameCentredArc>", coords, self.h*(self.centre_offset), self.geostr())
-        pygame.draw.arc(self.display.screen, colour, coords, 3*PI/2+self.endstops[0], 3*PI/2+self.endstops[1], self.width)
+        pygame.draw.arc(self.platform.screen, colour, coords, 3*PI/2+self.endstops[0], 3*PI/2+self.endstops[1], self.width)
 
 
 class Text(Geometry):
@@ -543,11 +545,11 @@ class Text(Geometry):
     """
     TYPEFACE = 'arial'
 
-    def __init__(self, display, bounds, text='Default text', fontmax=0, Halign='centre', Valign='middle', reset=False, \
+    def __init__(self, platform, bounds, text='Default text', fontmax=0, align=('right', 'middle'), reset=False, \
                  endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme='std', colour_index=None):  #Create a font to fit a rectangle
-        self.display  = display
-        self.Halign   = Halign
-        self.Valign   = Valign
+        self.platform = platform
+        self.alignment    = align
+
         self.text     = text
         self.fontmax  = int(fontmax) # if this is zero then the largest possible is calculated
         self.reset    = reset
@@ -565,7 +567,7 @@ class Text(Geometry):
         # if self.reset: self.fontsize = 0
         self.font, self.fontwh = self.scalefont(self.boundswh, self.text)  # You can specify a font
         if self.reset: self.resize( self.fontwh )
-        self.align(self.Halign, self.Valign)
+        self.align(self.alignment)
         # print("Text.update>  wh %s, font size %d, fontwh %s, text<%s> " % (self.wh, self.fontsize, self.fontwh, self.text ))
 
     def scalefont(self, wh, text, min=3):  #scale the font to fit the rect, with a min fontsize
@@ -582,19 +584,19 @@ class Text(Geometry):
 
     def draw(self, text='', offset=(0,0), coords=None, colour_index=None):  #Draw the text in the corner of the frame
         if text   == ''    : text   = self.text
-        if coords == None  : coords = self.abs_rect(self.display.h, offset=(0, 0))
+        if coords == None  : coords = self.abs_rect()
         if self.reset      : self.update(text)
         if colour_index is None: colour_index = self.colour_index
         colour = self.colours.get(colour_index)
 
         info = self.font.render(text, True, colour)
-        self.display.screen.blit(info,coords)  # position the text upper left
+        self.platform.screen.blit(info,coords)  # position the text upper left
 
         # print("Text.draw > ", self.reset, text, offset, coords, colour, colour_index, self.anglestr())
         return coords
 
     def drawVectoredText(self, text='', val=0, offset=(0,0), coords=None, colour_index=0):
-        xy  = self.anglexy(val, self.radius, screen_h=self.display.h)
+        xy  = self.anglexy(val, self.radius)
         size = self.textsize(text)
         text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
         self.draw(text=text, coords=text_offset, colour_index=colour_index)
@@ -611,20 +613,20 @@ class Text(Geometry):
 Dots are for drawing circles on progress bars, mood dots in space on visualisers etc
 """
 class Dots(Geometry):
-    def __init__( self, display, bounds, colour_index=None, width=1, Halign='centre', Valign='middle', theme='std', \
+    def __init__( self, platform, bounds, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=1000):
-        self.display = display
-        self.width   = width
-        self.Halign  = Halign
-        self.Valign  = Valign
-        self.circle  = circle
-        self.radius  = radius*0.5
-        self.dotspace = []
-        self.dotcount = dotcount
-        self.amp_scale    = amp_scale
+        self.platform   = platform
+        self.width      = width
+        self.alignment      = align
+
+        self.circle     = circle
+        self.radius     = radius*0.5
+        self.dotspace   = []
+        self.dotcount   = dotcount
+        self.amp_scale  = amp_scale
         Geometry.__init__(self, bounds=bounds)
         self.resize( self.boundswh )
-        self.align(self.Halign, self.Valign)
+        self.align(self.alignment)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
@@ -633,10 +635,10 @@ class Dots(Geometry):
 
     def draw_circle(self, offset, colour_index=0):   #(x,y) offset
         if colour_index is None: colour_index = self.colour_index
-        coords = self.abs_rect(self.display.h)
+        coords = self.abs_rect()
         colour = self.colours.get(colour_index)
-        pygame.draw.ellipse(self.display.screen, colour, coords, self.width)
-        # print("Dots.draw> offset", self.display.h, offset, "coords", coords, "top", self.top, self.geostr())
+        pygame.draw.ellipse(self.platform.screen, colour, coords, self.width)
+        # print("Dots.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
     def draw_mod_dots(self, points, trigger={}, colour_index=None, amplitude=1.0):
         size         = len(points)
@@ -665,18 +667,18 @@ class Dots(Geometry):
         # if 'bass' in trigger:
 
         for i, v in enumerate(points):
-            # xy = self.anglexy(i/size, self.radius, gain=1.5, amp_scale=abs(v), xyscale=(xscale,1.0), screen_h=self.display.h)
-            xy = self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude, screen_h=self.display.h, xyscale=self.xyscale)
+            # xy = self.anglexy(i/size, self.radius, gain=1.5, amp_scale=abs(v), xyscale=(xscale,1.0))
+            xy = self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale)
             if v>0.00: self.dotspace.append([ int(xy[0]),int(xy[1]),colour])
 
             # Draw the dot space and calculate the velocities
         for dot in self.dotspace:
             # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size)
-            self.display.screen.set_at( (dot[0], dot[1]), dot[2] )
+            self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
 
 
 class GraphicsDriver:
-    """ Pygame based display """
+    """ Pygame based platform """
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
@@ -727,7 +729,7 @@ class GraphicsDriver:
     def wh(self):
         return (self.w, self.h)
 
-    def end(self):
+    def graphics_end(self):
         pygame.quit()
 
     def checkKeys(self):
@@ -741,38 +743,38 @@ class GraphicsDriver:
 """
 Test code
 """
-from    framecore import Frame, Geometry
-from    events import Events
-
-e        = Events(( 'Platform', 'CtrlTurn', 'CtrlPress', 'VolKnob', 'Audio', 'RemotePress'))
-d        = GraphicsDriver(e, 60)
-f        = Frame(platform=None, bounds=d.boundary, display=d, scalers=(1.0,1.0), Valign='top', Halign='left')
-
-# p = Platform(events)
-# self.events         = Events(( 'Audio', 'KeyPress'))
-# self.platform       = Platform(self.events)
-
-
-def testBar():
-
-    # b = Bar()
-    d.draw_start('test')
-    # def drawFrameBar(self, geo, x, ypc, w, colour ):
-    d.drawFrameBar(f, 10, 0.1, 10, Screen.white)
-    #
-    d.draw()
-
-    d.end()
-
-
-
-if __name__ == "__main__":
-    try:
-        # geometrytest()
-        # frametest('front')
-        testBar()
-
-        time.sleep(10)
-
-    except KeyboardInterrupt:
-        pass
+# from    framecore import Frame, Geometry
+# from    events import Events
+#
+# e        = Events(( 'Platform', 'CtrlTurn', 'CtrlPress', 'VolKnob', 'Audio', 'RemotePress'))
+# d        = GraphicsDriver(e, 60)
+# f        = Frame(platform=d, scalers=(1.0,1.0), align=('left','top'))
+#
+# # p = Platform(events)
+# # self.events         = Events(( 'Audio', 'KeyPress'))
+# # self.platform       = Platform(self.events)
+#
+#
+# def testBar():
+#
+#     # b = Bar()
+#     d.draw_start('test')
+#     # def drawFrameBar(self, geo, x, ypc, w, colour ):
+#     d.drawFrameBar(f, 10, 0.1, 10, Screen.white)
+#     #
+#     d.draw()
+#
+#     d.end()
+#
+#
+#
+# if __name__ == "__main__":
+#     try:
+#         # geometrytest()
+#         # frametest('front')
+#         testBar()
+#
+#         time.sleep(10)
+#
+#     except KeyboardInterrupt:
+#         pass

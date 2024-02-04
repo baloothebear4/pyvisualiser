@@ -26,9 +26,10 @@ PI = 3.14152
 # from platform   import Platform         # used for Test purposes
 
 class Geometry():
-    def __init__(self, bounds=[0,0,0,0]):
+    def __init__(self, bounds=None, screen_wh=(1280,400)):
         self._abcd          = [0,0,0,0]
-        self._bounds        = bounds
+        self._bounds        = [0,0, screen_wh[0]-1, screen_wh[1]-1] if bounds is None else bounds
+        self.screen_wh      = screen_wh
         self.min_offset     = 0
         self.circle_scale   = 1
         self.centre_offset  = 0  #PC of the height offsets the centre of a circle eg -0.5 moves to the bottom
@@ -163,7 +164,6 @@ class Geometry():
         xyscale      = (aspect_ratio, 1.0) if self.w > self.h else (1.0, aspect_ratio)
         return xyscale
 
-    """ calculating the size will need to be more dynamic if the drawing could exceed the bounds """
     def size(self, abcd):
         w = abcd[2] - abcd[0] + 1
         h = abcd[3] - abcd[1] + 1
@@ -243,20 +243,20 @@ class Geometry():
         # return [self._bounds[0]+self.a, self._bounds[1]+self.b, self._bounds[0]+self.w, self._bounds[1]+self.h]
 
     """ return the absolute coordinates for drawing on screen, using TopLeft ordinates """
-    def abs_origin(self, screen_h=0, offset=(0, 0)): # Return (x, y)
+    def abs_origin(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
-        origin = (int(self.x0+offset[0]), int(screen_h- (self.y0-offset[1]+self.h-1)) )
+        origin = (int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0-offset[1]+self.h-1)) )
         return origin
 
-    def abs_centre(self, screen_h=0, offset=(0, 0)): # Return (x, y)
+    def abs_centre(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
-        origin = [self.centre[0]+offset[0], screen_h- (self.centre[1]+self.h*(self.centre_offset)-offset[1]-1) ]  #-self.h deleted from this
+        origin = [self.centre[0]+offset[0], self.screen_wh[1]- (self.centre[1]+self.h*(self.centre_offset)-offset[1]-1) ]  #-self.h deleted from this
         # print("Geometry.abs_centre>", self.centre, origin)
         return origin
 
-    def abs_rect(self, screen_h=0, offset=(0, 0), wh=None):  # Return (x, y, w, h)
+    def abs_rect(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
         wh = [self.wh[0], self.wh[1]] if wh is None else wh
-        rect = [int(self.x0+offset[0]), int(screen_h- (self.y0+self.h-offset[1]-1)) ] + wh
+        rect = [int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0+self.h-offset[1]-1)) ] + wh
         return rect
 
     def theta(self, val):    # return an angle in radians from a value range -1 to +1
@@ -265,12 +265,12 @@ class Geometry():
     def arctheta(self, angle): # return a value range -1 to +1 from an angle in radians
         return (angle-PI/2)/PI
 
-    def anglexy(self, val_pc, radius, gain=0, amp_scale=1, screen_h=0, xyscale=(1,1) ):
+    def anglexy(self, val_pc, radius, gain=0, amp_scale=1, xyscale=(1,1) ):
         # Assume that 0 (abs) val_pc is 0600, PI is 0600, by default 0 val angle = first end stop
         # xscale is to create eliptical shapes
         theta = self.theta(self.min_offset+self.circle_scale*val_pc) #to make sure this aligns at 0 = 0600
-        xy = [self.centre[0]+xyscale[0]*radius*(amp_scale+gain)*np.sin(theta), (screen_h)-(self.centre[1]+self.h*(self.centre_offset)+xyscale[1]*radius*(amp_scale+gain)*np.cos(theta) )]
-        # print("Geometry.anglexy>theta %2.2f xy %s, radius %f, gain %2.2f, val_pc %2.2f, amp_scale %f, centre %s, centre_offset %f, screen_h %d" % (theta, xy, radius, gain, val_pc, amp_scale, self.centre, self.centre_offset, screen_h))
+        xy = [self.centre[0]+xyscale[0]*radius*(amp_scale+gain)*np.sin(theta), (self.screen_wh[1])-(self.centre[1]+self.h*(self.centre_offset)+xyscale[1]*radius*(amp_scale+gain)*np.cos(theta) )]
+        # print("Geometry.anglexy>theta %2.2f xy %s, radius %f, gain %2.2f, val_pc %2.2f, amp_scale %f, centre %s, centre_offset %f, self.screen_wh[1] %d" % (theta, xy, radius, gain, val_pc, amp_scale, self.centre, self.centre_offset, self.screen_wh[1]))
         return xy
 
     def anglescale(self, radius, endstops=[0,2*PI], centre_offset=0):
@@ -336,9 +336,9 @@ class Geometry():
         return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords))
 
     def geostr(self, s=0):
-        return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, abs rect %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(s), self.abs_rect(s)))
+        return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, abs rect %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect()))
 
-    def align(self, Halign='left', Valign='top'):
+    def align(self, align=('centre', 'middle')):
         """
             align will use the anchors: 'top, middle, bottom', 'left, centre, right' to set the
             coordinates of the Frame within the boundary
@@ -346,8 +346,8 @@ class Geometry():
         # parse V and H alignment anchors
         # check that the frame is still in bounds
         # this is where the frame coordiantes are setup
-        self.V          = Valign
-        self.H          = Halign
+        self.V          = align[1]
+        self.H          = align[0]
         # print("Geometry.align> top %d, right %d, abcd %s, wh %s, V=%s, H=%s" % (self.top, self.right, self.abcd, self.wh, self.V, self.H))
 
         if self.V   == 'top':
@@ -387,20 +387,25 @@ class Frame(Geometry):
         - the geometry of a Frame is always relative to the parent
         - a Frame itself can contain other frames that can be positioned with the frame
         - checks are performed to see the coordinates given do not take the Frame outside the bounds
+
+        bounds      is the physical coordinates of the Frame (bottom left), (top right)
+        platform    is the set of objects that enable access to data sets, screen drivers and graphics
+        scalers     is the
     """
 
-    def __init__(self, bounds=[0,0,0,0], platform=None, display=None, scalers=[1.0,1.0], Valign='bottom', Halign='left', square=False):
+    def __init__(self, platform=None, bounds=None, scalers=[1.0,1.0], align=('left', 'bottom'), square=False):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
+            align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
             bounds is list of the bottom left and upper right corners eg (64,32)
         """
-        Geometry.__init__(self, bounds)
         self.platform   = platform    #only needed by the top Frame or Screen, as is passed on draw()
         self.frames     = []         #Holds the stack of containing frames
-        self.display    = display
-        # xy = (scalers[0] * self.xyscale[0], scalers[1] * self.xyscale[1]) if square else scalers
+        # self.display    = platform.display
+
+        Geometry.__init__(self, bounds, platform.wh)
         self.scale(scalers)
-        self.align(Halign, Valign)
+        self.align(align)
 
         if square:
             xy = (scalers[0] * self.xyscale[0], scalers[1] * self.xyscale[1])
@@ -410,7 +415,7 @@ class Frame(Geometry):
                 xy=(self.w+1, self.w)
             # print("Frame.__init__> square", square, self.xyscale, xy, self, self.geostr())
             self.resize(xy)
-            self.align(Halign, Valign)
+            self.align(align)
         # print("Frame.__init__> square", square, self.xyscale, scalers, self, self.geostr())
 
 
@@ -425,11 +430,11 @@ class Frame(Geometry):
             # if hasattr(f, 'undraw'):  f.undraw()
 
             not_changed = f.draw()
-            # if not_changed is None: self.display.refresh(self.abs_rect(screen_h=self.display.h))
-    # 
+            # if not_changed is None: self.display.refresh(self.abs_rect(self.screen_wh[1]=self.display.h))
+    #
     # def undraw(self):
     #     # print("Frame.undraw> generic", type(self).__name__)
-    #     self.display.fill(self.abs_rect(screen_h=self.display.h))
+    #     self.display.fill(self.abs_rect(self.screen_wh[1]=self.display.h))
 
     def frametext(self, f):
         return "%-10s > %s" % (type(f).__name__, super(Frame, f).__str__())

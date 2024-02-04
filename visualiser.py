@@ -21,23 +21,30 @@ import  time
 
 FPS    = 60
 
+""" Use this sub class the either stub out or setup the metadata source """
+class MetaData(Roon):
+    pass
+
 """ HW Platform providing display, audio and physical controls """
-class Platform(AudioProcessor, Roon):
-    def __init__(self, events, maxwh):
+class Platform(AudioProcessor, MetaData, GraphicsDriver):
+    def __init__(self, events):
+        GraphicsDriver.__init__(self, events, FPS)
         AudioProcessor.__init__(self, events)
-        Roon.__init__(self, events, maxwh=maxwh, target_name='MacViz + 1')
+        MetaData.__init__(self, events, maxwh=self.wh, target_name='MacViz + 1')
+
 
     def stop(self):
+        self.graphics_end()
         self.stop_capture()
         self.stop_roon()
+
 
 """ Event processor """
 class Controller:
     def __init__(self):
 
         self.events         = Events(( 'Audio', 'KeyPress', 'Roon'))
-        self.display        = GraphicsDriver(self.events, FPS)
-        self.platform       = Platform(self.events, maxwh=self.display.wh)
+        self.platform       = Platform(self.events)
 
         """ Setup the event callbacks """
         self.events.KeyPress  += self.KeyAction    # when the remote controller is pressed
@@ -45,14 +52,14 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TrackVisScreen3'
+        self.baseScreen     = 'TestScreen'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
         self.screenList = { TrackSpectrumScreen3, TestVisualiserScreen, TestVUMetersScreen, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackVUMeterScreen, \
-                            TrackVisScreen3, TrackVUMeterScreen2, TestVUScreen, TestSpectrumScreen}# ,  TestScreen, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
+                            TrackVisScreen3, TrackVUMeterScreen2, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
 
         """ Screen types are:   Control for utility messages like vol change,  Test to exercise functionality, Base for mixed visual displays """
 
@@ -61,7 +68,7 @@ class Controller:
         menuSequence  = []
 
         for screen in self.screenList:
-            self.screens.update( {screen.__name__ : screen(self.platform, self.display) })
+            self.screens.update( {screen.__name__ : screen(self.platform) })
             if screen.type != 'Control':  #ie create a menu from Test & Base screens
                 menuSequence.append(screen.__name__)
         self.screenmenu = ListNext(menuSequence, self.baseScreen)
@@ -77,7 +84,7 @@ class Controller:
 
     def stopAction(self):
         self.platform.stop()
-        self.display.end()
+
 
     def AudioAction(self, e):
         if e == 'capture':
@@ -150,13 +157,13 @@ class Controller:
 
         # main loop
         while(self.status != 'exit'):
-            self.display.checkKeys()
+            self.platform.checkKeys()
 
             if self.audioready>0:
 
-                self.display.draw_start(self.screens[self.activeScreen].title)
+                self.platform.draw_start(self.screens[self.activeScreen].title)
                 self.screens[self.activeScreen].draw()
-                self.display.draw_end()
+                self.platform.draw_end()
 
                 self.audioready = 0
 
