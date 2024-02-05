@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 import pygame, time
 from   pygame.locals import *
 import numpy as np
-from   framecore import Geometry
+from   framecore import Geometry, Frame
 from   textwrap import shorten, wrap
 from io import BytesIO
 import requests
@@ -535,7 +535,7 @@ class Line(Geometry):
         pygame.draw.arc(self.platform.screen, colour, coords, 3*PI/2+self.endstops[0], 3*PI/2+self.endstops[1], self.width)
 
 
-class Text(Geometry):
+class Text(Frame):
     """
     Text is all about creating words & numbers that are scaled to fit within
     rectangles
@@ -545,10 +545,8 @@ class Text(Geometry):
     """
     TYPEFACE = 'arial'
 
-    def __init__(self, platform, bounds, text='Default text', fontmax=0, align=('right', 'middle'), reset=False, \
+    def __init__(self, parent, text='Default text', fontmax=0, align=('right', 'middle'), reset=False, \
                  endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme='std', colour_index=None):  #Create a font to fit a rectangle
-        self.platform = platform
-        self.alignment    = align
 
         self.text     = text
         self.fontmax  = int(fontmax) # if this is zero then the largest possible is calculated
@@ -557,8 +555,7 @@ class Text(Geometry):
         self.theme    = theme
         self.colours  = Colour(theme, 100)
         self.colour_index = colour_index
-        Geometry.__init__(self, bounds, platform.wh)
-        self.resize( self.boundswh )
+        Frame.__init__(self, parent, align=align)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
 
@@ -567,7 +564,7 @@ class Text(Geometry):
         # if self.reset: self.fontsize = 0
         self.font, self.fontwh = self.scalefont(self.boundswh, self.text)  # You can specify a font
         if self.reset: self.resize( self.fontwh )
-        self.align(self.alignment)
+        self.align()
         # print("Text.update>  wh %s, font size %d, fontwh %s, text<%s> " % (self.wh, self.fontsize, self.fontwh, self.text ))
 
     def scalefont(self, wh, text, min=3):  #scale the font to fit the rect, with a min fontsize

@@ -30,6 +30,7 @@ class Geometry():
         self._abcd          = [0,0,0,0]
         self._bounds        = [0,0, screen_wh[0]-1, screen_wh[1]-1] if bounds is None else bounds
         self.screen_wh      = screen_wh
+        self.alignment      = ('centre', 'middle')
         self.min_offset     = 0
         self.circle_scale   = 1
         self.centre_offset  = 0  #PC of the height offsets the centre of a circle eg -0.5 moves to the bottom
@@ -338,7 +339,7 @@ class Geometry():
     def geostr(self, s=0):
         return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, abs rect %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect()))
 
-    def align(self, align=('centre', 'middle')):
+    def align(self, align=None):
         """
             align will use the anchors: 'top, middle, bottom', 'left, centre, right' to set the
             coordinates of the Frame within the boundary
@@ -346,29 +347,29 @@ class Geometry():
         # parse V and H alignment anchors
         # check that the frame is still in bounds
         # this is where the frame coordiantes are setup
-        self.V          = align[1]
-        self.H          = align[0]
+        if align is not None: self.alignment = align
+
         # print("Geometry.align> top %d, right %d, abcd %s, wh %s, V=%s, H=%s" % (self.top, self.right, self.abcd, self.wh, self.V, self.H))
 
-        if self.V   == 'top':
+        if self.alignment[1]   == 'top':
             self.move_cd( (self.c, self.top) )
             # move so that self.d = self.bounds.d
-        elif self.V == 'middle':
+        elif self.alignment[1] == 'middle':
             self.move_middle( int(self.top/2) )
             # move so that middle(self) = middle(self.bounds) : middle =
-        elif self.V == 'bottom':
+        elif self.alignment[1] == 'bottom':
             self.go_bottom()
             # move so that self.b = self.bounds.b
         else:
             raise ValueError('Frame.align: unknown vertical anchor (top, middle, bottom)->', self.V)
 
-        if self.H   == 'left':
+        if self.alignment[0]   == 'left':
             self.go_left()
             # move so that self.a = self.bounds.a
-        elif self.H == 'centre':
+        elif self.alignment[0] == 'centre':
             self.move_centre( int(self.right/2))
             # move so that centre(self) = centre(self.bounds)
-        elif self.H == 'right':
+        elif self.alignment[0] == 'right':
             self.move_cd( (self.right, self.d) )
             # move so that self.c = self.bounds.c
         else:
@@ -393,17 +394,23 @@ class Frame(Geometry):
         scalers     is the
     """
 
-    def __init__(self, platform=None, bounds=None, scalers=[1.0,1.0], align=('left', 'bottom'), square=False):
+    def __init__(self, parent, bounds=None, scalers=[1.0,1.0], align=('left', 'bottom'), square=False):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
             bounds is list of the bottom left and upper right corners eg (64,32)
         """
-        self.platform   = platform    #only needed by the top Frame or Screen, as is passed on draw()
         self.frames     = []         #Holds the stack of containing frames
-        # self.display    = platform.display
+        if isinstance(parent, Frame):
+            """ Sub-frame, so scale to the size of the parent Frame """
+            bounds = parent.coords if bounds is None else bounds
+            self.platform   = parent.platform
+        else:
+            """ Screen (aka top-level Frame), so scale to the boundary """
+            bounds = parent.boundary if bounds is None else bounds
+            self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
 
-        Geometry.__init__(self, bounds, platform.wh)
+        Geometry.__init__(self, bounds, self.platform.wh)
         self.scale(scalers)
         self.align(align)
 

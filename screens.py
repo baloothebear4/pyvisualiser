@@ -524,7 +524,7 @@ class TestScreen(Frame):
         self += SubFrame(platform, self.coords, (0.5,0.3), ('left','top'))
         self += SubFrame(platform, self.coords, (0.5,0.3), ('right','bottom'))
         # self += TestFrame(platform, scalers=(1.0, 0.5), align=('left','top'))
-        self += TextFrame(platform, self.coords, (0.5,0.3), ('centre','middle'), text='TextFrame')
+        self += TextFrame(self,  (0.5,0.3), ('centre','middle'), text='TextFrame')
 
 
 class SubFrame(Frame):
@@ -547,7 +547,7 @@ class TestFrame(Frame):
         Frame.__init__(self, platform, bounds, scalers, align)
         # self.outline = Outline(self, platform)
         self.box     = Box(platform, self.coords, box=(100,50), width=0, align=('right','top'))
-        self.text    = TextFrame(platform, self.coords, scalers=(1.0, 1.0), boxalign=('right','middle'), align=('right','top'), text=align[0]+align[1])
+        self.text    = TextFrame(self,  scalers=(1.0, 1.0), align=('right','top'), text=align[0]+align[1])
         # print("TestFrame.__init__>",  self.geostr())
 
     def draw(self):
