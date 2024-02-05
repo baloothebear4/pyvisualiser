@@ -147,12 +147,15 @@ class Geometry():
             self.c = wh[0] -1
         except ValueError:
             self.c = self.boundswh[0] -1
+            self.align()
             print("!!! Geometry.resize> outside bounds w %f, set to bounds, %s" % (wh[0], self.geostr()) )
         try:
             self.d = wh[1] -1
         except ValueError:
             self.d = self.boundswh[1] -1
+            self.align()
             print("!!! Geometry.resize> outside bounds h %f, set to bounds, %s" % (wh[1], self.geostr()) )
+        self.align()
         # print("Geometry.resize to ", wh, self.geostr())
 
     @property
@@ -394,7 +397,7 @@ class Frame(Geometry):
         scalers     is the
     """
 
-    def __init__(self, parent, bounds=None, scalers=[1.0,1.0], align=('left', 'bottom'), square=False):
+    def __init__(self, parent, bounds=None, scalers=[1.0,1.0], align=None, square=False):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
@@ -422,7 +425,7 @@ class Frame(Geometry):
                 xy=(self.w+1, self.w)
             # print("Frame.__init__> square", square, self.xyscale, xy, self, self.geostr())
             self.resize(xy)
-            self.align(align)
+
         # print("Frame.__init__> square", square, self.xyscale, scalers, self, self.geostr())
 
 

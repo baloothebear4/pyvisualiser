@@ -33,10 +33,10 @@ class TrackScreen(Frame):   # comprises volume on the left, spectrum on the righ
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'red'
-        self += AlbumArtFrame(platform, self.coords, (0.31, 1.0),align=('right','middle'))
-        self += MetaDataFrame(platform, self.coords, (0.38, 0.6), align=('centre','middle'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords, (0.38, 0.05), align=('centre','bottom'), theme=THEME)
-        self += VU2chHorzFrame(platform, self.coords, scalers=(0.3, 1.0), align=('left','top'), theme=THEME)
+        self += AlbumArtFrame(self  , scalers=(0.31, 1.0),align=('right','middle'))
+        self += MetaDataFrame(self  , scalers=(0.38, 0.6), align=('centre','middle'), theme=THEME)
+        self += PlayProgressFrame(self  , scalers=(0.38, 0.05), align=('centre','bottom'), theme=THEME)
+        self += VU2chHorzFrame(self  , scalers=(0.3, 1.0), align=('left','top'), theme=THEME)
 
 class TrackVisScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -48,10 +48,10 @@ class TrackVisScreen(Frame):   # comprises volume on the left, spectrum on the r
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'blue'
-        self += AlbumArtFrame(platform, self.coords, (0.31, 1.0),align=('left','middle'))
-        self += MetaDataFrame(platform, self.coords, (0.38, 0.6), align=('centre','middle'), theme=THEME)
-        self += Diamondiser(platform, self.coords, 'left', scalers=(0.31, 1.0), align=('right','middle'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords, (0.38, 0.05), align=('centre','bottom'), theme=THEME)
+        self += AlbumArtFrame(self  , scalers=(0.31, 1.0),align=('left','middle'))
+        self += MetaDataFrame(self  , scalers=(0.38, 0.6), align=('centre','middle'), theme=THEME)
+        self += Diamondiser(self  , 'left', scalers=(0.31, 1.0), align=('right','middle'), theme=THEME)
+        self += PlayProgressFrame(self  , scalers=(0.38, 0.05), align=('centre','bottom'), theme=THEME)
 
 class TrackVisScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -66,12 +66,12 @@ class TrackVisScreen2(Frame):   # comprises volume on the left, spectrum on the 
         ARTIST = {'artist': {'colour':'foreground', 'align': ('centre', 'top')}}
         TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
         ALBUM  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
-        # self += ArtistArtFrame(platform, self.coords, (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(platform, self.coords, (0.33, 0.2), align=('centre','top'), theme=THEME, show=ARTIST)
-        self += MetaDataFrame(platform, self.coords, (0.33, 0.2), align=('left','top'), theme=THEME, show=TRACK)        # self += ArtistArtFrame(platform, self.coords, (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(platform, self.coords, (0.33, 0.2), align=('right','top'), theme=THEME, show=ALBUM)
-        self += CircleModulator(platform, self.coords, 'mono', scalers=(0.6, 0.6), align=('centre','middle'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords, (1.0, 0.05), align=('centre','bottom'), theme=THEME)
+        # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
+        self += MetaDataFrame(self  , scalers=(0.33, 0.2), align=('centre','top'), theme=THEME, show=ARTIST)
+        self += MetaDataFrame(self  , scalers=(0.33, 0.2), align=('left','top'), theme=THEME, show=TRACK)        # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
+        self += MetaDataFrame(self  , scalers=(0.33, 0.2), align=('right','top'), theme=THEME, show=ALBUM)
+        self += CircleModulator(self  , 'mono', scalers=(0.6, 0.6), align=('centre','middle'), theme=THEME)
+        self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'), theme=THEME)
 
 class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -86,21 +86,21 @@ class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the 
         ARTIST = {'artist': {'colour':'foreground', 'align': ('centre', 'top')}}
         TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
         ALBUM  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
-        # self += ArtistArtFrame(platform, self.coords, (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(platform, self.coords,  (0.66, 0.5), align=('centre','top'), theme=THEME)
-        self += Diamondiser(platform, self.coords,  'left', scalers=(0.7, 0.7), align=('right','top'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords,  (1.0, 0.05), align=('centre','bottom'), theme=THEME)
-        self += SamplesFrame(platform, self.coords,  scalers=(1.0, 0.5), align=('left','bottom'), theme=THEME)
-        # self += VUFlipFrame(platform, self.coords, scalers=(0.5, 0.5), align=('left','top'), orient='horz', flip=True, theme=THEME)
-        # self += OscilogrammeBar(platform, self.coords, 'mono', (0.66,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
-        # self += OscilogrammeBar(platform, self.coords, 'mono', (0.33,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0)
+        # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
+        self += MetaDataFrame(self  ,  scalers=(0.66, 0.5), align=('centre','top'), theme=THEME)
+        self += Diamondiser(self  ,  'left', scalers=(0.7, 0.7), align=('right','top'), theme=THEME)
+        self += PlayProgressFrame(self  ,  scalers=(1.0, 0.05), align=('centre','bottom'), theme=THEME)
+        self += SamplesFrame(self  ,  scalers=(1.0, 0.5), align=('left','bottom'), theme=THEME)
+        # self += VUFlipFrame(self  , scalers=(0.5, 0.5), align=('left','top'), orient='horz', flip=True, theme=THEME)
+        # self += OscilogrammeBar(self  , 'mono', scalers=(0.66,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
+        # self += OscilogrammeBar(self  , 'mono', scalers=(0.33,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0)
 
 class SamplesFrame(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
-    def __init__(self, platform, bounds, scalers=(1.0, 1.0), align=('centre','middle'), theme='std'):
-        Frame.__init__(self, platform, bounds, scalers=scalers, align=align)
-        self += OscilogrammeBar(platform, self.coords,  'mono', (1.0,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
-        self += OscilogrammeBar(platform, self.coords,  'mono', (1.0,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0)
+    def __init__(self, parent, scalers=(1.0, 1.0), align=('centre','middle'), theme='std'):
+        Frame.__init__(self, parent, scalers=scalers, align=align)
+        self += OscilogrammeBar(self  ,  'mono', scalers=(1.0,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
+        self += OscilogrammeBar(self  ,  'mono', scalers=(1.0,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0)
 
 class TrackSpectrumScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -112,11 +112,11 @@ class TrackSpectrumScreen(Frame):   # comprises volume on the left, spectrum on 
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'blue'
-        self += AlbumArtFrame(platform, self.coords, (0.31, 1.0), align=('right','middle'))
-        self += MetaDataFrame(platform, self.coords, (0.38, 0.6), align=('centre','middle'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords, (0.38, 0.05), align=('centre','bottom'), theme=THEME)
-        self += SpectrumFrame(platform, self.coords,  'right', (0.31, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, theme=THEME, barw_min=5, bar_space=0.6)
-        self += SpectrumFrame(platform, self.coords,  'left', (0.31, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, theme=THEME, barw_min=5, bar_space=0.6)
+        self += AlbumArtFrame(self  , scalers=(0.31, 1.0), align=('right','middle'))
+        self += MetaDataFrame(self  , scalers=(0.38, 0.6), align=('centre','middle'), theme=THEME)
+        self += PlayProgressFrame(self  , scalers=(0.38, 0.05), align=('centre','bottom'), theme=THEME)
+        self += SpectrumFrame(self  ,  'right', scalers=(0.31, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, theme=THEME, barw_min=5, bar_space=0.6)
+        self += SpectrumFrame(self  ,  'left', scalers=(0.31, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, theme=THEME, barw_min=5, bar_space=0.6)
 
 class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -128,17 +128,17 @@ class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'white'
-        self += MetaArtFrame(platform, self.coords,  (0.5, 1.0),align=('right','middle'))
-        self += PlayProgressFrame(platform, self.coords,  (0.66, 0.05), align=('left','bottom'), theme=THEME)
-        self += SpectrumFrame(platform, self.coords,  'right', (0.5, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2)
-        self += SpectrumFrame(platform, self.coords,  'left', (0.5, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2 )
+        self += MetaArtFrame(self  ,  scalers=(0.5, 1.0),align=('right','middle'))
+        self += PlayProgressFrame(self  ,  scalers=(0.66, 0.05), align=('left','bottom'), theme=THEME)
+        self += SpectrumFrame(self  ,  'right', scalers=(0.5, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2)
+        self += SpectrumFrame(self  ,  'left', scalers=(0.5, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2 )
 
 class MetaArtFrame(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
-    def __init__(self, platform, bounds, scalers=(1.0, 1.0), align=('centre','middle'), theme='std'):
-        Frame.__init__(self, platform, bounds, scalers=scalers, align=align)
-        self += AlbumArtFrame(platform, self.coords,  (0.62, 1.0),align=('right','middle'))
-        self += MetaDataFrame(platform, self.coords,  (0.38, 1.0), align=('left','middle'), theme=theme)
+    def __init__(self, parent, scalers=(1.0, 1.0), align=('centre','middle'), theme='std'):
+        Frame.__init__(self, parent, scalers=scalers, align=align)
+        self += AlbumArtFrame(self  ,  scalers=(0.62, 1.0),align=('right','middle'))
+        self += MetaDataFrame(self  ,  scalers=(0.38, 1.0), align=('left','middle'), theme=theme)
 
 class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -150,15 +150,15 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'std'
-        # self += AlbumArtFrame(platform, self.coords, (0.31, 0.93),align=('right','top'))
+        # self += AlbumArtFrame(self  , (0.31, 0.93),align=('right','top'))
         ARTIST = {'artist': {'colour':'mid', 'align': ('centre', 'top')}}
         TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
-        # self += ArtistArtFrame(platform, self.coords, (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(platform, self.coords, (0.45, 0.2), align=('left','top'), theme=THEME, show=ARTIST)
-        self += MetaDataFrame(platform, self.coords, (0.45, 0.2), align=('right','top'), theme=THEME, show=TRACK)
-        self += PlayProgressFrame(platform, self.coords, (1.0, 0.05), align=('centre','bottom'), theme=THEME)
-        self += SpectrumFrame(platform, self.coords,  'right', (1.0, 0.5), align=('centre','bottom'), led_gap=0, flip=True, barw_min=3, bar_space=0.5, tip=True, theme=THEME )
-        self += SpectrumFrame(platform, self.coords,  'left', (1.0, 0.5), align=('centre','top'), led_gap=0, barw_min=3, bar_space=0.5, tip=True, theme=THEME )
+        # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
+        self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('left','top'), theme=THEME, show=ARTIST)
+        self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('right','top'), theme=THEME, show=TRACK)
+        self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'), theme=THEME)
+        self += SpectrumFrame(self  ,  'right', scalers=(1.0, 0.5), align=('centre','bottom'), led_gap=0, flip=True, barw_min=3, bar_space=0.5, tip=True, theme=THEME )
+        self += SpectrumFrame(self  ,  'left', scalers=(1.0, 0.5), align=('centre','top'), led_gap=0, barw_min=3, bar_space=0.5, tip=True, theme=THEME )
 
 class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -170,12 +170,12 @@ class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on t
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'blue'
-        # self += AlbumArtFrame(platform, self.coords, (0.25, 0.93),align=('right','middle'))
-        self += ArtistArtFrame(platform, self.coords, (0.4, 0.5),align=('left','top'))
-        self += MetaDataFrame(platform, self.coords, (0.4, 0.5), align=('left','bottom'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords, (0.6, 0.05), align=('right','bottom'), theme=THEME)
-        # self += VUMeterFrame1(platform, self.coords, scalers=(0.5,0.7), align=('centre','middle'))
-        self += VUMeterImageFrame(platform, self.coords, type='blueVU', scalers=(0.6,1.0), align=('right','top'))
+        # self += AlbumArtFrame(self  , scalers=(0.25, 0.93),align=('right','middle'))
+        self += ArtistArtFrame(self  , scalers=(0.4, 0.5),align=('left','top'))
+        self += MetaDataFrame(self  , scalers=(0.4, 0.5), align=('left','bottom'), theme=THEME)
+        self += PlayProgressFrame(self  , scalers=(0.6, 0.05), align=('right','bottom'), theme=THEME)
+        # self += VUMeterFrame1(self  , scalers=(0.5,0.7), align=('centre','middle'))
+        self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.6,1.0), align=('right','top'))
 
 class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -190,16 +190,16 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
         ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
         PIVOT     = -0.5
-        # self += AlbumArtFrame(platform, self.coords, (0.25, 0.93),align=('right','middle'))
-        # self += AlbumArtFrame(platform, self.coords, (0.3, 0.3),align=('centre','top'))
-        self += MetaDataFrame(platform, self.coords, (0.3, 0.5), align=('centre','middle'), theme=THEME)
-        self += PlayProgressFrame(platform, self.coords, (1.0, 0.05), align=('centre','bottom'), theme=THEME)
+        # self += AlbumArtFrame(self  , (0.25, 0.93),align=('right','middle'))
+        # self += AlbumArtFrame(self  , (0.3, 0.3),align=('centre','top'))
+        self += MetaDataFrame(self  , scalers=(0.3, 0.5), align=('centre','middle'), theme=THEME)
+        self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'), theme=THEME)
 
-        self += VUMeter(platform, self.coords,  'left', scalers=(0.35, 0.85), align=('left','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
-        self += VUMeter(platform, self.coords,  'right', scalers=(0.35, 0.85), align=('right','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
+        self += VUMeter(self  ,  'left', scalers=(0.35, 0.85), align=('left','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
+        self += VUMeter(self  ,  'right', scalers=(0.35, 0.85), align=('right','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
 
-        # self += VUMeterFrame1(platform, self.coords, scalers=(0.7,0.7), align=('left','middle'))
-        # self += Diamondiser(platform, self.coords, 'left', scalers=(0.3, 1.0), align=('right','middle'), theme=THEME)
+        # self += VUMeterFrame1(self  , scalers=(0.7,0.7), align=('left','middle'))
+        # self += Diamondiser(self  , 'left', scalers=(0.3, 1.0), align=('right','middle'), theme=THEME)
 
 
 """ VU Meters """
@@ -216,7 +216,7 @@ class VUImageScreen(Frame):
     def __init__(self, platform, type='blueVU'):
 
         Frame.__init__(self, platform)
-        self += VUMeterImageFrame(platform, self.coords, type=type, scalers=(0.5,0.5), align=('left','top'))
+        self += VUMeterImageFrame(self  , type=type, scalers=(0.5,0.5), align=('left','top'))
 
 
 
@@ -227,38 +227,38 @@ class SpectrumScreen(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        self += VolumeSourceFrame(platform, self.coords, 0.2, 'right')
-        self += SpectrumFrame(platform, self.coords, 'left', (0.8,1.0), align=('centre','middle'))
+        self += VolumeSourceFrame(self  , 0.2, 'right')
+        self += SpectrumFrame(self  , 'left', scalers=(0.8,1.0), align=('centre','middle'))
         self.check()
 
 class StereoSpectrumLRScreen(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        self += Spectrum2chFrame(platform, self.coords, (1.0,1.0), align=('centre','middle'))
+        self += Spectrum2chFrame(self  , scalers=(1.0,1.0), align=('centre','middle'))
         self.check()
 
 class FullSpectrumOffsetScreen(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        self += SpectrumStereoOffsetFrame(platform, self.coords, (1.0,1.0), align=('centre','middle'))
+        self += SpectrumStereoOffsetFrame(self  , scalers=(1.0,1.0), align=('centre','middle'))
         self.check()
 
 class StereoSpectrumScreen(Frame):
     """ Volume/Source on left - Stereo Spectrum overlaid """
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        # self += VolumeSourceFrame(platform, self.coords, 0.3, 'right')
-        self += SpectrumStereoFrame(platform, self.coords, (1.0,1.0), align=('centre','middle'))
+        # self += VolumeSourceFrame(self  , 0.3, 'right')
+        self += SpectrumStereoFrame(self  , scalers=(1.0,1.0), align=('centre','middle'))
         self.check()
 
 class StereoSpectrumSplitScreen(Frame):
     """ Volume/Source on left - Stereo Spectrum overlaid """
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        # self += VolumeSourceFrame(platform, self.coords, 0.3, 'right')
-        self += SpectrumStereoSplitFrame(platform, self.coords, (1.0,1.0), align=('centre','middle'))
+        # self += VolumeSourceFrame(self  , 0.3, 'right')
+        self += SpectrumStereoSplitFrame(self  , scalers=(1.0,1.0), align=('centre','middle'))
         self.check()
 
 """
@@ -271,7 +271,7 @@ class MonoSpectrumScreen(Frame):
     def __init__(self, platform):
         Frame.__init__(self, platform)
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
-        self += SpectrumFrame(platform, self.coords, 'left', (1.0, 1.0), led_gap=0, barw_min=2, tip=True)
+        self += SpectrumFrame(self  , 'left', scalers=(1.0, 1.0), led_gap=0, barw_min=2, tip=True)
         self.check()
 
 class MonoSpectrumLEDScreen(Frame):
@@ -279,7 +279,7 @@ class MonoSpectrumLEDScreen(Frame):
     def __init__(self, platform):
         Frame.__init__(self, platform)
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
-        self += SpectrumFrame(platform, self.coords, 'left', (1.0, 1.0), peak_h=2, led_gap=2, led_h=4, barw_min=6, bar_space=0.2, theme='leds')
+        self += SpectrumFrame(self  , 'left', scalers=(1.0, 1.0), peak_h=2, led_gap=2, led_h=4, barw_min=6, bar_space=0.2, theme='leds')
         self.check()
 
 class MixedLEDScreen(Frame):
@@ -287,8 +287,8 @@ class MixedLEDScreen(Frame):
     def __init__(self, platform):
         Frame.__init__(self, platform)
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
-        self += SpectrumFrame(platform, self.coords, 'right', (0.8, 1.0), align=('right','middle'), peak_h=2, led_gap=3, led_h=5, barw_min=6, bar_space=0.2, theme='leds')
-        self += VU2chFrame(platform, self.coords, scalers=(0.2, 1.0), align=('left','top'), orient='vert', flip=False, theme='leds', led_gap=3, led_h=5)
+        self += SpectrumFrame(self  , 'right', scalers=(0.8, 1.0), align=('right','middle'), peak_h=2, led_gap=3, led_h=5, barw_min=6, bar_space=0.2, theme='leds')
+        self += VU2chFrame(self  , scalers=(0.2, 1.0), align=('left','top'), orient='vert', flip=False, theme='leds', led_gap=3, led_h=5)
 
 
 
@@ -299,14 +299,14 @@ class MixedLEDScreen(Frame):
 #     """ Vol/source in centre - spectrum left and right """
 #     def __init__(self, platform):
 #         Frame.__init__(self, platform)
-#         self += SpectrumFrame(platform, self.coords,  'left', 0.3 )
-#         self += dbVolumeSourceFrame(platform, self.coords, 0.4, 'centre')
-#         self += SpectrumFrame(platform, self.coords,  'right', 0.3 )
+#         self += SpectrumFrame(self  ,  'left', 0.3 )
+#         self += dbVolumeSourceFrame(self  , 0.4, 'centre')
+#         self += SpectrumFrame(self  ,  'right', 0.3 )
 #
 # class ScreenTitle(Frame):
 #     def __init__(self, platform):
 #         Frame.__init__(self, platform)
-#         self += MenuFrame(platform, self.coords, 'top', 1.0, 'very very long screen title')
+#         self += MenuFrame(self  , 'top', 1.0, 'very very long screen title')
 #         self.check()
 #
 # class WelcomeScreen(Frame):
@@ -335,15 +335,15 @@ class MixedLEDScreen(Frame):
 # class VolChangeScreen(Frame):
 #     def __init__(self, platform):
 #         Frame.__init__(self, platform)
-#         self += VolumeAmountFrame(platform, self.coords, 0.6)
-#         self += VolumeSourceFrame(platform, self.coords, 0.4, 'right')
+#         self += VolumeAmountFrame(self  , 0.6)
+#         self += VolumeSourceFrame(self  , 0.4, 'right')
 #         self.check()
 #
 # class RecordingScreen(Frame):
 #     def __init__(self, platform):
 #         Frame.__init__(self, platform)
 #         self += RecordFrame( platform, 0.3)
-#         self += VolumeSourceFrame(platform, self.coords, 0.4, 'right')
+#         self += VolumeSourceFrame(self  , 0.4, 'right')
 #         self.check()
 #
 # class RecordFinishScreen(Frame):
@@ -356,42 +356,42 @@ class MixedLEDScreen(Frame):
 # class SourceVolScreen(Frame):   # comprises volume on the left, spectrum on the right
 #     def __init__(self, platform):
 #         Frame.__init__(self, platform)
-#         self += dbVolumeSourceFrame(platform, self.coords, 0.4, 'right')
-#         self += SourceIconFrame(platform, self.coords, 0.6, 'left')
+#         self += dbVolumeSourceFrame(self  , 0.4, 'right')
+#         self += SourceIconFrame(self  , 0.6, 'left')
 #         self.check()
 #
 # class SourceVUVolScreen(Frame):
 #     def __init__(self, platform):
 #         Frame.__init__(self, platform)
-#         self += dbVolumeSourceFrame(platform, self.coords, 0.4, 'right')
-#         self += VUV2chFrame(platform, self.coords, 0.3, 'centre')
-#         self += SourceIconFrame(platform, self.coords, 0.3, 'left')
+#         self += dbVolumeSourceFrame(self  , 0.4, 'right')
+#         self += VUV2chFrame(self  , 0.3, 'centre')
+#         self += SourceIconFrame(self  , 0.3, 'left')
 #         self.check()
 
 """ Horizontal VU bar meter """
 class VUScreen(Frame):   # comprises volume on the left, spectrum on the right
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        # self += VolumeSourceFrame(platform, self.coords, 0.4, 'right')
+        # self += VolumeSourceFrame(self  , 0.4, 'right')
         # def __init__(self, platform, bounds, scalers, align=('left','bottom')):
-        self += VU2chHorzFrame(platform, self.coords, (1.0, 1.0), align=('centre', 'top'))
+        self += VU2chHorzFrame(self  , scalers=(1.0, 1.0), align=('centre', 'top'))
         self.check()
 
 class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        # self += dbVolumeSourceFrame(platform, self.coords, 0.5, 'right')
-        # self += SpectrumFrame(platform, self.coords, 'right', (0.7, 1.0), align=('right','middle'), led_gap=0, barw_min=2, tip=True)
-        self += VU2chFrame(platform, self.coords, scalers=(0.3, 0.5), align=('left','top'), orient='vert', flip=True)
-        self += VUFlipFrame(platform, self.coords, scalers=(0.5, 0.5), align=('right','bottom'), orient='vert', flip=True)
+        # self += dbVolumeSourceFrame(self  , 0.5, 'right')
+        # self += SpectrumFrame(self  , 'right', (0.7, 1.0), align=('right','middle'), led_gap=0, barw_min=2, tip=True)
+        self += VU2chFrame(self  , scalers=(0.3, 0.5), align=('left','top'), orient='vert', flip=True)
+        self += VUFlipFrame(self  , scalers=(0.5, 0.5), align=('right','bottom'), orient='vert', flip=True)
         self.check()
 
-class PlayerScreen(Frame):   # comprises volume on the left, spectrum on the right
-    def __init__(self, platform):
-        Frame.__init__(self, platform)
-        self += VolumeSourceFrame(platform, self.coords, 0.2, 'right')
-        self += MetaDataFrame(platform, self.coords, 0.8, 'left')
-        self.check()
+# class PlayerScreen(Frame):   # comprises volume on the left, spectrum on the right
+#     def __init__(self, platform):
+#         Frame.__init__(self, platform)
+#         self += VolumeSourceFrame(self  , 0.2, 'right')
+#         self += MetaDataFrame(self  , 0.8, 'left')
+#         self.check()
 
 
 
@@ -412,14 +412,14 @@ class TestVUImageScreen1(Frame):
 
         Frame.__init__(self, platform)
 
-        self += VUMeterImageFrame(platform, self.coords, type='blueVU', scalers=(0.5,0.5), align=('left','top'))
-        self += VUMeterImageFrame(platform, self.coords, type='goldVU', scalers=(0.5,0.5), align=('left','bottom'))
-        self += VUMeterImageFrame(platform, self.coords, type='blackVU', scalers=(0.5,0.5), align=('right','top'))
-        self += VUMeterImageFrame(platform, self.coords, type='rainVU', scalers=(0.5,0.5), align=('right','bottom'))
-        # self += VUMeterImageFrame(platform, self.coords, type='redVU', scalers=(0.5,0.5), align=('left','top'))
-        # self += VUMeterImageFrame(platform, self.coords, type='vintVU', scalers=(0.5,0.5), align=('left','bottom'))
-        # self += VUMeterImageFrame(platform, self.coords, type='whiteVU', scalers=(0.5,0.5), align=('right','top'))
-        # self += VUMeterImageFrame(platform, self.coords, type='greenVU', scalers=(0.5,0.5), align=('right','bottom'))
+        self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('left','top'))
+        self += VUMeterImageFrame(self  , type='goldVU', scalers=(0.5,0.5), align=('left','bottom'))
+        self += VUMeterImageFrame(self  , type='blackVU', scalers=(0.5,0.5), align=('right','top'))
+        self += VUMeterImageFrame(self  , type='rainVU', scalers=(0.5,0.5), align=('right','bottom'))
+        # self += VUMeterImageFrame(self  , type='redVU', scalers=(0.5,0.5), align=('left','top'))
+        # self += VUMeterImageFrame(self  , type='vintVU', scalers=(0.5,0.5), align=('left','bottom'))
+        # self += VUMeterImageFrame(self  , type='whiteVU', scalers=(0.5,0.5), align=('right','top'))
+        # self += VUMeterImageFrame(self  , type='greenVU', scalers=(0.5,0.5), align=('right','bottom'))
 
 class TestVUImageScreen2(Frame):
     """ VU meters left and right - based on an image background"""
@@ -433,14 +433,14 @@ class TestVUImageScreen2(Frame):
         # METERS = ['blueVU', 'goldVU', 'blackVU', 'rainVU', 'redVU', 'vintVU', 'whiteVU', 'greenVU']
         Frame.__init__(self, platform)
 
-        # self += VUMeterImageFrame(platform, self.coords, type='blueVU', scalers=(0.5,0.5), align=('left','top'))
-        # self += VUMeterImageFrame(platform, self.coords, type='goldVU', scalers=(0.5,0.5), align=('left','bottom'))
-        # self += VUMeterImageFrame(platform, self.coords, type='blackVU', scalers=(0.5,0.5), align=('right','top'))
-        # self += VUMeterImageFrame(platform, self.coords, type='rainVU', scalers=(0.5,0.5), align=('right','bottom'))
-        self += VUMeterImageFrame(platform, self.coords, type='redVU', scalers=(0.5,0.5), align=('left','top'))
-        self += VUMeterImageFrame(platform, self.coords, type='vintVU', scalers=(0.5,0.5), align=('left','bottom'))
-        self += VUMeterImageFrame(platform, self.coords, type='whiteVU', scalers=(0.5,0.5), align=('right','top'))
-        self += VUMeterImageFrame(platform, self.coords, type='greenVU', scalers=(0.5,0.5), align=('right','bottom'))
+        # self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('left','top'))
+        # self += VUMeterImageFrame(self  , type='goldVU', scalers=(0.5,0.5), align=('left','bottom'))
+        # self += VUMeterImageFrame(self  , type='blackVU', scalers=(0.5,0.5), align=('right','top'))
+        # self += VUMeterImageFrame(self  , type='rainVU', scalers=(0.5,0.5), align=('right','bottom'))
+        self += VUMeterImageFrame(self  , type='redVU', scalers=(0.5,0.5), align=('left','top'))
+        self += VUMeterImageFrame(self  , type='vintVU', scalers=(0.5,0.5), align=('left','bottom'))
+        self += VUMeterImageFrame(self  , type='whiteVU', scalers=(0.5,0.5), align=('right','top'))
+        self += VUMeterImageFrame(self  , type='greenVU', scalers=(0.5,0.5), align=('right','bottom'))
 
 class TestVUMetersScreen(Frame):
     """ Vol/source in centre - VU meters left and right """
@@ -453,12 +453,12 @@ class TestVUMetersScreen(Frame):
     def __init__(self, platform):
         Frame.__init__(self, platform)
 
-        self += VUMeterFrame1(platform, self.coords, scalers=(0.5,0.5), align=('left','top'))
-        self += VUMeterFrame2(platform, self.coords, scalers=(0.5,0.5), align=('left','bottom'))
-        self += VUMeterFrame3(platform, self.coords,  scalers=(0.5,0.5), align=('right','top'))
-        self += VUMeterFrame4(platform, self.coords,  scalers=(0.5,0.5), align=('right','bottom'))
+        self += VUMeterFrame1(self  , scalers=(0.5,0.5), align=('left','top'))
+        self += VUMeterFrame2(self  , scalers=(0.5,0.5), align=('left','bottom'))
+        self += VUMeterFrame3(self  ,  scalers=(0.5,0.5), align=('right','top'))
+        self += VUMeterFrame4(self  ,  scalers=(0.5,0.5), align=('right','bottom'))
 
-        # self += VolumeSourceFrame(platform, self.coords, 0.2, 'centre'
+        # self += VolumeSourceFrame(self  , 0.2, 'centre'
 
 class TestVisualiserScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -469,11 +469,11 @@ class TestVisualiserScreen(Frame):   # comprises volume on the left, spectrum on
 
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        self += OscilogrammeBar(platform, self.coords, 'left', (1.0,0.5), align=('right','top'))
-        self += OscilogrammeBar(platform, self.coords, 'right', (1.0,0.5), align=('right','bottom'), flip=True)
-        # self += Diamondiser(platform, self.coords, 'right', (0.5,0.5), align=('left','top'))
-        # # self += Octaviser(platform, self.coords, 'right', (0.5,0.5), align=('left','bottom'))
-        # self += CircleModulator(platform, self.coords, 'left', (0.5,0.5), align=('right','top'))
+        self += OscilogrammeBar(self  , 'left', scalers=(1.0,0.5), align=('right','top'))
+        self += OscilogrammeBar(self  , 'right', scalers=(1.0,0.5), align=('right','bottom'), flip=True)
+        # self += Diamondiser(self  , 'right', (0.5,0.5), align=('left','top'))
+        # # self += Octaviser(self  , 'right', (0.5,0.5), align=('left','bottom'))
+        # self += CircleModulator(self  , 'left', (0.5,0.5), align=('right','top'))
 
 
 class TestSpectrumScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -485,13 +485,13 @@ class TestSpectrumScreen(Frame):   # comprises volume on the left, spectrum on t
 
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        self += SpectrumStereoSplitFrame(platform, self.coords, (0.5,0.5), align=('left','top'))
-        # self += Spectrum2chFrame(platform, self.coords, (0.5,0.5), align=('left','top'))
-        self += SpectrumStereoOffsetFrame(platform, self.coords, (0.5,0.5), align=('left','bottom'))
+        self += SpectrumStereoSplitFrame(self  , scalers=(0.5,0.5), align=('left','top'))
+        # self += Spectrum2chFrame(self  , (0.5,0.5), align=('left','top'))
+        self += SpectrumStereoOffsetFrame(self  , scalers=(0.5,0.5), align=('left','bottom'))
         #
-        self += SpectrumFrame(platform, self.coords, 'left', (0.5,0.5), align=('right','top'), peak_h=2, led_gap=2, led_h=4, barw_min=6, bar_space=0.2, theme='leds')
+        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','top'), peak_h=2, led_gap=2, led_h=4, barw_min=6, bar_space=0.2, theme='leds')
         # #mono
-        self += SpectrumFrame(platform, self.coords, 'left', (0.5,0.5), align=('right','bottom'), led_gap=0, barw_min=2, tip=True)
+        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','bottom'), led_gap=0, barw_min=2, tip=True)
 
 
 class TestVUScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -503,12 +503,12 @@ class TestVUScreen(Frame):   # comprises volume on the left, spectrum on the rig
 
     def __init__(self, platform):
         Frame.__init__(self, platform)
-        # self += VU2chFrame(platform, self.coords, scalers=(0.2, 0.5), align=('left','top'), orient='vert')
-        # self += VU2chFrame(platform, self.coords, scalers=(0.2, 1.0), align=('left','bottom'), orient='vert', flip=False)
-        self += VU2chFrame(platform, self.coords,  scalers=(0.25, 1.0), align=('left','top'), orient='vert', flip=False)
-        self += VUFlipFrame(platform, self.coords,  scalers=(0.25, 1.0), align=('right','bottom'), orient='vert', flip=True)
-        self += VU2chHorzFrame(platform, self.coords,  (0.5, 0.5), align=('centre','top'),tip=True)
-        self += VUFlipFrame(platform, self.coords,  scalers=(0.5, 0.5), align=('centre','bottom'), orient='horz', flip=True)
+        # self += VU2chFrame(self  , scalers=(0.2, 0.5), align=('left','top'), orient='vert')
+        # self += VU2chFrame(self  , scalers=(0.2, 1.0), align=('left','bottom'), orient='vert', flip=False)
+        self += VU2chFrame(self  ,  scalers=(0.25, 1.0), align=('left','top'), orient='vert', flip=False)
+        self += VUFlipFrame(self  ,  scalers=(0.25, 1.0), align=('right','bottom'), orient='vert', flip=True)
+        self += VU2chHorzFrame(self  ,  scalers=(0.5, 0.5), align=('centre','top'),tip=True)
+        self += VUFlipFrame(self  ,  scalers=(0.5, 0.5), align=('centre','bottom'), orient='horz', flip=True)
 
 
 class TestScreen(Frame):
@@ -521,20 +521,20 @@ class TestScreen(Frame):
     def __init__(self, platform):
         Frame.__init__(self, platform)
 
-        self += SubFrame(platform, self.coords, (0.5,0.3), ('left','top'))
-        self += SubFrame(platform, self.coords, (0.5,0.3), ('right','bottom'))
+        self += SubFrame(self  , scalers=(0.5,0.3), align=('left','top'))
+        self += SubFrame(self  , scalers=(0.5,0.3), align=('right','bottom'))
         # self += TestFrame(platform, scalers=(1.0, 0.5), align=('left','top'))
-        self += TextFrame(self,  (0.5,0.3), ('centre','middle'), text='TextFrame')
+        self += TextFrame(self,  scalers=(0.5,0.3), align=('centre','middle'), text='TextFrame')
 
 
 class SubFrame(Frame):
-    def __init__(self, platform, bounds, scalers, align):
-        Frame.__init__(self, platform, bounds, scalers, align)
+    def __init__(self, parent, scalers, align):
+        Frame.__init__(self, parent, scalers=scalers, align=align)
         # print("SubFrame> ", self.geostr())
-        self += TestFrame(platform, self.coords, scalers=(0.5, 0.3), align=('left','bottom'))
-        self += TestFrame(platform, self.coords, scalers=(0.5, 0.3), align=('centre','middle'))
-        self += TestFrame(platform, self.coords,scalers=(0.5, 0.3), align=('right','top'))
-        self += OutlineFrame(platform, self.coords, scalers=(1.0, 1.0), align=('right','top'))
+        self += TestFrame(self  , scalers=(0.5, 0.3), align=('left','bottom'))
+        self += TestFrame(self  , scalers=(0.5, 0.3), align=('centre','middle'))
+        self += TestFrame(self  ,scalers=(0.5, 0.3), align=('right','top'))
+        self += OutlineFrame(self  , scalers=(1.0, 1.0), align=('right','top'))
 
 class TestFrame(Frame):
     """ A Frame is a box with coords relative to its enclosing Frame,
@@ -543,10 +543,10 @@ class TestFrame(Frame):
     """
 
     # def __init__(self, platform, bounds=None, display=None, scalers=[1.0,1.0], align=('left','bottom')):
-    def __init__(self, platform, bounds, scalers, align):
-        Frame.__init__(self, platform, bounds, scalers, align)
+    def __init__(self, parent, scalers, align):
+        Frame.__init__(self, parent, scalers=scalers, align=align)
         # self.outline = Outline(self, platform)
-        self.box     = Box(platform, self.coords, box=(100,50), width=0, align=('right','top'))
+        self.box     = Box(self  , box=(100,50), width=0, align=('right','top'))
         self.text    = TextFrame(self,  scalers=(1.0, 1.0), align=('right','top'), text=align[0]+align[1])
         # print("TestFrame.__init__>",  self.geostr())
 

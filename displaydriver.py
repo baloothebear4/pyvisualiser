@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 import pygame, time
 from   pygame.locals import *
 import numpy as np
-from   framecore import Geometry, Frame
+from   framecore import Frame
 from   textwrap import shorten, wrap
 from io import BytesIO
 import requests
@@ -154,7 +154,7 @@ class Colour:
             return purple
 
 
-class Bar(Geometry):
+class Bar(Frame):
     """
     Bars have parameters:
         - colour modes:
@@ -167,17 +167,14 @@ class Bar(Geometry):
         - left or right
         - peak lines
     """
-    def __init__(self, platform, bounds, align=('centre', 'bottom'), \
+    def __init__(self, parent, scale=(1.0,1.0), align=('centre', 'bottom'), \
                  box_size=(100,100), led_h=10, led_gap=4, peak_h=1, right_offset=0, \
                  theme='std', flip=False, radius=0, tip=False, orient='vert', col_mode=None):
 
-        self.platform = platform
         self.right_offset = right_offset
-        self.alignment  = align
 
-        Geometry.__init__(self, bounds, platform.wh)
+        Frame.__init__(self, parent, align=align)
         self.resize( box_size )
-        self.align(self.alignment)
 
         self.led_h      = led_h
         self.led_gap    = led_gap
@@ -272,18 +269,15 @@ class Bar(Geometry):
             pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
-class Image(Geometry):
-    def __init__(self, platform, bounds, wh=None, align=('centre', 'middle'), path=None):
-        self.platform     = platform
+class Image(Frame):
+    def __init__(self, parent, wh=None, align=('centre', 'middle'), path=None):
+
         self.image_cache = {}
-        Geometry.__init__(self, bounds, platform.wh)
-        if wh is None:
-            self.resize( self.boundswh )
-            self.align(align)
+        Frame.__init__(self, parent, align=align)
+
         if path is not None:
             wh = self.scaleInProportion(path, self.wh[1])
             self.resize( wh )
-            self.align(align)
 
     def download_image(self, url):
         response = requests.get(url)
@@ -317,12 +311,11 @@ class Image(Geometry):
 
         self.platform.screen.blit(self.image, self.abs_origin())
 
-class Lightback(Geometry):
+class Lightback(Frame):
     # Draw the colorful arc background for the full frame
-    def __init__(self, platform, bounds, wh=None):
-        self.platform = platform
-        Geometry.__init__(self, bounds, platform.wh)
-        if wh is None: wh = self.boundswh
+    def __init__(self, parent, wh=None):
+
+        Frame.__init__(self, parent, align=align)
         self.resize( wh )
         dark_blue = (0, 0, 100)  # Dark blue color
         glow_color = (255, 255, 200)  # Light yellow color for the glow
@@ -345,18 +338,14 @@ class Lightback(Geometry):
         self.platform.screen.blit(self.glow_surface, self.abs_origin() )
 
 
-class ArcsOctaves(Geometry):
+class ArcsOctaves(Frame):
     """ Lines are for drawing meter needles, oscilogrammes etc """
-    def __init__(self, platform, bounds, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5):
-        self.platform = platform
-        self.alignment  = align
-
+    def __init__(self, parent, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5):
 
         self.NumOcts = NumOcts
-        Geometry.__init__(self, bounds, platform.wh)
-        if wh==None: wh=self.boundswh
+        Frame.__init__(self, parent, align=align)
         self.resize( wh )
-        self.align(self.alignment)
+
         self.scalar  = self.h/(NumOcts)/2
         self.colour  = Colour(theme,12)
 
@@ -389,17 +378,15 @@ class ArcsOctaves(Geometry):
         else:
             return v
 
-class Box(Geometry):
-    def __init__( self, platform, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
-        self.platform = platform
+class Box(Frame):
+    def __init__( self, parent, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
+
         self.width    = box[1] if width is None else width
         self.radius   = radius
-        self.alignment    = align
 
-        Geometry.__init__(self, bounds, platform.wh)
-        box = self.boundswh if box is None else box
-        self.resize( box )
-        self.align(self.alignment)
+        Frame.__init__(self, parent, align=align)
+        if box is not None:  self.resize( box )
+
         self.colour_index = colour_index
         self.colours      = Colour(theme, self.w)
         # print("Box.init> wh", bounds, self.wh, self.geostr())
@@ -425,21 +412,18 @@ class Box(Geometry):
 """
 Lines are for drawing meter needles, oscilogrammes etc
 """
-class Line(Geometry):
-    def __init__( self, platform, bounds, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
+class Line(Frame):
+    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, tick_pc=1.0, amp_scale=0.9):
-        self.platform  = platform
-        self.width     = width
-        self.alignment     = align
 
+        self.width     = width
         self.circle    = circle
         self.radius    = radius
         self.tick_pc   = tick_pc
         self.linespace = []   # array of line circles
         self.amp_scale = amp_scale
-        Geometry.__init__(self, bounds, platform.wh)
-        self.resize( self.boundswh )
-        self.align(self.alignment)
+
+        Frame.__init__(self, parent, align=align)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
@@ -609,21 +593,17 @@ class Text(Frame):
 """
 Dots are for drawing circles on progress bars, mood dots in space on visualisers etc
 """
-class Dots(Geometry):
-    def __init__( self, platform, bounds, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
+class Dots(Frame):
+    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=1000):
-        self.platform   = platform
-        self.width      = width
-        self.alignment      = align
 
+        self.width      = width
         self.circle     = circle
         self.radius     = radius*0.5
         self.dotspace   = []
         self.dotcount   = dotcount
         self.amp_scale  = amp_scale
-        Geometry.__init__(self, bounds, platform.wh)
-        self.resize( self.boundswh )
-        self.align(self.alignment)
+        Frame.__init__(self, parent, align=align)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
