@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """
-7.9" DSI Display driver classes
+Display driver classes
 
 Low level platform dynamics
 
-baloothebear4
 
-v1.0 1 Dec 2023   Original, based on OPygame visualiser mockups
+v1.0 baloothebear4 1 Dec 2023   Original, based on Pygame visualiser mockups
+v1.1 baloothebear4 Feb 2024   refactored as part of pyvisualiseer
 
 """
 import matplotlib.pyplot as plt
@@ -154,6 +154,25 @@ class Colour:
             return purple
 
 
+class Cache:
+    def __init__(self, maxitems=100):
+        self.cache  = {}
+        self.oldest = [''] * maxitems
+
+    def add(self, key, value):
+        self.cache[key] = value
+        if self.oldest[0] in self.cache: del self.cache[self.oldest[0]]
+        self.oldest.append(key)
+        self.oldest.pop(0)
+
+    def find(self, key):
+        if key in self.cache:
+            return self.cache[key]
+        else:
+            return None
+
+
+
 class Bar(Frame):
     """
     Bars have parameters:
@@ -270,50 +289,51 @@ class Bar(Frame):
             self.draw_peak(peak_w, False, pcoords)
 
 class Image(Frame):
-    def __init__(self, parent, wh=None, align=('centre', 'middle'), path=None):
+    def __init__(self, parent, wh=None, align=('left', 'middle'), path=None):
 
-        self.image_cache = {}
+        self.image_cache = Cache(300)
+        self.path        = path
         Frame.__init__(self, parent, align=align)
 
         if path is not None:
-            wh = self.scaleInProportion(path, self.wh[1])
-            self.resize( wh )
+            self.scaleInProportion(path, self.wh[1])
+
 
     def download_image(self, url):
         response = requests.get(url)
         return BytesIO(response.content)
 
     def scaleInProportion(self, image_ref, new_height):
-        if image_ref not in self.image_cache:
-            path = self.download_image(image_ref) if 'http' in image_ref else image_ref
-            imagesurface = pygame.image.load(path).convert()
-            original_width, original_height = imagesurface.get_size()
-            aspect_ratio = original_width / original_height
-            new_width = int(new_height * aspect_ratio)
-            if new_width > self.w:
-                new_width  = self.w
-                new_height = int(new_width / aspect_ratio)
+        path = self.download_image(image_ref) if 'http' in image_ref else image_ref
+        imagesurface = pygame.image.load(path).convert()
+        original_width, original_height = imagesurface.get_size()
+        aspect_ratio = original_width / original_height
+        new_width = int(new_height * aspect_ratio)
+        if new_width > self.w:
+            new_width  = self.w
+            new_height = int(new_width / aspect_ratio)
 
-            wh=(new_width, new_height)
-            self.image = pygame.transform.scale(imagesurface, wh)
-            self.image_cache[image_ref]=self.image
-            # print("Image.scaleInProportion> placed in cache", image_ref, len(self.image_cache)) #, original_width, original_height, wh)# Resize the image in proportion
+        wh=(new_width, new_height)
+        image = pygame.transform.scale(imagesurface, wh)
+        self.image_cache.add(image_ref, image)
+        self.resize( wh )
 
-        else:
-            self.image = self.image_cache[image_ref]
-            wh = self.image.get_rect().size
-            # print("Image.scaleInProportion> used cache", wh, image_ref, len(self.image_cache))
-        return wh
+        return image
 
     def draw(self, image_data=None):
-        if image_data is not None:
-            self.scaleInProportion(image_data, self.h)
+        if image_data is None:  image_data = self.path  
+        image = self.image_cache.find(image_data)
+        if image is None:   
+            image = self.scaleInProportion(image_data, self.h)
 
-        self.platform.screen.blit(self.image, self.abs_origin())
+        if image is not None:
+            self.platform.screen.blit(image, self.abs_origin())
+        else:
+            print("Image.draw> attempt to draw an None image", image, image_data)
 
 class Lightback(Frame):
     # Draw the colorful arc background for the full frame
-    def __init__(self, parent, wh=None):
+    def __init__(self, parent, wh=None, align=None):
 
         Frame.__init__(self, parent, align=align)
         self.resize( wh )
@@ -528,56 +548,99 @@ class Text(Frame):
     update triggers a resizing of the text each time its drawn
     """
     TYPEFACE = 'arial'
+    READABLE = 14   # smallest readable font size
 
-    def __init__(self, parent, text='Default text', fontmax=0, align=('right', 'middle'), reset=False, \
+    def __init__(self, parent, text='Default text', fontmax=0, align=('centre', 'middle'), reset=False, wrap=False, scalers=(1.0,1.0),\
                  endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme='std', colour_index=None):  #Create a font to fit a rectangle
 
         self.text     = text
-        self.fontmax  = int(fontmax) # if this is zero then the largest possible is calculated
+        self.wrap     = wrap
         self.reset    = reset
         self.radius   = radius
         self.theme    = theme
+        self.fontmax  = fontmax
         self.colours  = Colour(theme, 100)
+        self.cache    = Cache()
         self.colour_index = colour_index
         Frame.__init__(self, parent, align=align)
+        self.whmax    = self.wh
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
+        # print("Text.__init__> ", self.fontmax, self.text, self.alignment,self.geostr())
 
-    def update(self, text=''):
-        if text!='': self.text=text
-        # if self.reset: self.fontsize = 0
-        self.font, self.fontwh = self.scalefont(self.boundswh, self.text)  # You can specify a font
-        if self.reset: self.resize( self.fontwh )
-        self.align()
-        # print("Text.update>  wh %s, font size %d, fontwh %s, text<%s> " % (self.wh, self.fontsize, self.fontwh, self.text ))
+    def update(self, text=None):
+        if text is None: text=self.text
+        self.drawtext = self.cache.find(text)
+        if self.drawtext is None:
+            self.font, self.fontwh = self.scalefont(self.whmax, text)  # You can specify a font
+            if self.reset: self.resize( self.fontwh )
+            # print("Text.update>  wh %s, fontwh %s, text<%s>, %s " % (self.wh, self.fontwh, self.text, self.alignment ))
 
-    def scalefont(self, wh, text, min=3):  #scale the font to fit the rect, with a min fontsize
-        self.fontsize = wh[1] if self.fontmax == 0 else self.fontmax
-        font        = pygame.font.SysFont(Text.TYPEFACE, self.fontsize)
-        fontwh      = self.textsize(text, font)  #[wh[0]+1, wh[1]+1]   # to ensure at least one cycle runs
-        while fontwh[0] > wh[0] or fontwh[1] > wh[1]:
-            font   = pygame.font.SysFont(Text.TYPEFACE, self.fontsize)
-            fontwh = self.textsize(text, font)
-            self.fontsize -= 1
-            if self.fontsize < min: break
-        # print("Text.scalefont> target wh %s, font size %d, fontwh %s, text<%s>" % (wh, self.fontsize, fontwh, text))
+    # def shrink_fontsize(self, wh, text, min=5):
+    #     fontsize    = self.wh[1] if self.fontmax==0 else self.fontmax
+    #     font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+    #     fontwh      = self.textsize(text, font)  #[wh[0]+1, wh[1]+1]   # to ensure at least one cycle runs
+    #     while fontwh[0] > wh[0] or fontwh[1] > wh[1]:
+    #         font   = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+    #         fontwh = self.textsize(text, font)
+    #         fontsize -= 1
+    #         if fontsize < min: break
+    #     return font, list(fontwh)
+    
+    def shrink_fontsize(self, wh, text, min=5):
+        fontsize    = self.wh[1] if self.fontmax==0 else self.fontmax
+        font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+        fontwh      = self.textsize(text, font) 
+        if fontwh[0]> wh[0]:  
+            fontsize   = fontsize * wh[0]/ fontwh[0]
+            font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+            fontwh      = self.textsize(text, font)
+        if fontwh[1]> wh[1]:  
+            fontsize    = fontsize *  wh[1]/fontwh[1]
+            font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+            fontwh      = self.textsize(text, font)
+
+        # print("Text.shrink_fontsize>", text, wh, fontwh, fontsize, self.fontmax)
+        return font, list(fontwh)
+
+
+    def scalefont(self, wh, text):  #scale the font to fit the rect, with a min fontsize
+        # self.fontsize = wh[1] if self.fontmax == 0 else self.fontmax
+        self.drawtext = ['']*2  # lines of text
+        font, fontwh = self.shrink_fontsize(wh, text)
+
+        if self.wrap and fontwh[1] < Text.READABLE:  # split into two lines and draw half size
+            self.drawtext = wrap(text, width=1+len(text)//2, max_lines=2)
+            # print("wrap", self.drawtext)
+            font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0])
+            fontwh[1]    *= 2  # double height, 2 lines
+        else:
+            self.drawtext[0] = text
+
+        self.cache.add(text, self.drawtext)
+        # print("Text.scalefont> max %s, target wh %s, fontwh %s, text<%s>, %s" % (self.whmax, wh, fontwh, text, self.drawtext))
         return font, fontwh
 
-    def draw(self, text='', offset=(0,0), coords=None, colour_index=None):  #Draw the text in the corner of the frame
-        if text   == ''    : text   = self.text
-        if coords == None  : coords = self.abs_rect()
-        if self.reset      : self.update(text)
-        if colour_index is None: colour_index = self.colour_index
+    def draw(self, text=None, offset=(0,0), coords=None, colour_index=None):  #Draw the text in the corner of the frame
+        if text   is None       : text = self.text
+        if coords == None       : coords = self.abs_origin()
+        if self.reset:  #self.update(text)
+            self.drawtext = self.cache.find(text)
+            if self.drawtext is None: self.update(text)
+        if colour_index is None : colour_index = self.colour_index
         colour = self.colours.get(colour_index)
 
-        info = self.font.render(text, True, colour)
-        self.platform.screen.blit(info,coords)  # position the text upper left
+        for line_number, line in enumerate(self.drawtext):
+            info = self.font.render(line, True, colour)
+            size = info.get_rect()
+            self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[3])  )  # position the text upper left
 
-        # print("Text.draw > ", self.reset, text, offset, coords, colour, colour_index, self.anglestr())
-        return coords
+        # print("Text.draw > ", self.reset, self.drawtext, text, offset, coords, colour, colour_index, self.alignment, size)
 
-    def drawVectoredText(self, text='', val=0, offset=(0,0), coords=None, colour_index=0):
-        xy  = self.anglexy(val, self.radius)
+
+    def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour_index=None):
+        if text is None : text   = self.text
+        xy   = self.anglexy(val, self.radius)
         size = self.textsize(text)
         text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
         self.draw(text=text, coords=text_offset, colour_index=colour_index)

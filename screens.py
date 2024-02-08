@@ -15,6 +15,8 @@
 # from    displaydriver import Screen, Bar, Text, Box
 
 from frames import *
+import time
+
 # from frametest import *
 
 """
@@ -63,9 +65,9 @@ class TrackVisScreen2(Frame):   # comprises volume on the left, spectrum on the 
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME  = 'std'
-        ARTIST = {'artist': {'colour':'foreground', 'align': ('centre', 'top')}}
-        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
-        ALBUM  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
+        ARTIST = {'artist': {'colour':'foreground', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
+        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
+        ALBUM  = {'track' : {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         self += MetaDataFrame(self  , scalers=(0.33, 0.2), align=('centre','top'), theme=THEME, show=ARTIST)
         self += MetaDataFrame(self  , scalers=(0.33, 0.2), align=('left','top'), theme=THEME, show=TRACK)        # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
@@ -128,17 +130,30 @@ class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on
     def __init__(self, platform):
         Frame.__init__(self, platform)
         THEME = 'white'
-        self += MetaArtFrame(self  ,  scalers=(0.5, 1.0),align=('right','middle'))
-        self += PlayProgressFrame(self  ,  scalers=(0.66, 0.05), align=('left','bottom'), theme=THEME)
-        self += SpectrumFrame(self  ,  'right', scalers=(0.5, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2)
-        self += SpectrumFrame(self  ,  'left', scalers=(0.5, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2 )
+
+        self += MetaArtFrame(self  ,  scalers=(0.5, 1.0),align=('right','middle'), theme=THEME)
+        self += PlayProgressFrame(self  ,  scalers=(0.5, 0.05), align=('left','bottom'), theme=THEME)
+        self += SpectrumFrame(self  ,  'right', scalers=(0.45, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2)
+        self += SpectrumFrame(self  ,  'left', scalers=(0.45, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, theme=THEME, barw_min=3, bar_space=2 )
 
 class MetaArtFrame(Frame):
-    """ Volume/Source on left - Spectrum on left - one channel """
+    """ A subframe to nicely wrap the Metadata around the Art on the left """
     def __init__(self, parent, scalers=(1.0, 1.0), align=('centre','middle'), theme='std'):
         Frame.__init__(self, parent, scalers=scalers, align=align)
-        self += AlbumArtFrame(self  ,  scalers=(0.62, 1.0),align=('right','middle'))
-        self += MetaDataFrame(self  ,  scalers=(0.38, 1.0), align=('left','middle'), theme=theme)
+
+        # SHOW = { 'artist': {'colour': 'foreground', 'align': ('centre','top'),   'scalers': (1.0, 0.33) }, \
+        #          'track': {'colour' : 'light',      'align': ('centre','bottom'), 'scalers': (1.0, 0.33)}, \
+        #          'album': {'colour' : 'mid',        'align': ('centre','middle'), 'scalers': (1.0, 0.33)} }
+        ARTIST = {'artist': {'colour':'foreground', 'align': ('left', 'middle'), 'scalers': (1.0, 1.0)}}
+        TRACK  = {'track' : {'colour':'light', 'align': ('left', 'middle'), 'scalers': (1.0, 1.0)}}
+        ALBUM  = {'album' : {'colour':'mid',   'align': ('centre','middle'), 'scalers': (1.0, 1.0)} }
+
+        self += MetaDataFrame(self  , scalers=(1.0, 0.2), align=('left','top'), theme=theme, show=ARTIST)
+        self += MetaDataFrame(self  , scalers=(0.6, 0.8), align=('right','middle'), theme=theme, show=ALBUM)
+        self += MetaDataFrame(self  , scalers=(1.0, 0.2), align=('left','bottom'), theme=theme, show=TRACK)
+        self += AlbumArtFrame(self  ,  scalers=(0.4, 1.0),align=('left','middle'))
+
+        # print("MetaArtFrame.__init__")
 
 class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -151,8 +166,8 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
         Frame.__init__(self, platform)
         THEME = 'std'
         # self += AlbumArtFrame(self  , (0.31, 0.93),align=('right','top'))
-        ARTIST = {'artist': {'colour':'mid', 'align': ('centre', 'top')}}
-        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
+        ARTIST = {'artist': {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
+        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('left','top'), theme=THEME, show=ARTIST)
         self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('right','top'), theme=THEME, show=TRACK)
@@ -179,7 +194,7 @@ class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on t
 
 class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
-    def title(self): return 'Analogue VU Meters, Diamondiser, Roon Album Art, Metadata and progress bar'
+    def title(self): return 'Analogue VU Meters, Roon Album Art, Metadata and progress bar'
 
     @property
     def type(self): return 'Test'
@@ -223,13 +238,13 @@ class VUImageScreen(Frame):
 """ Spectrum Analyser based Screens """
 
 
-class SpectrumScreen(Frame):
-    """ Volume/Source on left - Spectrum on left - one channel """
-    def __init__(self, platform):
-        Frame.__init__(self, platform)
-        self += VolumeSourceFrame(self  , 0.2, 'right')
-        self += SpectrumFrame(self  , 'left', scalers=(0.8,1.0), align=('centre','middle'))
-        self.check()
+# class SpectrumScreen(Frame):
+#     """ Volume/Source on left - Spectrum on left - one channel """
+#     def __init__(self, platform):
+#         Frame.__init__(self, platform)
+#         self += VolumeSourceFrame(self  , 0.2, 'right')
+#         self += SpectrumFrame(self  , 'left', scalers=(0.8,1.0), align=('centre','middle'))
+#         self.check()
 
 class StereoSpectrumLRScreen(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
@@ -520,12 +535,16 @@ class TestScreen(Frame):
 
     def __init__(self, platform):
         Frame.__init__(self, platform)
-
+        subframe = Frame(self, scalers=(1.0,0.5), align=('centre','top'))
         self += SubFrame(self  , scalers=(0.5,0.3), align=('left','top'))
         self += SubFrame(self  , scalers=(0.5,0.3), align=('right','bottom'))
-        # self += TestFrame(platform, scalers=(1.0, 0.5), align=('left','top'))
-        self += TextFrame(self,  scalers=(0.5,0.3), align=('centre','middle'), text='TextFrame')
+        self += TestFrame(self, scalers=(1.0, 0.25), align=('centre','middle'))
+        self += TestFrame(self, scalers=(0.5, 0.3), align=('left','bottom'), run=True)
+        # self += TextFrame(self,  scalers=(1.0,0.3), align=('centre','middle'), text='TextFrame')
+        # self.box     += Box(self  , box=self.wh, width=0, align=('right','top'))
+        # self += TextFrame(subframe,  scalers=(1.0,0.2), align=('centre','middle'), text='Very very very very very very very very very ery very very very very very very very very very very very very very very very very very very very very ery very very very very very very very very very very very very very very veryvery ery very very very very very very very very very long piece of text that really needs to wrap into multiple lines')
 
+        
 
 class SubFrame(Frame):
     def __init__(self, parent, scalers, align):
@@ -543,15 +562,30 @@ class TestFrame(Frame):
     """
 
     # def __init__(self, platform, bounds=None, display=None, scalers=[1.0,1.0], align=('left','bottom')):
-    def __init__(self, parent, scalers, align):
+    def __init__(self, parent, scalers, align, run=False):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         # self.outline = Outline(self, platform)
-        self.box     = Box(self  , box=(100,50), width=0, align=('right','top'))
-        self.text    = TextFrame(self,  scalers=(1.0, 1.0), align=('right','top'), text=align[0]+align[1])
+        self.box     = Box(self  , box=self.wh, width=0, align=align)
+        self.text    = TextFrame(self,  scalers=(1.0, 1.0), align=align, text=align[0]+align[1], reset=True, wrap=True)
+        self.run = run
         # print("TestFrame.__init__>",  self.geostr())
+        self.start_time = time.time()
+        self.t=' very very very very very ery very very very very very very very very very very very very very very veryvery ery very very veryvery very very very very very long piece of text that really needs to wrap into multiple lines'
+
 
     def draw(self):
         # print("TestFrame.draw>")
         # self.outline.draw()
         self.box.draw( (0,0) )
-        self.text.draw()
+        if self.run:
+            self.text.draw(text=self.t)
+            up = True
+            if time.time() - self.start_time >= 0.2:
+                self.start_time = time.time()
+                # if up:
+                #     self.t += 'Very very very'
+                #     up == len(self.t)<100
+                # else:
+                self.t = self.t[3:]
+        else:
+            self.text.draw()

@@ -4,10 +4,8 @@
     - Geometry:  manages the coordinate system used for enclosing rectangles
     - Frame: hierarchical frames, managed for overlap and alignment
 
-
- Part of mVista preDAC2 project
-
- v1.0 Baloothebear4 May 202
+ v1.0 Baloothebear4 May 2022
+ v2.0 baloothebear4 Dec 2023 - generalised and refactored as part of pyvisualiser
 
 """
 
@@ -144,13 +142,13 @@ class Geometry():
         self.a = 0 #self._bounds[0]
         self.b = 0 #self._bounds[1]
         try:
-            self.c = wh[0] -1
+            self.c = wh[0] -1 if wh[0] > 0 else 0
         except ValueError:
             self.c = self.boundswh[0] -1
             self.align()
             print("!!! Geometry.resize> outside bounds w %f, set to bounds, %s" % (wh[0], self.geostr()) )
         try:
-            self.d = wh[1] -1
+            self.d = wh[1] -1 if wh[1] > 0 else 0
         except ValueError:
             self.d = self.boundswh[1] -1
             self.align()
@@ -261,6 +259,7 @@ class Geometry():
     def abs_rect(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
         wh = [self.wh[0], self.wh[1]] if wh is None else wh
         rect = [int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0+self.h-offset[1]-1)) ] + wh
+        # print(self.screen_wh[1], self.y0, self.h, offset[1],"rect", rect)
         return rect
 
     def theta(self, val):    # return an angle in radians from a value range -1 to +1
@@ -364,7 +363,7 @@ class Geometry():
             self.go_bottom()
             # move so that self.b = self.bounds.b
         else:
-            raise ValueError('Frame.align: unknown vertical anchor (top, middle, bottom)->', self.V)
+            raise ValueError('Frame.align: expected vertical anchor (top, middle, bottom) found->', self.alignment[1])
 
         if self.alignment[0]   == 'left':
             self.go_left()
@@ -376,7 +375,7 @@ class Geometry():
             self.move_cd( (self.right, self.d) )
             # move so that self.c = self.bounds.c
         else:
-            raise ValueError('Frame.align: unknown horz anchor (left, centre, right)->', self.H)
+            raise ValueError('Frame.align: expected horz anchor (left, centre, right) found->', self.alignment[0])
         # print("Frame.align> to", self.geostr())
 
 
@@ -394,7 +393,9 @@ class Frame(Geometry):
 
         bounds      is the physical coordinates of the Frame (bottom left), (top right)
         platform    is the set of objects that enable access to data sets, screen drivers and graphics
-        scalers     is the
+        scalers     is how the frame is scaled vs the boundary
+        square      is to force the shape to have w=h
+        
     """
 
     def __init__(self, parent, bounds=None, scalers=[1.0,1.0], align=None, square=False):
@@ -414,8 +415,8 @@ class Frame(Geometry):
             self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
 
         Geometry.__init__(self, bounds, self.platform.wh)
+        if align is not None: self.alignment = align
         self.scale(scalers)
-        self.align(align)
 
         if square:
             xy = (scalers[0] * self.xyscale[0], scalers[1] * self.xyscale[1])

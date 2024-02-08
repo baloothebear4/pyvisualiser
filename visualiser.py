@@ -52,13 +52,15 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TrackSpectrumScreen3'
+        self.baseScreen     = 'TrackSpectrumScreen2'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
-        self.screenList = { TrackSpectrumScreen3, TestVisualiserScreen, TestVUMetersScreen, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackVUMeterScreen, \
+        self.screenList = { TrackSpectrumScreen2, 
+            TestVUImageScreen1, TrackVUMeterScreen2, TestScreen, TestVUMetersScreen, TrackSpectrumScreen, TestVUScreen,
+            TrackSpectrumScreen3, TestVisualiserScreen, TestVUMetersScreen, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
                             TrackVisScreen3, TrackVUMeterScreen2, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
 
         """ Screen types are:   Control for utility messages like vol change,  Test to exercise functionality, Base for mixed visual displays """
@@ -127,25 +129,25 @@ class Controller:
             else:
                 print("Key Press ", key)
         else:
-            print("Controller.KeyAction> unknown event ",e)
+            print("Controller.KeyAction> unknown event ",key)
 
-    def RoonAction(self, e):
-        print("Controller.RoonAction> event ", e)
-        if e == 'new_track' or e == 'start':
-            print("Controller.RoonAction> new track - pop up display ", e)
+    def RoonAction(self, key):
+        print("Controller.RoonAction> event ", key)
+        if key == 'new_track' or key == 'start':
+            print("Controller.RoonAction> new track - pop up display ", key)
             # self.trackChangeTimer.start()
             # self.activeScreen= 'trackChange'
 
-        elif e == 'stop':
+        elif key == 'stop':
             print("Controller.RoonAction> track stopped - display nothing new")
             # self.platform.clear_track()
 
-        elif e =='trackNotified':
+        elif key =='trackNotified':
             print("Controller.RoonAction> track notification timeout")
             # self.activeScreen= self.baseScreen
 
         else:
-            print("Controller.RoonAction> unknown event ", e)
+            print("Controller.RoonAction> unknown event ", key)
 
 
     """ Main execution loop """
