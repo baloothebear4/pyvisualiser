@@ -44,7 +44,7 @@ class Smoother:
                 inc  = len(self.smoother) - i
                 tot += inc
                 ave += v * inc
-            return ave / tot
+            return ave / (tot*0.8)
 
 class TextFrame(Frame):
     """
@@ -298,8 +298,8 @@ class VUMeter(Frame):
     ARCLEN    = TICKLEN
     TICK_PC   = 0.1         # lenth of the ticks as PC of the needle
     TICK_W    = 3           # width of the ticks in pixels
-    DECAY     = 0.3         # decay factor
-    SMOOTH    = 15          # samples to smooth
+    DECAY     = 0.4         # decay factor
+    SMOOTH    = 14          # samples to smooth
 
     # MARKS     = {'-40':0.1, '-20':0.3, '-10':0.4, '-3':0.6, '0':0.7, '+3':0.8, '+6':0.9}
     # Key is the value (0-1) where the mark is drawn, with colour, width & text
@@ -307,10 +307,10 @@ class VUMeter(Frame):
                  0.3: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
                 #  0.4: {'text':'-10', 'width': TICK_W, 'colour': 'light'},
                  0.5: {'text':'-5', 'width': TICK_W, 'colour': 'light'},
-                 0.6: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
-                 0.7: {'text':'+0', 'width': TICK_W, 'colour': 'alert'},
-                 0.8: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'},
-                 0.9: {'text':'+6', 'width': TICK_W*3, 'colour': 'alert'} }
+                 0.65: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
+                 0.75: {'text':'+0', 'width': TICK_W, 'colour': 'alert'},
+                 0.85: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'},
+                 0.95: {'text':'+6', 'width': TICK_W*3, 'colour': 'alert'} }
     # Key is the radius, attributes width & colour
     ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
                  ARCLEN*0.9: {'width': TICK_W//2, 'colour': 'mid'} }
@@ -401,14 +401,14 @@ class VUMeterFrame2(Frame):
         SMOOTH    = 10          # samples to smooth
         ARCLEN    = TICKLEN * (1-TICK_PC)
 
-        MARKS     = {0.0: {'text':'0', 'width': TICK_W, 'colour': 'mid'},
-                     0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid'},
-                     0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid'},
-                     0.42: {'text':'3', 'width': TICK_W, 'colour': 'mid'},
+        MARKS     = {0.0:  {'text':'0', 'width': TICK_W, 'colour': 'mid' },
+                     0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid' },
+                     0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid' },
+                     0.42: {'text':'3', 'width': TICK_W, 'colour': 'mid' },
                      0.56: {'text':'4', 'width': TICK_W, 'colour': 'light'},
                      0.70: {'text':'5', 'width': TICK_W, 'colour': 'light'},
                      0.84: {'text':'6', 'width': TICK_W, 'colour': 'alert'},
-                     1.0: {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
+                     1.0:  {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
         ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'middle', 'text':'PPM', 'colour':'mid' }
         self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
@@ -421,7 +421,10 @@ class VUMeterFrame3(Frame):
     def __init__(self, parent, scalers=(1.0, 1.0), align=('left', 'bottom')):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         TICK_W    = 3
+        TICKLEN   = 0.8
+        TICK_PC   = 0.2
         ARCLEN    = 0.70
+        THEME     = 'blue'
         MARKS     = {0.0: {'text':'0', 'width': TICK_W, 'colour': 'mid'},
                      0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid'},
                      0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid'},
@@ -430,12 +433,13 @@ class VUMeterFrame3(Frame):
                      0.70: {'text':'5', 'width': TICK_W, 'colour': 'light'},
                      0.84: {'text':'6', 'width': TICK_W, 'colour': 'alert'},
                      1.0: {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
-        ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'} }
+        ARCS      = {ARCLEN       : {'width': TICK_W//2, 'colour': 'mid'},
+                     ARCLEN*1.1   : {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'bottom', 'text':'Peak RMS', 'colour':'mid' }
-        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
-                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE)
-        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
-                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
+        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), theme = THEME, scaleslen=1, ticklen=TICKLEN,\
+                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE, tick_pc=TICK_PC)
+        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), theme = THEME,scaleslen=1, ticklen=TICKLEN,\
+                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE, tick_pc=TICK_PC)
 
 class VUMeterFrame4(Frame):
     """120 degrees meter, low pivot """
@@ -916,9 +920,9 @@ class CircleModulator(Frame):
         Frame.__init__(self, parent, scalers=scalers, align=align)
 
         self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
-        self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
-        self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.2)
-        self.VU      = VU(self.platform, channel, decay=0.2)
+        # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
+        self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.8, dotcount=4000)
+        self.VU      = VU(self.platform, channel, decay=0.4)
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
@@ -928,11 +932,11 @@ class CircleModulator(Frame):
         lpf_freq = 500
 
         height, peaks = self.VU.read()
-        samples = self.platform.reduceSamples( self.channel, 4 )  # reduce the dataset quite a bit
+        samples = self.platform.reduceSamples( self.channel, 8 )  # reduce the dataset quite a bit
         high_samples = self.platform.filter( samples, hpf_freq, type='highpass' )
         low_samples = self.platform.filter( samples, lpf_freq, type='lowpass' )
-        self.lines.draw_mod_line(high_samples, amplitude=height)
-        self.dots.draw_mod_dots(samples, trigger=self.platform.trigger_detected, amplitude=height)
+        self.lines.draw_mod_line(high_samples, amplitude=(0.0+height)*0.9)
+        self.dots.draw_mod_dots(low_samples, trigger=self.platform.trigger_detected, amplitude=(0.0+height)*1.8)
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
 
 

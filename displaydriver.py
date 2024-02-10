@@ -98,7 +98,7 @@ yellow  = (255,255,0)
 COLOUR_THEME = {    'white' : {'light':(255,255,175), 'mid':(200,200,125), 'dark':grey, 'foreground':white, 'background':black, 'alert':red,'range':[(255,255,75), (255,255,175), white] },
                     'std'   : {'light':(175,0,0), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':black, 'alert':red,'range':[green, amber, red, purple] },
                     'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':black, 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242] ] }, #[(0,10,75), (0,100,250)],
-                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':black, 'alert':red,'range':[ [144, 46, 1],[132, 46, 2],[164, 46, 4],[206, 100, 75],[241, 100, 75]] },  #[(75,10,0), (250,100,0)],
+                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':black, 'alert':red,'range':[ [241, 100, 75], [206, 100, 75],[164, 46, 4],[132, 46, 2],[144, 46, 1]] },  #[(75,10,0), (250,100,0)],
                     'leds'  : {'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
                     'back'  : {'range':[ blue, black ] },
                     'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
@@ -658,7 +658,7 @@ Dots are for drawing circles on progress bars, mood dots in space on visualisers
 """
 class Dots(Frame):
     def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
-                  circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=1000):
+                  circle=True, endstops=(PI/2, 5* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=4000):
 
         self.width      = width
         self.circle     = circle
@@ -684,21 +684,23 @@ class Dots(Frame):
         size         = len(points)
         xc, yc       = self.centre[0], self.centre[1]
         col          = self.radius*(self.amp_scale*amplitude) if colour_index is None else col # Add a get col
-        gain         = 1.1
+        gain         = 1.01
 
         if 'bass' in trigger:
-            gain = 1.1  # velocity the dots move outward
+            gain = 1.2  # velocity the dots move outward
             col = 'alert'
 
         if 'treble' in trigger:
-            gain = 1.01
+            gain = 1.1
             col  = 'foreground'  # velocity the dots move outward
 
         # For all the dot space, calculate the velocities and move
         for dot in self.dotspace:
             self.dotspace.remove(dot)
-            x1 = int(gain*(dot[0]-xc)+ xc)
-            y1 = int(gain*(dot[1]-yc)+ yc)
+            # x1 = int((gain*(dot[0]-xc)* self.xyscale[0])+ xc)
+            # y1 = int((gain*(dot[1]-yc)* self.xyscale[1])+ yc)
+            x1 = int(gain*(dot[0]) * self.xyscale[0])
+            y1 = int(gain*(dot[1]) * self.xyscale[1])
             # check dot is still on the screen
             if x1>=0 and x1<=self.w and y1>0 and y1<self.h and len(self.dotspace)<self.dotcount:
                 self.dotspace.append([x1,y1, dot[2]])

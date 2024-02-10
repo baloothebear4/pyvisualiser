@@ -53,7 +53,7 @@ BINBANDWIDTH    = RATE/(FRAME + NUMPADS) #ie 43.5 Hz for 44.1kHz/1024
 DCOFFSETSAMPLES = 200
 TWOPI           = 2*3.14152
 
-
+VUGAINFACTOR    = 0.02
 RMSNOISEFLOOR   = -70    # dB
 DYNAMICRANGE    = 50     # Max dB
 SILENCETHRESOLD = 0.001   #0.02   # Measured from VU Noise Floor + VU offset
@@ -349,8 +349,8 @@ class AudioProcessor(AudioData):
 
         db_value = 20 * np.log10 (rms + 1e-6)
         norm     = (-FLOOR + db_value)/ (PEAK-FLOOR)
-        # print("AudioProcessor.VU> %s %f rms %f dB norm %f  vumax %f" % (channel, rms/RMSMAX, db_value, norm, self.vumax[channel]))
-        return  min(1.0, rms/RMSMAX)   # normalise
+        # print("AudioProcessor.VU> %s %f rms %f dB norm %f  vumax %f" % (channel, rms/VUGAINFACTOR, db_value, norm, self.vumax[channel]))
+        return  min(1.0, rms/VUGAINFACTOR)   # normalise
 
 
     def reduceSamples(self, channel, reduceby ):
@@ -510,38 +510,38 @@ class AudioProcessor(AudioData):
 
     """ test code """
 
-    def LR2(self, vu, peak):
-        lString = "-"*int(bars-vu['left']*bars)+"#"*int(vu['left']*bars)
-        rString = "#"*int(vu['right']*bars)+"-"*int(bars-vu['right']*bars)
-        print(("[%s]=L%10f-^%10f^%10f\t%10f R=[%s]"% (lString, vu['left'], peak['left'], peak['right'], vu['right'], rString)))
-        # print("L=[%s]\tR=[%s]"%(lString, rString))
+#     def LR2(self, vu, peak):
+#         lString = "-"*int(bars-vu['left']*bars)+"#"*int(vu['left']*bars)
+#         rString = "#"*int(vu['right']*bars)+"-"*int(bars-vu['right']*bars)
+#         print(("[%s]=L%10f-^%10f^%10f\t%10f R=[%s]"% (lString, vu['left'], peak['left'], peak['right'], vu['right'], rString)))
+#         # print("L=[%s]\tR=[%s]"%(lString, rString))
 
-    def printBins(bins):
-        text  = ""
-        for i in range (1,len(bins)):
-            text += "[%2d %2.1f] " % (i*BINBANDWIDTH, bins[i]/250)
-            if i >50: break
-        print(text)
+#     def printBins(bins):
+#         text  = ""
+#         for i in range (1,len(bins)):
+#             text += "[%2d %2.1f] " % (i*BINBANDWIDTH, bins[i]/250)
+#             if i >50: break
+#         print(text)
 
-def main():
-    # main loop
-    events = Events('Audio')
-    audioprocessor = AudioProcessor(events)
-    runflag = 1
-    while runflag:
+# def main():
+#     # main loop
+#     events = Events('Audio')
+#     audioprocessor = AudioProcessor(events)
+#     runflag = 1
+#     while runflag:
 
-        for i in range(int(10*44100/FRAMESIZE)): #go for a few seconds
+#         for i in range(int(10*44100/FRAMESIZE)): #go for a few seconds
 
-            audioprocessor.process()
-            audioprocessor.printSpectrum()
-            # audioprocessor._print()
-            # audioprocessor.calibrate()
+#             audioprocessor.process()
+#             audioprocessor.printSpectrum()
+#             # audioprocessor._print()
+#             # audioprocessor.calibrate()
 
-        audioprocessor.dynamicRange()
-        runflag = 0
+#         audioprocessor.dynamicRange()
+#         runflag = 0
 
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        pass
+# if __name__ == "__main__":
+#     try:
+#         main()
+#     except KeyboardInterrupt:
+#         pass
