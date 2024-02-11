@@ -916,11 +916,11 @@ class Oscilogramme(Frame):
     def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme=None):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
-        self.lines   = Line(self, circle=False)
+        self.lines   = Line(self, circle=False, amp_scale=0.6)
 
     def draw(self):
-        samples =  self.platform.reduceSamples( self.channel, 1024//self.w )
-        self.lines.draw_mod_line(samples)
+        samples =  self.platform.reduceSamples( self.channel, 4, rms=False )
+        self.lines.draw_mod_line(samples, colour_index='foreground')
 
 
 class Octaviser(Frame, Spectrum):

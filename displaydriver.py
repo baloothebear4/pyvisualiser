@@ -344,12 +344,13 @@ class Line(Frame):
             if self.circle:
                 line.append(self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale) )
             else:
-                line.append(self.abs_origin(  offset=(xscale*i, yscale*(0.5+v)*amplitude) ))
+                line.append(self.abs_origin(  offset=(xscale*i, 0.5*yscale*(1+v*amplitude*self.amp_scale)) ))
+
 
         colour_index = self.radius*(self.amp_scale*amplitude) if colour_index is None else 'alert' # Add a get col
         colour = self.colours.get(colour_index)
         pygame.draw.lines(self.platform.screen, colour, self.circle, line)
-        return line
+
 
     def make_ripple(self, size):
         wh     = (self.xyscale[0]*size, self.xyscale[1]*size)

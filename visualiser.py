@@ -55,17 +55,16 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TrackVUMeterScreen'
+        self.baseScreen     = 'TrackOscScreen'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
-        self.screenList = { TrackScreen,
-            TrackVUMeterScreen, TrackSpectrumScreen2,
-            TestVUImageScreen1, TrackVUMeterScreen2, TestScreen, TestVUMetersScreen, TrackSpectrumScreen, TestVUScreen,
-            TrackSpectrumScreen3, TestVisualiserScreen, TestVUMetersScreen, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
-                            TrackVisScreen3, TrackVUMeterScreen2, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
+        self.screenList = { TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
+            TrackVUMeterScreen2, TestVUMetersScreen, TestVUScreen, TrackSpectrumScreen3, TrackVUMeterScreen2 }
+
+            # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
 
         """ Screen types are:   Control for utility messages like vol change,  Test to exercise functionality, Base for mixed visual displays """
 

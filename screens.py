@@ -221,6 +221,27 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         # self += VUMeterFrame1(self  , scalers=(0.7,0.7), align=('left','middle'))
         # self += Diamondiser(self  , 'left', scalers=(0.3, 1.0), align=('right','middle'))
 
+class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the right
+    @property
+    def title(self): return 'Oscillogram, Roon Album Art, Metadata and progress bar'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        Frame.__init__(self, platform, theme= 'std')
+ 
+        subframe = Frame(self, scalers=(0.4, 1.0), align=('right','middle'))
+        self += VU2chFrame(subframe, scalers=(0.2, 1.0), align=('left','middle'))
+        self += AlbumArtFrame(subframe, (1.0, 1.0),align=('right','middle'))
+
+        self += ArtistArtFrame(self, scalers=(0.6,1.0),align=('left','middle'), alpha=100)
+        self += MetaDataFrame(self, scalers=(0.6, 0.9), align=('left','middle'))
+        self += PlayProgressFrame(self, scalers=(0.6, 0.05), align=('left','bottom'))
+
+        self += Oscilogramme(self, 'mono', scalers=(0.6, 1.0), align=('left','middle'))
+
+
 
 """ VU Meters """
 VUMETERS = ['blueVU', 'goldVU', 'blackVU', 'rainVU', 'redVU', 'vintVU', 'whiteVU', 'greenVU']

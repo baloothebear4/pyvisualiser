@@ -353,14 +353,18 @@ class AudioProcessor(AudioData):
         return  min(1.0, rms/VUGAIN)   # normalise
 
 
-    def reduceSamples(self, channel, reduceby ):
+    def reduceSamples(self, channel, reduceby, rms=True ):
         # reduce the sample window to the size available
         normalised_samples = self.samples[channel]/ maxValue  #[:FRAMESIZE//2]
         end = reduceby * int(len(normalised_samples)/ reduceby)
         # reshaped_samples   = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)
-        reshaped_samples   = np.sqrt( np.mean( np.square(normalised_samples[:end].reshape(-1, reduceby)), axis=1))/0.1
+        rms_reshaped_samples   = np.sqrt( np.mean( np.square(normalised_samples[:end].reshape(-1, reduceby)), axis=1))/0.1
+        reshaped_samples       = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)/0.1
         # print("AudioProcessor.reduceSamples by", reduceby, "from", len(normalised_samples), "to", len(reshaped_samples), "length", length)
-        return reshaped_samples.tolist()
+        if rms:
+            return rms_reshaped_samples.tolist()
+        else:
+            return reshaped_samples.tolist()
 
 
     """ use this to shift the noise floor eg: RMS 20 - 5000 -> 0->5000"""
@@ -510,38 +514,38 @@ class AudioProcessor(AudioData):
 
     """ test code """
 
-    def LR2(self, vu, peak):
-        lString = "-"*int(bars-vu['left']*bars)+"#"*int(vu['left']*bars)
-        rString = "#"*int(vu['right']*bars)+"-"*int(bars-vu['right']*bars)
-        print(("[%s]=L%10f-^%10f^%10f\t%10f R=[%s]"% (lString, vu['left'], peak['left'], peak['right'], vu['right'], rString)))
-        # print("L=[%s]\tR=[%s]"%(lString, rString))
+#     def LR2(self, vu, peak):
+#         lString = "-"*int(bars-vu['left']*bars)+"#"*int(vu['left']*bars)
+#         rString = "#"*int(vu['right']*bars)+"-"*int(bars-vu['right']*bars)
+#         print(("[%s]=L%10f-^%10f^%10f\t%10f R=[%s]"% (lString, vu['left'], peak['left'], peak['right'], vu['right'], rString)))
+#         # print("L=[%s]\tR=[%s]"%(lString, rString))
 
-    def printBins(bins):
-        text  = ""
-        for i in range (1,len(bins)):
-            text += "[%2d %2.1f] " % (i*BINBANDWIDTH, bins[i]/250)
-            if i >50: break
-        print(text)
+#     def printBins(bins):
+#         text  = ""
+#         for i in range (1,len(bins)):
+#             text += "[%2d %2.1f] " % (i*BINBANDWIDTH, bins[i]/250)
+#             if i >50: break
+#         print(text)
 
-def main():
-    # main loop
-    events = Events('Audio')
-    audioprocessor = AudioProcessor(events)
-    runflag = 1
-    while runflag:
+# def main():
+#     # main loop
+#     events = Events('Audio')
+#     audioprocessor = AudioProcessor(events)
+#     runflag = 1
+#     while runflag:
 
-        for i in range(int(10*44100/FRAMESIZE)): #go for a few seconds
+#         for i in range(int(10*44100/FRAMESIZE)): #go for a few seconds
 
-            audioprocessor.process()
-            audioprocessor.printSpectrum()
-            # audioprocessor._print()
-            # audioprocessor.calibrate()
+#             audioprocessor.process()
+#             audioprocessor.printSpectrum()
+#             # audioprocessor._print()
+#             # audioprocessor.calibrate()
 
-        audioprocessor.dynamicRange()
-        runflag = 0
+#         audioprocessor.dynamicRange()
+#         runflag = 0
 
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        pass
+# if __name__ == "__main__":
+#     try:
+#         main()
+#     except KeyboardInterrupt:
+#         pass
