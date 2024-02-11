@@ -19,22 +19,27 @@
 
 import os, time
 import numpy as np
-PI = 3.14152
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+
+PI = np.pi
 # from oleddriver import internalOLED     # used for Test purposes
 # from platform   import Platform         # used for Test purposes
 
 class Geometry():
-    def __init__(self, bounds=None, screen_wh=(1280,400)):
+    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=('centre', 'middle')):
         self._abcd          = [0,0,0,0]
         self._bounds        = [0,0, screen_wh[0]-1, screen_wh[1]-1] if bounds is None else bounds
         self.screen_wh      = screen_wh
-        self.alignment      = ('centre', 'middle')
+        self.alignment      = align
+        self.scalers        = scalers
         self.min_offset     = 0
         self.circle_scale   = 1
         self.centre_offset  = 0  #PC of the height offsets the centre of a circle eg -0.5 moves to the bottom
         self.endstops       = (0, 2*PI)
         # print("Geometry.init> abcd %s, bounds %s, boundswh %s, size %s, coords %s" % ( self.abcd, self._bounds, self._boundswh, self.wh, self.coords))
-
+        self.scale(self.scalers)
 
     """ test if this will return a from the syntax Frame.a """
     @property
@@ -398,25 +403,35 @@ class Frame(Geometry):
         
     """
 
-    def __init__(self, parent, bounds=None, scalers=[1.0,1.0], align=None, square=False):
+    def __init__(self, parent, scalers=None, align=None, square=False, theme=None, background=None):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
             bounds is list of the bottom left and upper right corners eg (64,32)
         """
         self.frames     = []         #Holds the stack of containing frames
+
+        # print("Frame.__init__>", type(self).__name__, align, scalers, theme)
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
-            bounds = parent.coords if bounds is None else bounds
+            bounds          = parent.coords
+            scalers         = parent.scalers    if scalers  is None else scalers
+            self.theme      = parent.theme      if theme    is None else theme
+            alignment       = parent.alignment  if align    is None else align            
             self.platform   = parent.platform
+            # print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
         else:
             """ Screen (aka top-level Frame), so scale to the boundary """
-            bounds = parent.boundary if bounds is None else bounds
+            bounds          = parent.boundary
             self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
+            scalers         = (1.0,1.0)              if scalers  is None else scalers
+            self.theme      = 'std'                  if theme    is None else theme
+            alignment       = ('centre', 'middle')   if align    is None else align         
 
-        Geometry.__init__(self, bounds, self.platform.wh)
-        if align is not None: self.alignment = align
-        self.scale(scalers)
+        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment)
+
+        self.background = 'background' if background is None else background
+        self.colour     = Colour(self.theme, self.w)
 
         if square:
             xy = (scalers[0] * self.xyscale[0], scalers[1] * self.xyscale[1])
@@ -427,7 +442,7 @@ class Frame(Geometry):
             # print("Frame.__init__> square", square, self.xyscale, xy, self, self.geostr())
             self.resize(xy)
 
-        # print("Frame.__init__> square", square, self.xyscale, scalers, self, self.geostr())
+        # print("Frame.__init__> done", self.geostr())
 
 
     def __iadd__(self, frame):
@@ -436,19 +451,24 @@ class Frame(Geometry):
 
     def draw(self):
         # print("Framecore.draw. #frames=", len(self.frames))
+        self.undraw()
         for f in self.frames:
             # print("Frame.draw> ", type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # if hasattr(f, 'undraw'):  f.undraw()
 
             not_changed = f.draw()
             # if not_changed is None: self.display.refresh(self.abs_rect(self.screen_wh[1]=self.display.h))
-    #
-    # def undraw(self):
-    #     # print("Frame.undraw> generic", type(self).__name__)
-    #     self.display.fill(self.abs_rect(self.screen_wh[1]=self.display.h))
+
+    def undraw(self):
+        # print("Frame.undraw> generic", type(self).__name__)
+        # self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background, image=self.platform.artist_art)
+        self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
+            
+    def framestr(self):
+        return "%-10s > %s, %s, %s" % (type(self).__name__, self.scalers, self.alignment, self.theme)
 
     def frametext(self, f):
-        return "%-10s > %s" % (type(f).__name__, super(Frame, f).__str__())
+        return "%-10s > %s" % (type().__name__, super(Frame, f).__str__())
 
     def __str__(self):
         text = '%s Frame stack>' % type(self).__name__
@@ -480,6 +500,165 @@ class Frame(Geometry):
         return ok
 
 #End of Frame class
+
+"""
+Class to manage lists eg of menu items or sources to find previous and next items
+    init with a a list of keys - these key are used to index a dict
+    use the prev & next methods to get the previous and nexy items in the list
+    use the curr method to read the current item
+
+"""
+class ListNext:
+    def __init__(self, list, startItem):
+        self._list = list
+        self._curr = startItem
+
+    def findItemIndex(self, item):
+        for index, element in enumerate(self._list):
+            if element == item: return index
+        raise ValueError("ListNext.findItemIndex> item not found in list", item, self._list)
+
+    @property
+    def curr(self):
+        return self._curr
+
+    @curr.setter
+    def curr(self, v):
+        if v in self._list:
+            self._curr = v
+        else:
+            raise ValueError("ListNext.curr> item not found in list", v, self._list)
+
+    @property
+    def prev(self):
+        i = self.findItemIndex(self._curr)
+        if i > 0:
+            self.curr = self._list[i-1]
+        else:
+            self.curr = self._list[-1]
+        return self.curr
+
+    @property
+    def next(self):
+        i = self.findItemIndex(self._curr)
+        if i < len(self._list)-1:
+            self.curr =  self._list[i+1]
+        else:
+            self.curr =  self._list[0]
+        return self.curr
+
+    def __str__(self):
+        return "list>%s, current>%s" % (self._list, self.curr)
+
+
+
+# COLOUR_SCHEME = [[green, amber, red, purple],
+#                 [[121, 163, 146],[3, 116, 105],[1, 89, 86],[0, 53, 66],[0, 29, 41]], # colorScheme 2
+#                 [[86, 166, 50],[217, 4, 4]], # colorScheme 1
+#                 [[143, 142, 191],[79, 77, 140],[71, 64, 115],[46, 65, 89],[38, 38, 38]], # colorScheme 4
+#                 [[85, 89, 54,],[108, 115, 60],[191, 182, 48],[166, 159, 65],[242, 242, 242]], # colorScheme 5
+#                 [[1, 38, 25],[1, 64, 41],[2, 115, 74],[59, 191, 143],[167, 242, 228]], # colorScheme 3
+#                 [[1, 40, 64],[75, 226, 242], [75, 195, 242,]], # colorScheme 6 ==> Blue one
+#                 [[1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242]], # old blue one colorScheme 6
+#                 [[28, 56, 140],[217, 121, 201,],[242, 162, 92]], # colorScheme 9
+#                 [[144, 46, 242],[132, 102, 242],[164, 128, 242],[206, 153, 242],[241, 194, 242]]] # colorScheme 12
+
+
+
+white   = (255, 255, 255)
+grey    = (125, 125, 125)
+green   = (0, 128, 0)
+amber   = (255, 215, 0)
+red     = (255, 0, 0)
+purple  = (128, 0, 128)
+blue    = (0, 0, 255)
+black   = (0, 0, 0)
+yellow  = (255,255,0)
+
+COLOUR_THEME = {    'white' : {'light':(255,255,175), 'mid':(200,200,125), 'dark':grey, 'foreground':white, 'background':(25, 25, 25), 'alert':red,'range':[(255,255,75), (255,255,175), white] },
+                    'std'   : {'light':(175,0,0), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':black, 'alert':red,'range':[green, amber, red, purple] },
+                    'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':[1, 17, 28], 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242] ] }, #[(0,10,75), (0,100,250)],
+                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':[25, 5, 1], 'alert':red,'range':[ [241, 100, 75],[164, 46, 4],[206, 100, 75], [132, 46, 2], [144, 46, 1] ]},  #[(75,10,0), (250,100,0)],
+                    'leds'  : {'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
+                    'back'  : {'range':[ blue, black ] },
+                    'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
+                    'meter1': {'light':(200,200,200), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':(10, 10, 10), 'alert':red, 'range':[ white, red, grey]},
+                    'rainbow': {'white': white, 'grey': grey, 'green': green, 'amber': amber, 'red': red, 'purple': purple, 'blue': blue,  'black': black,  'yellow': yellow, 'range':[grey, red, yellow, green, blue, purple, white]}
+                }
+
+class Colour:
+    def __init__(self, theme, num_colours):
+        self.theme      = theme                 # array of colour tuples that are blended together
+        self.num_colours= num_colours           # size of array of colours to index
+        self.colours    = self.colourmap(theme) # lookup of a colour tuple from an index
+        # print("Colour.__init__> theme", theme, self.num_colours )
+
+    """
+    Colour primitives
+    """
+    def colourmap(self, theme):
+        def rgb_to_hex(color_tuple):
+            return "#{:02x}{:02x}{:02x}".format(*color_tuple)
+
+        hex_colours = [rgb_to_hex(color) for color in COLOUR_THEME[theme]['range']]
+        values = np.arange(0, self.num_colours+1)
+
+        # Normalize values to be in the range [0, 1]
+        norm = plt.Normalize(vmin=0, vmax=self.num_colours)
+
+        # Create a custom colormap ranging from green to amber to red
+        # cmap = mcolors.LinearSegmentedColormap.from_list('green_amber_red', ['#008000', '#FFD700', '#FF0000'])
+        cmap = mcolors.LinearSegmentedColormap.from_list('green_amber_red', hex_colours)
+        # Get colors corresponding to the normalized values
+        colors = cmap(norm(values))
+
+        # Convert RGBA values to tuples
+        color_tuples = [(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
+
+        return color_tuples
+
+    def get(self, colour_index=None, flip=False):
+        # depending what the index is look-up:
+        # print("Colour.get> INFO :", colour_index )
+        if isinstance(colour_index, (int, float)):
+            if flip:
+                i = min(self.num_colours, (max(0, int(self.num_colours-colour_index))))
+            else:
+                i = min(self.num_colours, (max(0, int(colour_index))))
+            # print("Screen.get_colour ", i, index)
+            return self.colours[int(i)]
+        elif colour_index in COLOUR_THEME[self.theme]:
+            return COLOUR_THEME[self.theme][colour_index]
+        else:
+            print("Colour.get> WARN : index not known - look for purple ", colour_index)
+            return purple
+
+
+class Cache:
+    def __init__(self, maxitems=100):
+        self.cache  = {}
+        self.oldest = [''] * maxitems
+
+    def add(self, key, value):
+        self.cache[key] = value
+        if self.oldest[0] in self.cache: del self.cache[self.oldest[0]]
+        self.oldest.append(key)
+        self.oldest.pop(0)
+
+    def find(self, key):
+        if key in self.cache:
+            return self.cache[key]
+        else:
+            return None
+
+
+
+
+
+
+
+
+
 
 """ test code
 
