@@ -18,7 +18,7 @@ from    framecore import Frame, Geometry
 
 import  os
 from    displaydriver import GraphicsDriver, Bar, Text, Line, Box, Lightback, Image, ArcsOctaves, Dots
-#
+
 PI = 3.14152
 
 class Smoother:
@@ -44,7 +44,7 @@ class Smoother:
                 inc  = len(self.smoother) - i
                 tot += inc
                 ave += v * inc
-            return ave / (tot*0.8)
+            return ave / tot
 
 class TextFrame(Frame):
     """
@@ -53,9 +53,9 @@ class TextFrame(Frame):
         - V is the vertical alignment
         - Y is the y scaler
     """
-    def __init__(self, parent, scalers=(1.0, 1.0), align=('centre', 'top'), text='Default Text', reset=False, theme='std', wrap=False):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
-        self.text     = Text(self, text=text, reset=reset, align=align, theme=theme, colour_index='foreground', wrap=wrap)
+    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False):
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
+        self.text     = Text(self, text=text, reset=reset, align=align, scalers=scalers, theme=theme, colour_index='foreground', wrap=wrap)
 
         # print("TextFrame.__init__>", text, self.text.fontwh, scalers, self.alignment, self.geostr())
 
@@ -173,13 +173,13 @@ MetaData Frames
 
 class PlayProgressFrame(Frame):
     """ This creates a propgress bar that moves according to play progress with time elapsd and time to go calc """
-    def __init__(self, parent, scalers=(1.0, 1.0), align=('left', 'bottom'), barsize_pc=0.5, theme='std', flip=False, \
+    def __init__(self, parent, scalers=(1.0, 1.0), align=None, barsize_pc=0.5, theme=None, flip=False, \
                     led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz'):
 
         self.barsize_pc     = barsize_pc      # min widths
         self.barw_max       = barw_max      # max width
         self.orient         = orient   # Horz or vert bars
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
         self.barw           = self.w * barsize_pc if orient == 'vert' else self.h * barsize_pc   # width of the bar
 
         text = " 22:22 "
@@ -203,44 +203,73 @@ class PlayProgressFrame(Frame):
         # print("PlayProgressFrame>", elapsed, remaining)
 
 class AlbumArtFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top')):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None, alpha=255):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
         self.image_container = Image(self)  # make square
         self.outline = OutlineFrame(self, scalers=scalers, align=align)
+        self.alpha   = alpha
 
     def draw(self):
-        self.image_container.draw(self.platform.album_art)
+        self.image_container.draw(self.platform.album_art, self.alpha)
         # self.outline.draw()
 
 class ArtistArtFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top')):
+    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top'), alpha=255):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.outline = OutlineFrame(self, scalers=scalers, align=align)
-        self.image_container = Image(self)  # make square
+        self.image_container = Image(self, align=('centre','middle'), scalers=(1.0,1.0))  
+        self.alpha   = alpha
 
     def draw(self):
-        self.image_container.draw(self.platform.artist_art)
+        self.image_container.draw(self.platform.artist_art, self.alpha)
         # self.outline.draw()
+
+# class MetaDataFrame(Frame):
+#     SHOW = {'artist': {'colour':'foreground', 'align': ('centre','bottom'), 'scalers': (1.0, 0.33) }, \
+#             'track': {'colour':'light', 'align': ('centre','top'), 'scalers' : (1.0, 0.33) }, \
+#             'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) } }
+
+#     def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top'),theme=None,show=SHOW):
+#         Frame.__init__(self, parent, scalers=scalers, align=align)
+
+#         self.show = show
+#         if 'track' in self.show:  self.track_container     = TextFrame(self, scalers=self.show['track']['scalers'], align=self.show['track']['align'], reset=True, theme=theme, wrap=True)
+#         if 'album' in self.show:  self.album_container     = TextFrame(self, scalers=self.show['album']['scalers'], align=self.show['album']['align'], reset=True, theme=theme, wrap=True)
+#         if 'artist' in self.show: self.artist_container    = TextFrame(self, scalers=self.show['artist']['scalers'], align=self.show['artist']['align'], reset=True, theme=theme, wrap=True)
+#         # self.back = Lightback(self)
+
+#     def draw(self):
+#         # self.back.draw()
+#         if 'track' in self.show: self.track_container.draw(text=self.platform.track, colour_index=self.show['track']['colour'])
+#         if 'album' in self.show: self.album_container.draw(text=self.platform.album, colour_index=self.show['album']['colour'])
+#         if 'artist' in self.show: self.artist_container.draw(text=self.platform.artist, colour_index=self.show['artist']['colour'])
+
 
 class MetaDataFrame(Frame):
     SHOW = {'artist': {'colour':'foreground', 'align': ('centre','bottom'), 'scalers': (1.0, 0.33) }, \
             'track': {'colour':'light', 'align': ('centre','top'), 'scalers' : (1.0, 0.33) }, \
             'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) } }
 
-    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top'),theme='std',show=SHOW):
+    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top'),theme=None,show=SHOW):
         Frame.__init__(self, parent, scalers=scalers, align=align)
-
         self.show = show
-        if 'track' in self.show:  self.track_container     = TextFrame(self, scalers=self.show['track']['scalers'], align=self.show['track']['align'], reset=True, theme=theme, wrap=True)
-        if 'album' in self.show:  self.album_container     = TextFrame(self, scalers=self.show['album']['scalers'], align=self.show['album']['align'], reset=True, theme=theme, wrap=True)
-        if 'artist' in self.show: self.artist_container    = TextFrame(self, scalers=self.show['artist']['scalers'], align=self.show['artist']['align'], reset=True, theme=theme, wrap=True)
-        # self.back = Lightback(self)
+        self.metadata = {}
+
+        for meta, attributes in self.show.items():
+            self.metadata[meta] = TextFrame(self, scalers=self.show[meta]['scalers'], align=self.show[meta]['align'], reset=True, theme=theme, wrap=True)
+
+        # if 'track' in self.show:  self.track_container     = TextFrame(self, scalers=self.show['track']['scalers'], align=self.show['track']['align'], reset=True, theme=theme, wrap=True)
+        # if 'album' in self.show:  self.album_container     = TextFrame(self, scalers=self.show['album']['scalers'], align=self.show['album']['align'], reset=True, theme=theme, wrap=True)
+        # if 'artist' in self.show: self.artist_container    = TextFrame(self, scalers=self.show['artist']['scalers'], align=self.show['artist']['align'], reset=True, theme=theme, wrap=True)
+        # # self.back = Lightback(self)
 
     def draw(self):
         # self.back.draw()
-        if 'track' in self.show: self.track_container.draw(text=self.platform.track, colour_index=self.show['track']['colour'])
-        if 'album' in self.show: self.album_container.draw(text=self.platform.album, colour_index=self.show['album']['colour'])
-        if 'artist' in self.show: self.artist_container.draw(text=self.platform.artist, colour_index=self.show['artist']['colour'])
+        for meta, container in self.metadata.items():
+            if 'track'  in meta: container.draw(text=self.platform.track, colour_index=self.show['track']['colour'])
+            if 'album'  in meta: container.draw(text=self.platform.album, colour_index=self.show['album']['colour'])
+            if 'artist' in meta: container.draw(text=self.platform.artist, colour_index=self.show['artist']['colour'])
+
 
     # def undraw(self):
     #     self.display.fill(self.abs_rect(screen_h=self.display.h), colour=(255,0,0))       # erase whole screen
@@ -298,8 +327,8 @@ class VUMeter(Frame):
     ARCLEN    = TICKLEN
     TICK_PC   = 0.1         # lenth of the ticks as PC of the needle
     TICK_W    = 3           # width of the ticks in pixels
-    DECAY     = 0.4         # decay factor
-    SMOOTH    = 14          # samples to smooth
+    DECAY     = 0.3         # decay factor
+    SMOOTH    = 15          # samples to smooth
 
     # MARKS     = {'-40':0.1, '-20':0.3, '-10':0.4, '-3':0.6, '0':0.7, '+3':0.8, '+6':0.9}
     # Key is the value (0-1) where the mark is drawn, with colour, width & text
@@ -307,10 +336,10 @@ class VUMeter(Frame):
                  0.3: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
                 #  0.4: {'text':'-10', 'width': TICK_W, 'colour': 'light'},
                  0.5: {'text':'-5', 'width': TICK_W, 'colour': 'light'},
-                 0.65: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
-                 0.75: {'text':'+0', 'width': TICK_W, 'colour': 'alert'},
-                 0.85: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'},
-                 0.95: {'text':'+6', 'width': TICK_W*3, 'colour': 'alert'} }
+                 0.6: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
+                 0.7: {'text':'+0', 'width': TICK_W, 'colour': 'alert'},
+                 0.8: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'},
+                 0.9: {'text':'+6', 'width': TICK_W*3, 'colour': 'alert'} }
     # Key is the radius, attributes width & colour
     ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
                  ARCLEN*0.9: {'width': TICK_W//2, 'colour': 'mid'} }
@@ -320,13 +349,13 @@ class VUMeter(Frame):
     NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
     VUIMAGEPATH = 'VU Images'
 
-    def __init__(self, parent, channel, scalers=(1.0, 1.0), align=('left', 'bottom'), peakmeter=False, \
+    def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, \
                  endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
                  needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme='meter1', marks=MARKS, annotate=ANNOTATE, arcs=ARCS):
 
         self.channel = channel
         self.marks   = marks
-        Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ))
+        Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme)
 
         # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
         # METERS      = { 'blueVU' : {'file': 'blue-bgr.png', 'needle':NEEDLE, 'endstops':ENDSTOPS, 'pivot':0}
@@ -335,11 +364,11 @@ class VUMeter(Frame):
         if bgdimage is not None:
             self.path       = VUMeter.VUIMAGEPATH +'/'+ bgdimage
             self.bgdimage   = Image(self, align=('centre', 'middle'), path=self.path )
-            # print("VUeter.__init__> setup background images")
+            # print("VUeter.__init__> setup background images", self.framestr())
         else:
             self.path        = None
             radius           = self.h*(0.5-pivot)
-            self.scales      = { mark : Text(self, text=marks[mark]['text'], fontmax=self.h*fonth, endstops=endstops, centre_offset=pivot, radius=radius*scaleslen, theme=theme ) for mark in marks }
+            self.scales      = { mark : Text(self, text=marks[mark]['text'], fontmax=self.h*fonth, endstops=endstops, centre_offset=pivot, radius=radius*scaleslen, reset=False, theme=theme ) for mark in marks }
             self.dB          = Text(self, fontmax=self.h*fonth*2, text=annotate['text'], align=('centre', annotate['Valign']), colour_index=annotate['colour'], reset=True, theme=theme)
             self.ticks       = Line(self, width=tick_w, endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*ticklen, theme=theme )
             self.arclines    = []
@@ -401,14 +430,14 @@ class VUMeterFrame2(Frame):
         SMOOTH    = 10          # samples to smooth
         ARCLEN    = TICKLEN * (1-TICK_PC)
 
-        MARKS     = {0.0:  {'text':'0', 'width': TICK_W, 'colour': 'mid' },
-                     0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid' },
-                     0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid' },
-                     0.42: {'text':'3', 'width': TICK_W, 'colour': 'mid' },
+        MARKS     = {0.0: {'text':'0', 'width': TICK_W, 'colour': 'mid'},
+                     0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid'},
+                     0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid'},
+                     0.42: {'text':'3', 'width': TICK_W, 'colour': 'mid'},
                      0.56: {'text':'4', 'width': TICK_W, 'colour': 'light'},
                      0.70: {'text':'5', 'width': TICK_W, 'colour': 'light'},
                      0.84: {'text':'6', 'width': TICK_W, 'colour': 'alert'},
-                     1.0:  {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
+                     1.0: {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
         ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'middle', 'text':'PPM', 'colour':'mid' }
         self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
@@ -421,10 +450,7 @@ class VUMeterFrame3(Frame):
     def __init__(self, parent, scalers=(1.0, 1.0), align=('left', 'bottom')):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         TICK_W    = 3
-        TICKLEN   = 0.8
-        TICK_PC   = 0.2
         ARCLEN    = 0.70
-        THEME     = 'blue'
         MARKS     = {0.0: {'text':'0', 'width': TICK_W, 'colour': 'mid'},
                      0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid'},
                      0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid'},
@@ -433,13 +459,12 @@ class VUMeterFrame3(Frame):
                      0.70: {'text':'5', 'width': TICK_W, 'colour': 'light'},
                      0.84: {'text':'6', 'width': TICK_W, 'colour': 'alert'},
                      1.0: {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
-        ARCS      = {ARCLEN       : {'width': TICK_W//2, 'colour': 'mid'},
-                     ARCLEN*1.1   : {'width': TICK_W//2, 'colour': 'mid'} }
+        ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'bottom', 'text':'Peak RMS', 'colour':'mid' }
-        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), theme = THEME, scaleslen=1, ticklen=TICKLEN,\
-                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE, tick_pc=TICK_PC)
-        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), theme = THEME,scaleslen=1, ticklen=TICKLEN,\
-                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE, tick_pc=TICK_PC)
+        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
+                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE)
+        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
+                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
 
 class VUMeterFrame4(Frame):
     """120 degrees meter, low pivot """
@@ -550,7 +575,7 @@ class VUFrame(Frame):
 
         Creates a bar, centred in a Frame as a % of the Frame width
     """
-    def __init__(self, parent, channel, scalers=(1.0, 1.0), align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
+    def __init__(self, parent, channel, scalers=(1.0, 1.0), align=None, barsize_pc=0.7, theme=None, flip=False, \
                     led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert'):
 
         self.barw_min       = barw_min      # min widths
@@ -571,7 +596,7 @@ class VUFrame(Frame):
 
 
 class VU2chFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('left', 'middle'), orient='vert', flip=False, led_h=5, led_gap=1,barsize_pc=0.7, theme='std'):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None, orient='vert', flip=False, led_h=5, led_gap=1,barsize_pc=0.7, theme=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         # def VUVFrame(self, platform, bounds, channel, scalers=(1.0, 1.0), align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
@@ -585,7 +610,7 @@ class VU2chFrame(Frame):
         self.check()
 
 class VUFlipFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('left', 'middle'), orient='vert', flip=False,theme='std'):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None, orient='vert', flip=False,theme=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         # def VUVFrame(self, platform, bounds, channel, scalers=(1.0, 1.0), align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
@@ -600,18 +625,18 @@ class VUFlipFrame(Frame):
 
 
 class VUHorzFrame(Frame):
-    def __init__(self, parent, channel, scalers=(1.0,1.0), align=None, tip=False,theme='std'):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+    def __init__(self, parent, channel, scalers=(1.0,1.0), align=None, tip=False,theme=None):
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
         # def VUVFrame(self, platform, bounds, channel, scalers=(1.0, 1.0), align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
         self += VUFrame(self, channel, align=('right','middle'), scalers=(0.90, 0.8), orient='horz', barsize_pc=0.8, led_gap=0,tip=tip, theme=theme )
         # def __init__(self, parent, V, Y, text='Default Text', X=1.0, H='centre', fontmax=0):
         channel_text = ' L' if channel=='left' else ' R'
       # def __init__(self, parent, align=('centre', 'top'), scalers=(1.0, 1.0), text='Default Text', fontmax=0):
-        self += TextFrame(self, align=('left', 'middle'), scalers=(0.1, 0.2), text=channel_text, theme=theme)
+        self += TextFrame(self, align=('left', 'middle'), scalers=(0.1, 0.8), text=channel_text, theme=theme)
 
 class VU2chHorzFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('left', 'bottom'),tip=False, theme='std'):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None,tip=False, theme=None):
         # def __init__(self, bounds, platform=None, display=None, scalers=[1.0,1.0], align=('left', 'bottom')):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         # def VUVFrame(self, platform, bounds, channel, scalers=(1.0, 1.0), align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
@@ -625,7 +650,7 @@ class VU2chHorzFrame(Frame):
 Outline Frames
 """
 class OutlineFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('left', 'bottom'), theme='std', width=4):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None, theme=None, width=4):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.out     = Box(self, self.wh, width=width, theme=theme)
     # def __init__( self, platform, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
@@ -718,16 +743,16 @@ class SpectrumFrame(Frame, Spectrum):
     - channel 'left' or 'right' selects the audio channel and screen alignment
     """
 
-    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left','bottom'), right_offset=0, theme='std', flip=False, \
+    def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, \
                     led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY):
 
         self.channel        = channel
         self.right_offset   = right_offset
 
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
 
         Spectrum.__init__(self, self.w, bar_space, barw_min, barw_max, decay=decay)
-        self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, theme=theme, flip=flip, radius=radius, tip=tip)
+        self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, radius=radius, tip=tip)
 
         # print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
 
@@ -888,9 +913,9 @@ class Oscilogramme(Frame):
     """
     Draw a frame of samples - scaling the number of samples is the trick to align the frame rate and the sample rate
     """
-    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme='std'):
+    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme=None):
         self.channel = channel
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
         self.lines   = Line(self, circle=False)
 
     def draw(self):
@@ -899,7 +924,7 @@ class Oscilogramme(Frame):
 
 
 class Octaviser(Frame, Spectrum):
-    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme='std'):
+    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme=None):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align)
         Spectrum.__init__(self, self.w, bar_space=5)
@@ -915,14 +940,14 @@ class Octaviser(Frame, Spectrum):
 
 
 class CircleModulator(Frame):
-    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme='std'):
+    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme=None):
         self.channel = channel
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
 
         self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
-        # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
-        self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.8, dotcount=4000)
-        self.VU      = VU(self.platform, channel, decay=0.4)
+        self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
+        self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.2)
+        self.VU      = VU(self.platform, channel, decay=0.2)
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
@@ -932,22 +957,22 @@ class CircleModulator(Frame):
         lpf_freq = 500
 
         height, peaks = self.VU.read()
-        samples = self.platform.reduceSamples( self.channel, 8 )  # reduce the dataset quite a bit
+        samples = self.platform.reduceSamples( self.channel, 4 )  # reduce the dataset quite a bit
         high_samples = self.platform.filter( samples, hpf_freq, type='highpass' )
         low_samples = self.platform.filter( samples, lpf_freq, type='lowpass' )
-        self.lines.draw_mod_line(high_samples, amplitude=(0.0+height)*0.9)
-        self.dots.draw_mod_dots(low_samples, trigger=self.platform.trigger_detected, amplitude=(0.0+height)*1.8)
+        self.lines.draw_mod_line(high_samples, amplitude=height)
+        self.dots.draw_mod_dots(samples, trigger=self.platform.trigger_detected, amplitude=height)
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
 
 
 """ A visualiser based on a circle display of spectrum lines """
 class Diamondiser(Frame, Spectrum):
     BARSPACE = 1
-    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme='std', bar_space=BARSPACE):
-        Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
+    def __init__(self, parent, channel, scalers=(1.0,1.0), align=('left', 'bottom'), theme=None, bar_space=BARSPACE):
+        Frame.__init__(self, parent, scalers=scalers, align=align, square=True, theme=theme)
         Spectrum.__init__(self, self.w, bar_space=bar_space, bandwidth=5000, decay=0.5)
         # self.VU          = VU(self.platform, channel, decay=0.2)
-        self.theme       = theme
+
         self.channel     = channel
         self.max_radius  = self.h/2
         self.ray_angle   = 1/self.bars

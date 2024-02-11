@@ -38,6 +38,7 @@ class RoonMetaData:
         self._play_changed, self._track_changed = False, False
         self._album_art_url        =  RoonMetaData.DEFAULT_URL
         self._artist_art_url       =  RoonMetaData.DEFAULT_URL
+        self._target_zone          =  'MacViz'
 
 
     @property

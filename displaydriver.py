@@ -9,168 +9,19 @@ v1.0 baloothebear4 1 Dec 2023   Original, based on Pygame visualiser mockups
 v1.1 baloothebear4 Feb 2024   refactored as part of pyvisualiseer
 
 """
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+
 import pygame, time
 from   pygame.locals import *
 import numpy as np
-from   framecore import Frame
+from   framecore import Frame, Cache, Colour
 from   textwrap import shorten, wrap
-from io import BytesIO
+from    io import BytesIO
 import requests
+import warnings
+""" Prevent image coolour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
+warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
 
-PI          = 3.14152
-
-"""
-Class to manage lists eg of menu items or sources to find previous and next items
-    init with a a list of keys - these key are used to index a dict
-    use the prev & next methods to get the previous and nexy items in the list
-    use the curr method to read the current item
-
-"""
-class ListNext:
-    def __init__(self, list, startItem):
-        self._list = list
-        self._curr = startItem
-
-    def findItemIndex(self, item):
-        for index, element in enumerate(self._list):
-            if element == item: return index
-        raise ValueError("ListNext.findItemIndex> item not found in list", item, self._list)
-
-    @property
-    def curr(self):
-        return self._curr
-
-    @curr.setter
-    def curr(self, v):
-        if v in self._list:
-            self._curr = v
-        else:
-            raise ValueError("ListNext.curr> item not found in list", v, self._list)
-
-    @property
-    def prev(self):
-        i = self.findItemIndex(self._curr)
-        if i > 0:
-            self.curr = self._list[i-1]
-        else:
-            self.curr = self._list[-1]
-        return self.curr
-
-    @property
-    def next(self):
-        i = self.findItemIndex(self._curr)
-        if i < len(self._list)-1:
-            self.curr =  self._list[i+1]
-        else:
-            self.curr =  self._list[0]
-        return self.curr
-
-    def __str__(self):
-        return "list>%s, current>%s" % (self._list, self.curr)
-
-
-
-# COLOUR_SCHEME = [[green, amber, red, purple],
-#                 [[121, 163, 146],[3, 116, 105],[1, 89, 86],[0, 53, 66],[0, 29, 41]], # colorScheme 2
-#                 [[86, 166, 50],[217, 4, 4]], # colorScheme 1
-#                 [[143, 142, 191],[79, 77, 140],[71, 64, 115],[46, 65, 89],[38, 38, 38]], # colorScheme 4
-#                 [[85, 89, 54,],[108, 115, 60],[191, 182, 48],[166, 159, 65],[242, 242, 242]], # colorScheme 5
-#                 [[1, 38, 25],[1, 64, 41],[2, 115, 74],[59, 191, 143],[167, 242, 228]], # colorScheme 3
-#                 [[1, 40, 64],[75, 226, 242], [75, 195, 242,]], # colorScheme 6 ==> Blue one
-#                 [[1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242]], # old blue one colorScheme 6
-#                 [[28, 56, 140],[217, 121, 201,],[242, 162, 92]], # colorScheme 9
-#                 [[144, 46, 242],[132, 102, 242],[164, 128, 242],[206, 153, 242],[241, 194, 242]]] # colorScheme 12
-
-
-
-white   = (255, 255, 255)
-grey    = (125, 125, 125)
-green   = (0, 128, 0)
-amber   = (255, 215, 0)
-red     = (255, 0, 0)
-purple  = (128, 0, 128)
-blue    = (0, 0, 255)
-black   = (0, 0, 0)
-yellow  = (255,255,0)
-
-COLOUR_THEME = {    'white' : {'light':(255,255,175), 'mid':(200,200,125), 'dark':grey, 'foreground':white, 'background':black, 'alert':red,'range':[(255,255,75), (255,255,175), white] },
-                    'std'   : {'light':(175,0,0), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':black, 'alert':red,'range':[green, amber, red, purple] },
-                    'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':black, 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242] ] }, #[(0,10,75), (0,100,250)],
-                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':black, 'alert':red,'range':[ [241, 100, 75], [206, 100, 75],[164, 46, 4],[132, 46, 2],[144, 46, 1]] },  #[(75,10,0), (250,100,0)],
-                    'leds'  : {'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
-                    'back'  : {'range':[ blue, black ] },
-                    'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
-                    'meter1': {'light':(200,200,200), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':black, 'alert':red, 'range':[ white, red, grey]},
-                    'rainbow': {'white': white, 'grey': grey, 'green': green, 'amber': amber, 'red': red, 'purple': purple, 'blue': blue,  'black': black,  'yellow': yellow, 'range':[grey, red, yellow, green, blue, purple, white]}
-                }
-
-class Colour:
-    def __init__(self, theme, num_colours):
-        self.theme      = theme                 # array of colour tuples that are blended together
-        self.num_colours= num_colours           # size of array of colours to index
-        self.colours    = self.colourmap(theme) # lookup of a colour tuple from an index
-        # print("Colour.__init__> theme", theme, self.num_colours )
-
-    """
-    Colour primitives
-    """
-    def colourmap(self, theme):
-        def rgb_to_hex(color_tuple):
-            return "#{:02x}{:02x}{:02x}".format(*color_tuple)
-
-        hex_colours = [rgb_to_hex(color) for color in COLOUR_THEME[theme]['range']]
-        values = np.arange(0, self.num_colours+1)
-
-        # Normalize values to be in the range [0, 1]
-        norm = plt.Normalize(vmin=0, vmax=self.num_colours)
-
-        # Create a custom colormap ranging from green to amber to red
-        # cmap = mcolors.LinearSegmentedColormap.from_list('green_amber_red', ['#008000', '#FFD700', '#FF0000'])
-        cmap = mcolors.LinearSegmentedColormap.from_list('green_amber_red', hex_colours)
-        # Get colors corresponding to the normalized values
-        colors = cmap(norm(values))
-
-        # Convert RGBA values to tuples
-        color_tuples = [(int(r * 255), int(g * 255), int(b * 255)) for r, g, b, _ in colors]
-
-        return color_tuples
-
-    def get(self, colour_index=None, flip=False):
-        # depending what the index is look-up:
-        # print("Colour.get> INFO :", colour_index )
-        if isinstance(colour_index, (int, float)):
-            if flip:
-                i = min(self.num_colours, (max(0, int(self.num_colours-colour_index))))
-            else:
-                i = min(self.num_colours, (max(0, int(colour_index))))
-            # print("Screen.get_colour ", i, index)
-            return self.colours[int(i)]
-        elif colour_index in COLOUR_THEME[self.theme]:
-            return COLOUR_THEME[self.theme][colour_index]
-        else:
-            print("Colour.get> WARN : index not known - look for purple ", colour_index)
-            return purple
-
-
-class Cache:
-    def __init__(self, maxitems=100):
-        self.cache  = {}
-        self.oldest = [''] * maxitems
-
-    def add(self, key, value):
-        self.cache[key] = value
-        if self.oldest[0] in self.cache: del self.cache[self.oldest[0]]
-        self.oldest.append(key)
-        self.oldest.pop(0)
-
-    def find(self, key):
-        if key in self.cache:
-            return self.cache[key]
-        else:
-            return None
-
+PI = np.pi
 
 
 class Bar(Frame):
@@ -186,13 +37,13 @@ class Bar(Frame):
         - left or right
         - peak lines
     """
-    def __init__(self, parent, scale=(1.0,1.0), align=('centre', 'bottom'), \
+    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'bottom'), theme=None, \
                  box_size=(100,100), led_h=10, led_gap=4, peak_h=1, right_offset=0, \
-                 theme='std', flip=False, radius=0, tip=False, orient='vert', col_mode=None):
+                 flip=False, radius=0, tip=False, orient='vert', col_mode=None):
 
         self.right_offset = right_offset
 
-        Frame.__init__(self, parent, align=align)
+        Frame.__init__(self, parent, align=align,theme=theme, scalers=scalers)
         self.resize( box_size )
 
         self.led_h      = led_h
@@ -201,7 +52,7 @@ class Bar(Frame):
         self.radius     = radius    # this makes rounded corners 0= Rectangle - works really as a % of the height
         if col_mode is None: col_mode = orient
         colour_range    = self.h if col_mode == 'vert' else self.w
-        self.colours    = Colour(theme, colour_range)
+        self.colours    = Colour(self.theme, colour_range)
         self.flip       = flip
         self.tip        = tip       # creates a rounded tip to the bar
         self.orient     = orient
@@ -289,47 +140,54 @@ class Bar(Frame):
             self.draw_peak(peak_w, False, pcoords)
 
 class Image(Frame):
-    def __init__(self, parent, wh=None, align=('left', 'middle'), path=None):
+    def __init__(self, parent, wh=None, path=None, align=None, scalers=(1.0,1.0)):
 
         self.image_cache = Cache(300)
         self.path        = path
-        Frame.__init__(self, parent, align=align)
+        Frame.__init__(self, parent, align=align, scalers=scalers)
 
         if path is not None:
-            self.scaleInProportion(path, self.wh[1])
+            self.scaleInProportion(path, self.boundswh[1])
 
+        # print("Image.__init__>", self.framestr(), self.geostr())
 
     def download_image(self, url):
         response = requests.get(url)
         return BytesIO(response.content)
 
-    def scaleInProportion(self, image_ref, new_height):
+    def scaleInProportion(self, image_ref, tgt_height):
         path = self.download_image(image_ref) if 'http' in image_ref else image_ref
-        imagesurface = pygame.image.load(path).convert()
+        imagesurface = pygame.image.load(path).convert_alpha()
         original_width, original_height = imagesurface.get_size()
         aspect_ratio = original_width / original_height
-        new_width = int(new_height * aspect_ratio)
-        if new_width > self.w:
-            new_width  = self.w
+        new_width = int(tgt_height * aspect_ratio)
+        if new_width > self.boundswh[0]:
+            new_width  = self.boundswh[0]
             new_height = int(new_width / aspect_ratio)
+        else:
+            new_height = tgt_height
 
         wh=(new_width, new_height)
         image = pygame.transform.scale(imagesurface, wh)
         self.image_cache.add(image_ref, image)
         self.resize( wh )
 
+        # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", tgt_height, self.geostr(), self.framestr())
         return image
 
-    def draw(self, image_data=None):
+    def draw(self, image_data=None, alpha=255):
+        # print("Image.draw>", self.boundswh[1], self.framestr(), self.geostr())
         if image_data is None:  image_data = self.path  
         image = self.image_cache.find(image_data)
         if image is None:   
-            image = self.scaleInProportion(image_data, self.h)
+            image = self.scaleInProportion(image_data, self.boundswh[1])
 
         if image is not None:
+            image.set_alpha(alpha)
             self.platform.screen.blit(image, self.abs_origin())
         else:
             print("Image.draw> attempt to draw an None image", image, image_data)
+
 
 class Lightback(Frame):
     # Draw the colorful arc background for the full frame
@@ -360,14 +218,14 @@ class Lightback(Frame):
 
 class ArcsOctaves(Frame):
     """ Lines are for drawing meter needles, oscilogrammes etc """
-    def __init__(self, parent, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5):
+    def __init__(self, parent, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5, scalers=(1.0,1.0)):
 
         self.NumOcts = NumOcts
         Frame.__init__(self, parent, align=align)
         self.resize( wh )
 
         self.scalar  = self.h/(NumOcts)/2
-        self.colour  = Colour(theme,12)
+        self.colour  = Colour(self.theme,12)
 
         # print("Arcs.init> ", self.geostr())
 
@@ -408,7 +266,7 @@ class Box(Frame):
         if box is not None:  self.resize( box )
 
         self.colour_index = colour_index
-        self.colours      = Colour(theme, self.w)
+        self.colours      = Colour(self.theme, self.w)
         # print("Box.init> wh", bounds, self.wh, self.geostr())
 
     def draw(self, offset=(0,0), colour_index=0, wh=None, pc=None):
@@ -433,7 +291,7 @@ class Box(Frame):
 Lines are for drawing meter needles, oscilogrammes etc
 """
 class Line(Frame):
-    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
+    def __init__( self, parent, colour_index=None, width=1, align=None, theme=None, scalers=(1.0,1.0),\
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, tick_pc=1.0, amp_scale=0.9):
 
         self.width     = width
@@ -443,11 +301,11 @@ class Line(Frame):
         self.linespace = []   # array of line circles
         self.amp_scale = amp_scale
 
-        Frame.__init__(self, parent, align=align)
+        Frame.__init__(self, parent, align=align, theme=theme, scalers=scalers)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
-        self.colours      = Colour(theme, self.radius)
+        self.colours      = Colour(self.theme, self.radius)
         # print("Line.init> ", bounds, self.geostr(), self.anglestr())
 
     def draw(self, offset, colour_index=0):   #(x,y) offset
@@ -550,8 +408,8 @@ class Text(Frame):
     TYPEFACE = 'arial'
     READABLE = 14   # smallest readable font size
 
-    def __init__(self, parent, text='Default text', fontmax=0, align=('centre', 'middle'), reset=False, wrap=False, scalers=(1.0,1.0),\
-                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme='std', colour_index=None):  #Create a font to fit a rectangle
+    def __init__(self, parent, text='Default text', fontmax=0, reset=False, wrap=False, align=None, scalers=(1.0,1.0),\
+                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme=None, colour_index=None):  #Create a font to fit a rectangle
 
         self.text     = text
         self.wrap     = wrap
@@ -559,11 +417,11 @@ class Text(Frame):
         self.radius   = radius
         self.theme    = theme
         self.fontmax  = fontmax
-        self.colours  = Colour(theme, 100)
         self.cache    = Cache()
         self.colour_index = colour_index
-        Frame.__init__(self, parent, align=align)
-        self.whmax    = self.wh
+        Frame.__init__(self, parent, align=align, scalers=scalers, theme=theme)
+        self.colours  = Colour(self.theme, 100)
+
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
         # print("Text.__init__> ", self.fontmax, self.text, self.alignment,self.geostr())
@@ -572,7 +430,7 @@ class Text(Frame):
         if text is None: text=self.text
         self.drawtext = self.cache.find(text)
         if self.drawtext is None:
-            self.font, self.fontwh = self.scalefont(self.whmax, text)  # You can specify a font
+            self.font, self.fontwh = self.scalefont(self.boundswh, text)  # You can specify a font
             if self.reset: self.resize( self.fontwh )
             # print("Text.update>  wh %s, fontwh %s, text<%s>, %s " % (self.wh, self.fontwh, self.text, self.alignment ))
 
@@ -610,10 +468,17 @@ class Text(Frame):
         font, fontwh = self.shrink_fontsize(wh, text)
 
         if self.wrap and fontwh[1] < Text.READABLE:  # split into two lines and draw half size
-            self.drawtext = wrap(text, width=1+len(text)//2, max_lines=2)
-            # print("wrap", self.drawtext)
-            font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0])
-            fontwh[1]    *= 2  # double height, 2 lines
+            try:
+                self.drawtext = wrap(text, width=1+len(text)//2, max_lines=2)
+                # print("wrap", self.drawtext)
+                font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0])
+                fontwh[1]    *= 2  # double height, 2 lines
+            except ValueError as error:
+                print("Text.scalefont> textwrap failed" , error )
+                self.drawtext = text[:(1+len(text)//2)]
+                # print("wrap", self.drawtext)
+                font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0])
+
         else:
             self.drawtext[0] = text
 
@@ -658,7 +523,7 @@ Dots are for drawing circles on progress bars, mood dots in space on visualisers
 """
 class Dots(Frame):
     def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
-                  circle=True, endstops=(PI/2, 5* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=4000):
+                  circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=1000):
 
         self.width      = width
         self.circle     = circle
@@ -670,7 +535,7 @@ class Dots(Frame):
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
-        self.colours      = Colour(theme, radius)
+        self.colours      = Colour(self.theme, radius)
         # print("Dots.init> ", bounds, self.geostr(), self.anglestr())
 
     def draw_circle(self, offset, colour_index=0):   #(x,y) offset
@@ -684,23 +549,21 @@ class Dots(Frame):
         size         = len(points)
         xc, yc       = self.centre[0], self.centre[1]
         col          = self.radius*(self.amp_scale*amplitude) if colour_index is None else col # Add a get col
-        gain         = 1.01
+        gain         = 1.1
 
         if 'bass' in trigger:
-            gain = 1.2  # velocity the dots move outward
+            gain = 1.1  # velocity the dots move outward
             col = 'alert'
 
         if 'treble' in trigger:
-            gain = 1.1
+            gain = 1.01
             col  = 'foreground'  # velocity the dots move outward
 
         # For all the dot space, calculate the velocities and move
         for dot in self.dotspace:
             self.dotspace.remove(dot)
-            # x1 = int((gain*(dot[0]-xc)* self.xyscale[0])+ xc)
-            # y1 = int((gain*(dot[1]-yc)* self.xyscale[1])+ yc)
-            x1 = int(gain*(dot[0]) * self.xyscale[0])
-            y1 = int(gain*(dot[1]) * self.xyscale[1])
+            x1 = int(gain*(dot[0]-xc)+ xc)
+            y1 = int(gain*(dot[1]-yc)+ yc)
             # check dot is still on the screen
             if x1>=0 and x1<=self.w and y1>0 and y1<self.h and len(self.dotspace)<self.dotcount:
                 self.dotspace.append([x1,y1, dot[2]])
@@ -737,9 +600,12 @@ class GraphicsDriver:
         pygame.display.set_caption('Visualiser')
         self.my_font        = pygame.font.SysFont('helvetica', 16)
         self.dotspace       = []
+        self.colour         = Colour('std', self.w)
+        self.background     = Frame(self)
+        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
 
     def draw_start(self, text=None):
-        self.screen.fill((0,0,0))       # erase whole screen
+        # self.screen.fill((0,0,0))       # erase whole screen
         if text is not None: pygame.display.set_caption(text)
 
     def draw_end(self):
@@ -751,9 +617,14 @@ class GraphicsDriver:
         # if rect is None: rect = [0,0]+self.wh
         pygame.display.update(pygame.Rect(rect))
 
-    def fill(self, rect=None, colour=black):
+    def fill(self, rect=None, colour=None, colour_index='background', image=None):
         if rect is None: rect = [0,0]+self.wh
+        if colour_index is None: colour_index = 'background'
+        if colour is None: colour=self.colour
+        colour = colour.get(colour_index)
         self.screen.fill(colour, pygame.Rect(rect))
+        if image is not None:
+            self.image_container.draw(image)
 
     @property
     def boundary(self):

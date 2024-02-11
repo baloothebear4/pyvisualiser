@@ -13,11 +13,14 @@
 """
 from    processaudio import AudioProcessor
 from    roon import Roon
-from    displaydriver import * #Screen, ListNext
+from    displaydriver import GraphicsDriver
 from    screens import *
 from    events import Events
+from    framecore import ListNext
 import  time
-# from    from frames import *
+from    pygame.locals import *   # this pulls down all the K_* constants
+
+
 
 FPS    = 60
 
@@ -30,7 +33,7 @@ class Platform(AudioProcessor, MetaData, GraphicsDriver):
     def __init__(self, events):
         GraphicsDriver.__init__(self, events, FPS)
         AudioProcessor.__init__(self, events)
-        MetaData.__init__(self, events, maxwh=self.wh, target_name='MacViz + 1')
+        MetaData.__init__(self, events, maxwh=self.wh, target_name='MacViz')
 
 
     def stop(self):
@@ -52,13 +55,14 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TrackSpectrumScreen2'
+        self.baseScreen     = 'TrackVUMeterScreen'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
-        self.screenList = { TrackSpectrumScreen2, 
+        self.screenList = { TrackScreen,
+            TrackVUMeterScreen, TrackSpectrumScreen2,
             TestVUImageScreen1, TrackVUMeterScreen2, TestScreen, TestVUMetersScreen, TrackSpectrumScreen, TestVUScreen,
             TrackSpectrumScreen3, TestVisualiserScreen, TestVUMetersScreen, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
                             TrackVisScreen3, TrackVUMeterScreen2, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
