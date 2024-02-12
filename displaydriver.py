@@ -406,8 +406,8 @@ class Text(Frame):
     Fonts are scaled to fit
     update triggers a resizing of the text each time its drawn
     """
-    TYPEFACE = 'arial'
-    READABLE = 14   # smallest readable font size
+    TYPEFACE = 'helvetica'
+    READABLE = 16   # smallest readable font size
 
     def __init__(self, parent, text='Default text', fontmax=0, reset=False, wrap=False, align=None, scalers=(1.0,1.0),\
                  endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme=None, colour_index=None):  #Create a font to fit a rectangle
@@ -428,12 +428,14 @@ class Text(Frame):
         # print("Text.__init__> ", self.fontmax, self.text, self.alignment,self.geostr())
 
     def update(self, text=None):
-        if text is None: text=self.text
-        self.drawtext = self.cache.find(text)
-        if self.drawtext is None:
-            self.font, self.fontwh = self.scalefont(self.boundswh, text)  # You can specify a font
-            if self.reset: self.resize( self.fontwh )
-            # print("Text.update>  wh %s, fontwh %s, text<%s>, %s " % (self.wh, self.fontwh, self.text, self.alignment ))
+        try:
+            if text is None: text=self.text
+            self.drawtext = self.cache.find(text)
+            if self.drawtext is None:
+                self.font, self.fontwh = self.scalefont(self.boundswh, text)  # You can specify a font
+                if self.reset: self.resize( self.fontwh )
+        except Exception as e:
+            print("Text.update> ERROR > %s > wh %s, fontwh %s, text<%s>, %s " % (e,self.wh, self.fontwh, self.text, self.alignment ))
 
     # def shrink_fontsize(self, wh, text, min=5):
     #     fontsize    = self.wh[1] if self.fontmax==0 else self.fontmax
@@ -599,8 +601,8 @@ class GraphicsDriver:
         self.screen         = pygame.display.set_mode(GraphicsDriver.PANEL)
         self.FPS            = FPS
         pygame.display.set_caption('Visualiser')
-        self.my_font        = pygame.font.SysFont('helvetica', 16)
-        self.dotspace       = []
+        # self.my_font        = pygame.font.SysFont('palatino', 16)
+        # self.dotspace       = []
         self.colour         = Colour('std', self.w)
         self.background     = Frame(self)
         self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square

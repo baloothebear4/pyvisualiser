@@ -55,13 +55,14 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TrackOscScreen'
+        self.baseScreen     = 'TrackSpectrumScreen4'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
+        self.track_rotate   = False
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
-        self.screenList = { TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
+        self.screenList = { TrackSpectrumScreen4,TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
             TrackVUMeterScreen2, TestVUMetersScreen, TestVUScreen, TrackSpectrumScreen3, TrackVUMeterScreen2 }
 
             # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
@@ -125,6 +126,10 @@ class Controller:
                 self.baseScreen   = self.screenmenu.prev
                 self.setScreen(self.baseScreen)
 
+            elif key == 114:  #R key pressed
+                self.track_rotate = not self.track_rotate
+                print("Controller.KeyAction> R: track screen rotate", self.track_rotate)
+
             elif key == K_UP:
                 print("Controller.KeyAction> UP: screen variant scrolling not implemented")
             elif key == K_DOWN:
@@ -136,8 +141,14 @@ class Controller:
 
     def RoonAction(self, key):
         print("Controller.RoonAction> event ", key)
-        if key == 'new_track' or key == 'start':
+        if key == 'start':
+            print("Controller.RoonAction> track started")
+
+        elif key == 'new_track':
             print("Controller.RoonAction> new track - pop up display ", key)
+            if self.track_rotate:    
+                self.baseScreen   = self.screenmenu.next
+                self.setScreen(self.baseScreen)  
             # self.trackChangeTimer.start()
             # self.activeScreen= 'trackChange'
 
@@ -166,7 +177,8 @@ class Controller:
 
             if self.audioready>0:
 
-                self.platform.draw_start(self.screens[self.activeScreen].title)
+                screen = self.screens[self.activeScreen]
+                self.platform.draw_start(screen.title + " > " + type(screen).__name__)
                 self.screens[self.activeScreen].draw()
                 self.platform.draw_end()
 

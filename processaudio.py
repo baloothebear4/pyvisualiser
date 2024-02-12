@@ -53,7 +53,7 @@ BINBANDWIDTH    = RATE/(FRAME + NUMPADS) #ie 43.5 Hz for 44.1kHz/1024
 DCOFFSETSAMPLES = 200
 TWOPI           = 2*3.14152
 
-VUGAIN          = 0.02
+VUGAIN          = 0.03
 RMSNOISEFLOOR   = -70    # dB
 DYNAMICRANGE    = 50     # Max dB
 SILENCETHRESOLD = 0.001   #0.02   # Measured from VU Noise Floor + VU offset
@@ -120,6 +120,8 @@ class AudioData():
         self.LR2(self.vu, self.peak)
 
 
+
+
 class AudioProcessor(AudioData):
     def __init__(self, events, device='BlackHole 2ch'):
         self.events   = events
@@ -141,6 +143,10 @@ class AudioProcessor(AudioData):
         self.silence    = WindowAve(SILENCESAMPLES)
         self.window     = np.kaiser(FRAME + 0, WINDOW)  #Hanning window
         # print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_default_input_device_info()['name'], RECORDSTATE))
+
+    @property
+    def framesize(self):
+        return FRAME    
 
     def find_device_index(self, device):
         for id in range(self.recorder.get_device_count()):

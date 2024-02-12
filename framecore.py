@@ -17,10 +17,12 @@
 """
 
 
-import os, time
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+
+from colour_palette import COLOUR_THEMES, purple
 
 
 PI = np.pi
@@ -551,41 +553,6 @@ class ListNext:
         return "list>%s, current>%s" % (self._list, self.curr)
 
 
-
-# COLOUR_SCHEME = [[green, amber, red, purple],
-#                 [[121, 163, 146],[3, 116, 105],[1, 89, 86],[0, 53, 66],[0, 29, 41]], # colorScheme 2
-#                 [[86, 166, 50],[217, 4, 4]], # colorScheme 1
-#                 [[143, 142, 191],[79, 77, 140],[71, 64, 115],[46, 65, 89],[38, 38, 38]], # colorScheme 4
-#                 [[85, 89, 54,],[108, 115, 60],[191, 182, 48],[166, 159, 65],[242, 242, 242]], # colorScheme 5
-#                 [[1, 38, 25],[1, 64, 41],[2, 115, 74],[59, 191, 143],[167, 242, 228]], # colorScheme 3
-#                 [[1, 40, 64],[75, 226, 242], [75, 195, 242,]], # colorScheme 6 ==> Blue one
-#                 [[1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242]], # old blue one colorScheme 6
-#                 [[28, 56, 140],[217, 121, 201,],[242, 162, 92]], # colorScheme 9
-#                 [[144, 46, 242],[132, 102, 242],[164, 128, 242],[206, 153, 242],[241, 194, 242]]] # colorScheme 12
-
-
-
-white   = (255, 255, 255)
-grey    = (125, 125, 125)
-green   = (0, 128, 0)
-amber   = (255, 215, 0)
-red     = (255, 0, 0)
-purple  = (128, 0, 128)
-blue    = (0, 0, 255)
-black   = (0, 0, 0)
-yellow  = (255,255,0)
-
-COLOUR_THEME = {    'white' : {'light':(255,255,175), 'mid':(200,200,125), 'dark':grey, 'foreground':white, 'background':(25, 25, 25), 'alert':red,'range':[(255,255,75), (255,255,175), white] },
-                    'std'   : {'light':(175,0,0), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':black, 'alert':red,'range':[green, amber, red, purple] },
-                    'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':[1, 17, 28], 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 226, 242] ] }, #[(0,10,75), (0,100,250)],
-                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':[25, 5, 1], 'alert':red,'range':[ [241, 100, 75],[164, 46, 4],[206, 100, 75], [132, 46, 2], [144, 46, 1] ]},  #[(75,10,0), (250,100,0)],
-                    'leds'  : {'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
-                    'back'  : {'range':[ blue, black ] },
-                    'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
-                    'meter1': {'light':(200,200,200), 'mid':grey, 'dark':(50,50,50), 'foreground':white, 'background':(10, 10, 10), 'alert':red, 'range':[ white, red, grey]},
-                    'rainbow': {'white': white, 'grey': grey, 'green': green, 'amber': amber, 'red': red, 'purple': purple, 'blue': blue,  'black': black,  'yellow': yellow, 'range':[grey, red, yellow, green, blue, purple, white]}
-                }
-
 class Colour:
     def __init__(self, theme, num_colours):
         self.theme      = theme                 # array of colour tuples that are blended together
@@ -600,7 +567,7 @@ class Colour:
         def rgb_to_hex(color_tuple):
             return "#{:02x}{:02x}{:02x}".format(*color_tuple)
 
-        hex_colours = [rgb_to_hex(color) for color in COLOUR_THEME[theme]['range']]
+        hex_colours = [rgb_to_hex(color) for color in COLOUR_THEMES[theme]['range']]
         values = np.arange(0, self.num_colours+1)
 
         # Normalize values to be in the range [0, 1]
@@ -627,8 +594,8 @@ class Colour:
                 i = min(self.num_colours, (max(0, int(colour_index))))
             # print("Screen.get_colour ", i, index)
             return self.colours[int(i)]
-        elif colour_index in COLOUR_THEME[self.theme]:
-            return COLOUR_THEME[self.theme][colour_index]
+        elif colour_index in COLOUR_THEMES[self.theme]:
+            return COLOUR_THEMES[self.theme][colour_index]
         else:
             print("Colour.get> WARN : index not known - look for purple ", colour_index)
             return purple

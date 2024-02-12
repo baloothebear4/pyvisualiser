@@ -14,10 +14,8 @@
 """
 
 # from    displaydriver import make_font, scaleImage, scalefont
-from    framecore import Frame, Geometry
-
-import  os
-from    displaydriver import GraphicsDriver, Bar, Text, Line, Box, Lightback, Image, ArcsOctaves, Dots
+from    framecore import Frame
+from    displaydriver import Bar, Text, Line, Box, Lightback, Image, ArcsOctaves, Dots
 
 PI = 3.14152
 
@@ -44,7 +42,7 @@ class Smoother:
                 inc  = len(self.smoother) - i
                 tot += inc
                 ave += v * inc
-            return ave / tot
+            return ave / (tot*1.0)  # this increased teh amplitude as the smoothing damps the range for VUs
 
 class TextFrame(Frame):
     """
@@ -214,10 +212,10 @@ class AlbumArtFrame(Frame):
         # self.outline.draw()
 
 class ArtistArtFrame(Frame):
-    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top'), alpha=255):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None, alpha=255):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.outline = OutlineFrame(self, scalers=scalers, align=align)
-        self.image_container = Image(self, align=('centre','middle'), scalers=(1.0,1.0))  
+        self.image_container = Image(self, align=None, scalers=(1.0,1.0))  
         self.alpha   = alpha
 
     def draw(self):
@@ -250,7 +248,7 @@ class MetaDataFrame(Frame):
             'track': {'colour':'light', 'align': ('centre','top'), 'scalers' : (1.0, 0.33) }, \
             'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) } }
 
-    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'top'),theme=None,show=SHOW):
+    def __init__(self, parent, scalers=(1.0,1.0), align=None,theme=None,show=SHOW):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.show = show
         self.metadata = {}
@@ -919,7 +917,7 @@ class Oscilogramme(Frame):
         self.lines   = Line(self, circle=False, amp_scale=0.6)
 
     def draw(self):
-        samples =  self.platform.reduceSamples( self.channel, 4, rms=False )
+        samples =  self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )
         self.lines.draw_mod_line(samples, colour_index='foreground')
 
 
@@ -957,7 +955,7 @@ class CircleModulator(Frame):
         lpf_freq = 500
 
         height, peaks = self.VU.read()
-        samples = self.platform.reduceSamples( self.channel, 4 )  # reduce the dataset quite a bit
+        samples = self.platform.reduceSamples( self.channel, self.platform.framesize//self.w )  # reduce the dataset quite a bit
         high_samples = self.platform.filter( samples, hpf_freq, type='highpass' )
         low_samples = self.platform.filter( samples, lpf_freq, type='lowpass' )
         self.lines.draw_mod_line(high_samples, amplitude=height)

@@ -34,7 +34,7 @@ class TrackScreen(Frame):   # comprises volume on the left, spectrum on the righ
 
     def __init__(self, platform):
 
-        Frame.__init__(self, platform, theme='red', background='background')
+        Frame.__init__(self, platform, theme='ocean', background='background')
 
         self += AlbumArtFrame(self  , scalers=(0.31, 1.0),align=('right','middle'))
         self += MetaDataFrame(self  , scalers=(0.38, 0.8), align=('centre','middle'))
@@ -115,13 +115,13 @@ class TrackSpectrumScreen(Frame):   # comprises volume on the left, spectrum on 
     def __init__(self, platform):
         Frame.__init__(self, platform, theme='blue')
 
-        subframe = Frame(self, scalers=(0.38,1.0),align=('centre', 'bottom'))
-        self += MetaDataFrame(subframe  , scalers=(1.0, 0.8), align=('centre','middle'))
-        self += PlayProgressFrame(subframe  , scalers=(1.0, 0.05), align=('centre','bottom'))
+        subframe = Frame(self, scalers=(0.45,1.0),align=('centre', 'bottom'))
+        self += MetaDataFrame(self  , scalers=(0.33, 0.8), align=('centre','middle'))
+        self += PlayProgressFrame(self  , scalers=(0.33, 0.05), align=('centre','bottom'))
 
         self += AlbumArtFrame(self  , scalers=(0.31, 1.0), align=('right','middle'))
-        self += SpectrumFrame(self  ,  'right', scalers=(0.31, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, barw_min=5, bar_space=0.6)
-        self += SpectrumFrame(self  ,  'left', scalers=(0.31, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, barw_min=5, bar_space=0.6)
+        self += SpectrumFrame(self  ,  'right', scalers=(0.33, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, barw_min=5, bar_space=0.6)
+        self += SpectrumFrame(self  ,  'left', scalers=(0.33, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, barw_min=5, bar_space=0.6)
 
 class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -138,6 +138,7 @@ class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on
         self += PlayProgressFrame(self  ,  scalers=(0.5, 0.05), align=('left','bottom'))
         self += SpectrumFrame(self  ,  'right', scalers=(0.5, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, barw_min=3, bar_space=2)
         self += SpectrumFrame(self  ,  'left', scalers=(0.5, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, barw_min=3, bar_space=2 )
+
 
 class MetaArtFrame(Frame):
     """ A subframe to nicely wrap the Metadata around the Art on the left """
@@ -169,14 +170,35 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
         Frame.__init__(self, platform, theme = 'std')
 
         # self += AlbumArtFrame(self  , (0.31, 0.93),align=('right','top'))
-        ARTIST = {'artist': {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
-        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 0.33)}}
+        ARTIST = {'artist': {'colour':'light', 'align': ('centre', 'middle'), 'scalers': (1.0, 1.0)}}
+        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top'), 'scalers': (1.0, 1.0)}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('left','top'), show=ARTIST)
-        self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('right','top'), show=TRACK)
+        self += MetaDataFrame(self  , scalers=(0.45, 0.2), align=('right','top'), show=ARTIST)
+        self += MetaDataFrame(self  , scalers=(0.45, 0.3), align=('right','bottom'), show=TRACK)
         self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'))
         self += SpectrumFrame(self  ,  'right', scalers=(1.0, 0.5), align=('centre','bottom'), led_gap=0, flip=True, barw_min=3, bar_space=0.5, tip=True )
         self += SpectrumFrame(self  ,  'left', scalers=(1.0, 0.5), align=('centre','top'), led_gap=0, barw_min=3, bar_space=0.5, tip=True )
+
+class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on the right
+    @property
+    def title(self): return 'Spectrum Analyser 4, Artist & progress bar'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        Frame.__init__(self, platform, theme= 'ocean')
+
+        ARTIST = {'artist': {'colour':'foreground', 'align': ('right', 'middle'), 'scalers': (1.0, 1.0)}}
+
+        subframe = Frame(self, scalers=(0.8,0.5), align=('centre', 'top'))
+
+        # self += ArtistArtFrame(self, scalers=(0.6, 0.6),align=('centre','middle'), alpha=120)
+        self += AlbumArtFrame(self,  scalers=(1.0, 0.7),align=('right','middle'), alpha=80)
+        self += PlayProgressFrame(self,  scalers=(0.9, 0.05), align=('centre','bottom'))
+        self += SpectrumFrame(self,  'right', scalers=(0.9, 0.5), align=('centre','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=True, barw_min=3, bar_space=5)
+        self += SpectrumFrame(self,  'left', scalers=(0.9, 0.5), align=('centre','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=True, barw_min=3, bar_space=5 )
+        self += MetaDataFrame(self, scalers=(1.0, 0.3), align=('right','top'), show=ARTIST)
 
 class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -212,7 +234,7 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         PIVOT     = -0.5
         # self += AlbumArtFrame(self  , (0.25, 0.93),align=('right','middle'))
         # self += AlbumArtFrame(self  , (0.3, 0.3),align=('centre','top'))
-        self += MetaDataFrame(self  , scalers=(0.45, 0.8), align=('centre','middle'))
+        self += MetaDataFrame(self  , scalers=(0.4, 0.8), align=('centre','middle'))
         self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'))
         self += ArtistArtFrame(self  , scalers=(1.0,1.0),align=('centre','middle'), alpha=40)
         self += VUMeter(self  ,  'left', scalers=(0.35, 0.85), align=('left','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
@@ -229,7 +251,7 @@ class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the r
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        Frame.__init__(self, platform, theme= 'std')
+        Frame.__init__(self, platform, theme= 'salmon')
  
         subframe = Frame(self, scalers=(0.4, 1.0), align=('right','middle'))
         self += VU2chFrame(subframe, scalers=(0.2, 1.0), align=('left','middle'))
