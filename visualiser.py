@@ -55,14 +55,14 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'TrackSpectrumScreen4'
+        self.baseScreen     = 'TrackVisScreen3'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
         self.track_rotate   = False
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
-        self.screenList = { TrackSpectrumScreen4,TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
+        self.screenList = { TestBacks, TrackSpectrumScreen4,TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
             TrackVUMeterScreen2, TestVUMetersScreen, TestVUScreen, TrackSpectrumScreen3, TrackVUMeterScreen2 }
 
             # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }

@@ -37,7 +37,7 @@ class Bar(Frame):
         - left or right
         - peak lines
     """
-    def __init__(self, parent, scalers=(1.0,1.0), align=('centre', 'bottom'), theme=None, \
+    def __init__(self, parent, scalers=None, align=('centre', 'bottom'), theme=None, \
                  box_size=(100,100), led_h=10, led_gap=4, peak_h=1, right_offset=0, \
                  flip=False, radius=0, tip=False, orient='vert', col_mode=None):
 
@@ -140,7 +140,7 @@ class Bar(Frame):
             self.draw_peak(peak_w, False, pcoords)
 
 class Image(Frame):
-    def __init__(self, parent, wh=None, path=None, align=None, scalers=(1.0,1.0)):
+    def __init__(self, parent, wh=None, path=None, align=None, scalers=None):
 
         self.image_cache = Cache(300)
         self.path        = path
@@ -191,34 +191,36 @@ class Image(Frame):
 
 class Lightback(Frame):
     # Draw the colorful arc background for the full frame
-    def __init__(self, parent, wh=None, align=None):
+    def __init__(self, parent, scalers=None, align=None, theme=None, colour_index='light'):
 
-        Frame.__init__(self, parent, align=align)
-        self.resize( wh )
-        dark_blue = (0, 0, 100)  # Dark blue color
-        glow_color = (255, 255, 200)  # Light yellow color for the glow
-        # print("Lightback.init> wh", bounds, self.geostr())
-
-        # screen.fill(dark_blue)
+        Frame.__init__(self, parent, align=align, scalers=scalers, theme=theme)
+        self.colour = Colour(self.theme, self.h)
+        self.colour_index = colour_index
 
         # Create a surface for the glow
-        self.glow_surface = pygame.Surface((self.w//2, self.h), pygame.SRCALPHA)
-
+        self.glow_surface = pygame.Surface(self.boundswh, pygame.SRCALPHA)
+        
+        col = self.colour.get(colour_index)
         # Draw the light illumination in the center on the glow surface
-        max_radius = self.h//2
-        for radius in range(max_radius, 0, -1):
-            alpha = int(255 * (radius / max_radius)**2)  # Adjust alpha based on radius
-            pygame.draw.circle(self.glow_surface, glow_color + (255-alpha,), (640,100), radius)
-            pygame.draw.ellipse(self.glow_surface, glow_color + (255-alpha,), (0,0,radius,radius))
+        self.max_radius = self.h//2
+        for radius in range(self.max_radius, 0, -1):
+            alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
+            pygame.draw.circle(self.glow_surface, col + (255-alpha,), self.abs_centre(), radius)
+
+        print("Lightback.__init__>", self.wh, self.h, self.abs_origin(), self.centre, self.geostr())
 
     def draw(self):
         # Blit the glow surface onto the screen
-        self.platform.screen.blit(self.glow_surface, self.abs_origin() )
 
+        # col = self.colour.get(self.colour_index)
+        # for radius in range(self.max_radius, 0, -1):
+        #     alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
+        #     pygame.draw.circle(self.glow_surface, col + (255-alpha,), self.abs_centre(), radius)
+        self.platform.screen.blit(self.glow_surface, self.abs_origin() )
 
 class ArcsOctaves(Frame):
     """ Lines are for drawing meter needles, oscilogrammes etc """
-    def __init__(self, parent, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5, scalers=(1.0,1.0)):
+    def __init__(self, parent, wh=None, colour=None, align=('centre', 'middle'), theme='std', NumOcts=5, scalers=None):
 
         self.NumOcts = NumOcts
         Frame.__init__(self, parent, align=align)
@@ -331,7 +333,7 @@ class Line(Frame):
         pygame.draw.line(self.platform.screen, colour, ab, xy, width)
 
 
-    def draw_mod_line(self, points, colour_index=None, amplitude=1.0):
+    def draw_mod_line(self, points, colour_index=None, amplitude=1.0, gain=1.0):
         size   = len(points)
         # Linear scalars
         yscale = self.h       # scalar for the height amplitude of the line modulation
@@ -342,7 +344,7 @@ class Line(Frame):
 
         for i, v in enumerate(points):
             if self.circle:
-                line.append(self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale) )
+                line.append(self.anglexy(i/size, self.radius, gain=v*gain,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale) )
             else:
                 line.append(self.abs_origin(  offset=(xscale*i, 0.5*yscale*(1+v*amplitude*self.amp_scale)) ))
 
@@ -425,7 +427,7 @@ class Text(Frame):
 
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
-        # print("Text.__init__> ", self.fontmax, self.text, self.alignment,self.geostr())
+        # print("Text.__init__> ", self.fontwh, self.font, self.text, self.alignment,self.geostr())
 
     def update(self, text=None):
         try:
@@ -525,16 +527,16 @@ class Text(Frame):
 Dots are for drawing circles on progress bars, mood dots in space on visualisers etc
 """
 class Dots(Frame):
-    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', \
-                  circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=0.2, dotcount=1000):
+    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', scalers=None, \
+                  circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=1.0, dotcount=1000):
 
         self.width      = width
         self.circle     = circle
-        self.radius     = radius*0.5
+        self.radius     = radius
         self.dotspace   = []
         self.dotcount   = dotcount
         self.amp_scale  = amp_scale
-        Frame.__init__(self, parent, align=align)
+        Frame.__init__(self, parent, align=align, scalers=scalers)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
         self.colour_index = colour_index
@@ -548,42 +550,54 @@ class Dots(Frame):
         pygame.draw.ellipse(self.platform.screen, colour, coords, self.width)
         # print("Dots.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
-    def draw_mod_dots(self, points, trigger={}, colour_index=None, amplitude=1.0):
+    def draw_mod_dots(self, points, trigger={}, colour_index=None, amplitude=1.0, gain=0.2):
         size         = len(points)
         xc, yc       = self.centre[0], self.centre[1]
         col          = self.radius*(self.amp_scale*amplitude) if colour_index is None else col # Add a get col
-        gain         = 1.1
+        accelerator  = 1.01
 
         if 'bass' in trigger:
-            gain = 1.1  # velocity the dots move outward
-            col = 'alert'
+            accelerator = 1.05  # velocity the dots move outward
+            col = 'light'
 
         if 'treble' in trigger:
-            gain = 1.01
+            accelerator = 1.1
             col  = 'foreground'  # velocity the dots move outward
 
         # For all the dot space, calculate the velocities and move
         for dot in self.dotspace:
             self.dotspace.remove(dot)
-            x1 = int(gain*(dot[0]-xc)+ xc)
-            y1 = int(gain*(dot[1]-yc)+ yc)
+            x1 = int(accelerator*(dot[0]-xc)+ xc)
+            y1 = int(accelerator*(dot[1]-yc)+ yc)
+            # x1 = int(accelerator*(dot[0]))
+            # y1 = int(accelerator*(dot[1]))
             # check dot is still on the screen
-            if x1>=0 and x1<=self.w and y1>0 and y1<self.h and len(self.dotspace)<self.dotcount:
-                self.dotspace.append([x1,y1, dot[2]])
+            # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
+            # if x1>=0 and x1<=self.w: #and y1>0 and y1<self.h: # and len(self.dotspace)<self.dotcount:
+            # if len(self.dotspace)<self.dotcount:    
+            self.dotspace.append([x1,y1, dot[2]])
+            # else:
+
+            # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
 
         colour = self.colours.get(col)
-        # if 'bass' in trigger:
 
         for i, v in enumerate(points):
             # xy = self.anglexy(i/size, self.radius, gain=1.5, amp_scale=abs(v), xyscale=(xscale,1.0))
-            xy = self.anglexy(i/size, self.radius, gain=v,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale)
-            if v>0.00: self.dotspace.append([ int(xy[0]),int(xy[1]),colour])
+            xy = self.anglexy(i/size, self.radius, gain=v*gain,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale)
+            # colour = self.colours.get(v*gain)
+            if v>0.00 and len(trigger)>1: 
+                self.dotspace.append([ int(xy[0]),int(xy[1]),colour])
 
             # Draw the dot space and calculate the velocities
         for dot in self.dotspace:
-            # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size)
-            self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
+            print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size)
 
+            if dot[0]<0 or dot[0]>self.w or dot[1]<0 or dot[1]>self.h: # and len(self.dotspace)<self.dotcount:
+                self.dotspace.remove(dot)
+            else:
+                self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
+        # print("Dots.draw_mod_dots>", len(self.dotspace), trigger)
 
 class GraphicsDriver:
     """ Pygame based platform """

@@ -259,7 +259,7 @@ class Geometry():
 
     def abs_centre(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
-        origin = [self.centre[0]+offset[0], self.screen_wh[1]- (self.centre[1]+self.h*(self.centre_offset)-offset[1]-1) ]  #-self.h deleted from this
+        origin = [self.centre[0]+offset[0], self.screen_wh[1]- (self.centre[1]+self.h*(self.centre_offset)-offset[1]-1) ]  
         # print("Geometry.abs_centre>", self.centre, origin)
         return origin
 

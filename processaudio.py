@@ -275,10 +275,10 @@ class AudioProcessor(AudioData):
 
         bass_signal   = np.max( self.filter( self.samples[ 'mono' ], 100, type='lowpass' )/ maxValue)
         treble_signal = np.max( self.filter( self.samples[ 'mono' ], 5000, type='highpass')/ maxValue )
-        if bass_signal> 0.1:
+        if bass_signal> 0.05:
             self.trigger_detected.append('bass')
             # print("bass ", bass_signal)
-        if treble_signal> 0.1:
+        if treble_signal> 0.05:
             self.trigger_detected.append('treble')
             # print("treble ", treble_signal)
 
