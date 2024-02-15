@@ -344,10 +344,11 @@ class VUMeter(Frame):
 
     def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, \
                  endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
-                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme='meter1', marks=MARKS, annotate=ANNOTATE, arcs=ARCS):
+                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS):
 
         self.channel = channel
         self.marks   = marks
+        channel      = channel if channel == 'left' or channel == 'right' else align[0]
         Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme)
 
         # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
@@ -361,7 +362,7 @@ class VUMeter(Frame):
         else:
             self.path        = None
             radius           = self.h*(0.5-pivot)
-            self.scales      = { mark : Text(self, text=marks[mark]['text'], fontmax=self.h*fonth, endstops=endstops, centre_offset=pivot, radius=radius*scaleslen, reset=False, theme=theme ) for mark in marks }
+            self.scales      = { mark : Text(self, text=marks[mark]['text'], colour_index=marks[mark]['colour'], fontmax=self.h*fonth, endstops=endstops, centre_offset=pivot, radius=radius*scaleslen, reset=False, theme=theme ) for mark in marks }
             self.dB          = Text(self, fontmax=self.h*fonth*2, text=annotate['text'], align=('centre', annotate['Valign']), colour_index=annotate['colour'], reset=True, theme=theme)
             self.ticks       = Line(self, width=tick_w, endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*ticklen, theme=theme )
             self.arclines    = []
@@ -370,7 +371,7 @@ class VUMeter(Frame):
 
         # setup the needle
         radius           = self.h*(0.5-pivot)
-        self.VU          = VU(self.platform, channel, decay=decay, smooth=smooth)
+        self.VU          = VU(self.platform, self.channel, decay=decay, smooth=smooth)
         self.needle      = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index=needle['colour'])
         self.peak        = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index='alert')
         self.peakmeter   = peakmeter
@@ -937,7 +938,7 @@ class CircleModulator(Frame):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, square=True)
 
-        self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.5)
+        self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.8)
         # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
         self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.5)
         self.VU      = VU(self.platform, channel, decay=0.2)
@@ -947,14 +948,14 @@ class CircleModulator(Frame):
     def draw(self):
 
         hpf_freq = 1000
-        lpf_freq = 500
+        lpf_freq = 1500
 
         height, peaks = self.VU.read()
         samples = self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )  # reduce the dataset quite a bit
         high_samples = self.platform.filter( samples, hpf_freq, type='highpass' )
         low_samples = self.platform.filter( samples, lpf_freq, type='lowpass' )
-        self.lines.draw_mod_line(low_samples, amplitude=1.0, gain=0.2, colour_index='light')
-        # self.dots.draw_mod_dots(samples, trigger=self.platform.trigger_detected, amplitude=1.0)
+        self.lines.draw_mod_line(low_samples, amplitude=height, gain=0.3, colour_index='light')
+        self.dots.draw_mod_dots(samples, trigger=self.platform.trigger_detected, amplitude=1.0)
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
 
 
