@@ -281,17 +281,17 @@ class BigDialsScreen(Frame):   # comprises volume on the left, spectrum on the r
         TICKLEN   = 0.9        # length marks
         TICK_PC   = 0.20         # lenth of the ticks as PC of the needle
         SCALESLEN = 1.05
-        MARKS     = {0.0: {'text':'0', 'width': TICK_W, 'colour': 'light'},
-                     0.14: {'text':'1', 'width': TICK_W, 'colour': 'light'},
-                     0.28: {'text':'2', 'width': TICK_W, 'colour': 'light'},
-                     0.42: {'text':'3', 'width': TICK_W, 'colour': 'light'},
-                     0.56: {'text':'4', 'width': TICK_W, 'colour': 'light'},
-                     0.70: {'text':'5', 'width': TICK_W, 'colour': 'light'},
-                     0.84: {'text':'6', 'width': TICK_W, 'colour': 'light'},
-                     1.0: {'text':'7', 'width': TICK_W, 'colour': 'light'} }
-        ARCS      = {ARCLEN        : {'width': TICK_W//3, 'colour': 'light'}}
-                    #  ARCLEN*0.95   : {'width': TICK_W//3, 'colour': 'light'},
-                    #  ARCLEN*0.97   : {'width': TICK_W//3, 'colour': 'light'}  }
+        MARKS     = {0.0: {'text':'0', 'width': TICK_W, 'colour': 'mid'},
+                     0.14: {'text':'1', 'width': TICK_W, 'colour': 'mid'},
+                     0.28: {'text':'2', 'width': TICK_W, 'colour': 'mid'},
+                     0.42: {'text':'3', 'width': TICK_W, 'colour': 'mid'},
+                     0.56: {'text':'4', 'width': TICK_W, 'colour': 'mid'},
+                     0.70: {'text':'5', 'width': TICK_W, 'colour': 'mid'},
+                     0.84: {'text':'6', 'width': TICK_W, 'colour': 'mid'},
+                     1.0: {'text':'7', 'width': TICK_W, 'colour': 'mid'} }
+        ARCS      = {ARCLEN        : {'width': TICK_W//3, 'colour': 'mid'}}
+                    #  ARCLEN*0.95   : {'width': TICK_W//3, 'colour': 'mid'},
+                    #  ARCLEN*0.97   : {'width': TICK_W//3, 'colour': 'mid'}  }
         ANNOTATE  = { 'Valign':'bottom', 'text':'', 'colour':'mid' }
         NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
     
@@ -300,10 +300,12 @@ class BigDialsScreen(Frame):   # comprises volume on the left, spectrum on the r
                         pivot=0, endstops=(3*PI/8, 13*PI/8), marks=MARKS, arcs=ARCS, annotate=ANNOTATE, needle=NEEDLE, tick_pc=TICK_PC)
         # self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
         #                 pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
-        self += AlbumArtFrame(self, (0.3, 0.8),align=('right','middle'))
-        self += MetaDataFrame(self  , scalers=(0.35, 0.55), align=('left','top'))
+        subframe = Frame(self,scalers=(0.31, 0.9), align=('right','middle') )
+        subframe2= Frame(self, scalers=(0.31, 0.55), align=('left','top'))
+        self += AlbumArtFrame(subframe, (1.0, 1.0),align=('centre','middle'))
+        self += MetaDataFrame(subframe2  , scalers=(0.9,0.9), align=('centre','middle'))
         self += SpectrumFrame(self,  'mono', scalers=(1.0, 0.6), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
-        self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('right','bottom'))
+        self += PlayProgressFrame(self  , scalers=(0.70, 0.05), align=('left','bottom'))
 
 
 """ VU Meters """

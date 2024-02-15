@@ -208,7 +208,7 @@ class Lightback(Frame):
             alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
             pygame.draw.circle(self.glow_surface, col + [255-alpha,], self.abs_centre(), radius)
 
-        print("Lightback.__init__>", self.wh, self.h, self.abs_origin(), self.centre, self.geostr())
+        # print("Lightback.__init__>", self.wh, self.h, self.abs_origin(), self.centre, self.geostr())
 
     def draw(self):
         # Blit the glow surface onto the screen

@@ -78,7 +78,7 @@ class Controller:
             if screen.type != 'Control':  #ie create a menu from Test & Base screens
                 menuSequence.append(screen.__name__)
         self.screenmenu = ListNext(menuSequence, self.baseScreen)
-        print("Controller.__init__> menus intialised", self.screenmenu)
+        # print("Controller.__init__> menus intialised", self.screenmenu)
 
     def setScreen(self, s):
         self.activeScreen = s
