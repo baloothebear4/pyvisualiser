@@ -203,7 +203,6 @@ class Lightback(Frame):
         self.glow_surface = pygame.Surface(self.boundswh, pygame.SRCALPHA)
         
         col = self.colour.get(colour_index)
-        print(col)
         # Draw the light illumination in the center on the glow surface
         self.max_radius = self.h//2
         for radius in range(self.max_radius, 0, -1):
