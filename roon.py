@@ -23,7 +23,7 @@ class RoonMetaData:
     ZONE_KEYS        = ( 'zone_id', 'display_name', 'state', 'now_playing', 'seek_position')
     NOW_PLAYING_KEYS = ( 'seek_position', 'length', 'one_line', 'two_line', 'three_line', 'image_key', 'artist_image_keys')
     DEFAULT_URL      = 'https://cdn10.bigcommerce.com/s-x8dfmo/products/8700/images/31754/Thunderbird-2-in-Thunderbirds-Premium-Photograph-and-Poster-1015146__92732.1432428503.1280.1280.jpg?c=2'
-
+    DEFAULT_URL      =  None
 
     def __init__(self, roonapi, maxwh):
         self.clear_metadata()

@@ -171,8 +171,8 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
         Frame.__init__(self, platform, theme = 'std')
 
         # self += AlbumArtFrame(self  , (0.31, 0.93),align=('right','top'))
-        ARTIST = {'artist': {'colour':'light', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.7)}}
-        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.7)}}
+        ARTIST = {'artist': {'colour':'light', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.5)}}
+        TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.5)}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         self += MetaDataFrame(self  , scalers=(0.45, 0.5), align=('right','top'), show=ARTIST)
         self += MetaDataFrame(self  , scalers=(0.45, 0.5), align=('right','bottom'), show=TRACK)

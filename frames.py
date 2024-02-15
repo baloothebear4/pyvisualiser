@@ -244,9 +244,9 @@ class ArtistArtFrame(Frame):
 
 
 class MetaDataFrame(Frame):
-    SHOW = {'artist': {'colour':'foreground', 'align': ('centre','bottom'), 'scalers': (1.0, 0.5) }, \
-            'track': {'colour':'light', 'align': ('centre','top'), 'scalers' : (1.0, 0.5) }, \
-            'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.5) } }
+    SHOW = {'artist': {'colour':'foreground', 'align': ('centre','bottom'), 'scalers': (1.0, 0.33) }, \
+            'track': {'colour':'light', 'align': ('centre','top'), 'scalers' : (1.0, 0.33) }, \
+            'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) } }
 
     def __init__(self, parent, scalers=None, align=None,theme=None,show=SHOW):
         Frame.__init__(self, parent, scalers=scalers, align=align)

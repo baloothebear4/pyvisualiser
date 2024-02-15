@@ -120,9 +120,9 @@ class Bar(Frame):
                     colour = self.colours.get(coords[2], True) if colour_index is None else self.colours.get(colour_index)
                     pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_left_radius=self.tip_radius, border_top_left_radius=self.tip_radius )
 
-            peak_w  = self.w*(1-peak)
+            peak_w  = self.w*(peak)
             pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
-            self.draw_peak(peak_w, True, pcoords)
+            self.draw_peak(peak_w, False, pcoords)
 
         else:
             coords = self.abs_rect( offset=(0, offset),  wh=[self.w*ypc, w] )
@@ -156,6 +156,7 @@ class Image(Frame):
         return BytesIO(response.content)
 
     def scaleInProportion(self, image_ref, tgt_height):
+        if image_ref is None: return
         path = self.download_image(image_ref) if 'http' in image_ref else image_ref
         imagesurface = pygame.image.load(path).convert_alpha()
         original_width, original_height = imagesurface.get_size()
@@ -186,7 +187,8 @@ class Image(Frame):
             image.set_alpha(alpha)
             self.platform.screen.blit(image, self.abs_origin())
         else:
-            print("Image.draw> attempt to draw an None image", image, image_data)
+            pass
+            # print("Image.draw> attempt to draw an None image", image, image_data)
 
 
 class Lightback(Frame):
@@ -452,7 +454,7 @@ class Text(Frame):
     #     return font, list(fontwh)
     
     def shrink_fontsize(self, wh, text, min=5):
-        fontsize    = self.wh[1] if self.fontmax==0 else self.fontmax
+        fontsize    = self.boundswh[1] if self.fontmax==0 else self.fontmax
         font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
         fontwh      = self.textsize(text, font) 
         if fontwh[0]> wh[0]:  
