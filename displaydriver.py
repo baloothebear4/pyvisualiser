@@ -201,11 +201,12 @@ class Lightback(Frame):
         self.glow_surface = pygame.Surface(self.boundswh, pygame.SRCALPHA)
         
         col = self.colour.get(colour_index)
+        print(col)
         # Draw the light illumination in the center on the glow surface
         self.max_radius = self.h//2
         for radius in range(self.max_radius, 0, -1):
             alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
-            pygame.draw.circle(self.glow_surface, col + (255-alpha,), self.abs_centre(), radius)
+            pygame.draw.circle(self.glow_surface, col + [255-alpha,], self.abs_centre(), radius)
 
         print("Lightback.__init__>", self.wh, self.h, self.abs_origin(), self.centre, self.geostr())
 
@@ -216,7 +217,7 @@ class Lightback(Frame):
         # for radius in range(self.max_radius, 0, -1):
         #     alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
         #     pygame.draw.circle(self.glow_surface, col + (255-alpha,), self.abs_centre(), radius)
-        self.platform.screen.blit(self.glow_surface, self.abs_origin() )
+        self.platform.screen.blit(self.glow_surface, (0,0) )
 
 class ArcsOctaves(Frame):
     """ Lines are for drawing meter needles, oscilogrammes etc """
@@ -591,7 +592,7 @@ class Dots(Frame):
 
             # Draw the dot space and calculate the velocities
         for dot in self.dotspace:
-            print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size)
+            # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size)
 
             if dot[0]<0 or dot[0]>self.w or dot[1]<0 or dot[1]>self.h: # and len(self.dotspace)<self.dotcount:
                 self.dotspace.remove(dot)
