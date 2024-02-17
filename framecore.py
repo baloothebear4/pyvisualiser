@@ -404,15 +404,16 @@ class Frame(Geometry):
         square      is to force the shape to have w=h
         
     """
+    OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
 
-    def __init__(self, parent, scalers=None, align=None, square=False, theme=None, background=None):
+    def __init__(self, parent, scalers=None, align=None, square=False, theme=None, background=None, outline=None):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
             bounds is list of the bottom left and upper right corners eg (64,32)
         """
         self.frames     = []         #Holds the stack of containing frames
-
+        self.outline    = outline
         # print("Frame.__init__>", type(self).__name__, align, scalers, theme)
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
@@ -435,6 +436,10 @@ class Frame(Geometry):
         self.background = 'background' if background is None else background
         self.colour     = Colour(self.theme, self.w)
 
+        if outline is not None: 
+            self.outline     = self.platform.create_outline(self.theme, outline, self.w)
+            # print("create outline ", type(self).__name__)
+
         if square:
             xy = (scalers[0] * self.xyscale[0], scalers[1] * self.xyscale[1])
             if self.w>self.h:
@@ -454,20 +459,33 @@ class Frame(Geometry):
     def draw(self):
         # print("Framecore.draw. #frames=", len(self.frames))
         self.undraw()
+        # if type(self).__name__ == 'AlbumArtFrame':
+        #     print("outline test", self.outline)
+        # if self.outline is not None: 
+        #     self.outline.draw()
+        #     print("outline 1")
+
         for f in self.frames:
             # print("Frame.draw> ", type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # if hasattr(f, 'undraw'):  f.undraw()
 
-            not_changed = f.draw()
+            f.draw()
+            f.draw_outline()
+            # if f.outline is not None: 
+            #     f.outline.draw()
+                # print("outline 2",type(f).__name__)
             # if not_changed is None: self.display.refresh(self.abs_rect(self.screen_wh[1]=self.display.h))
 
     def undraw(self):
         # print("Frame.undraw> generic", type(self).__name__)
         # self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background, image=self.platform.artist_art)
         self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
+
+    def draw_outline(self):
+        if self.outline is not None: self.outline.draw(self.abs_rect())
             
     def framestr(self):
-        return "%-10s > %s, %s, %s" % (type(self).__name__, self.scalers, self.alignment, self.theme)
+        return "%-10s > %s, %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.scalers, self.alignment, self.theme)
 
     def frametext(self, f):
         return "%-10s > %s" % (type().__name__, super(Frame, f).__str__())
@@ -584,7 +602,7 @@ class Colour:
 
         return color_tuples
 
-    def get(self, colour_index=None, flip=False):
+    def get(self, colour_index=None, flip=False, opacity=255):
         # depending what the index is look-up:
         # print("Colour.get> INFO :", colour_index )
         if isinstance(colour_index, (int, float)):
@@ -595,7 +613,7 @@ class Colour:
             # print("Screen.get_colour ", i, index)
             return self.colours[int(i)]
         elif colour_index in COLOUR_THEMES[self.theme]:
-            return COLOUR_THEMES[self.theme][colour_index]
+            return list(COLOUR_THEMES[self.theme][colour_index])+[opacity]
         else:
             print("Colour.get> WARN : index not known - look for purple ", colour_index)
             return purple

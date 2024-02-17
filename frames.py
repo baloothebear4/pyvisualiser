@@ -65,105 +65,6 @@ class TextFrame(Frame):
     def width(self):
         return self.w
 
-""" Old preamp classes that need refactoring """
-# class VolumeSourceFrame(Frame):
-#     """
-#         Displays the volume as a percentage with the source underneath
-#         - has a width determined by the scale
-#     """
-#     def __init__(self, parent, scale, align=('right','top')):
-#         Frame.__init__(self, display.boundary, platform, (scale,1.0), 'middle', Halign=align)
-#         self += VolumeTextFrame(self, "top", 0.7, "22")        # this are the widest number
-#         self += SourceTextFrame(self, 'bottom', 0.3, self.platform.longestSourceText) # this are the widest source text
-#         # self += OutlineFrame(self, display)
-#         self.check()
-#
-#     @property
-#     def width(self):
-#         return
-#
-# class RecordFrame(Frame):
-#     """
-#         Displays the volume as a percentage with the source underneath
-#         - has a width determined by the scale
-#     """
-#     def __init__(self, parent, scale):
-#         Frame.__init__(self, display.boundary, platform, (scale,1.0), 'middle', 'left')
-#         self +=  TextFrame( display.boundary, platform, 'middle', 1.0, 'Recording', X=0.6, align=('left','middle'))
-#         # self += OutlineFrame(self, display)
-#         self.check()
-#
-#     @property
-#     def width(self):
-#         return
-#
-#
-#
-#
-# class dbVolumeSourceFrame(Frame):
-#     """
-#         Displays the volume as a percentage with the source underneath
-#         - has a width determined by the scale
-#     """
-#     def __init__(self, parent, scale, align=('right','top')):
-#         Frame.__init__(self, display.boundary, platform, scalers=scalers(scale, 1.0), align=align)
-#         self += dbVolumeTextFrame(self, align=('right','top'), Y=0.7, text='-64.0dB')        # this are the widest number
-#         self += SourceTextFrame(self, align=('left','bottom'), Y=0.3, text=self.platform.longestSourceText) # this are the widest source text
-#         # self += OutlineFrame(self, display)
-#         self.check()
-#
-#     @property
-#     def width(self):
-#         return
-#
-# class VolumeAmountFrame(Frame):
-#     """
-#         Displays a triangle filled proportional to the Volume level
-#     """
-#     def __init__(self, parent, scale):
-#         Frame.__init__(self, parent, scalers=scalers(scale,0.5), align=('left', 'middle'))
-#
-#     def draw(self, basis):
-#
-#         self.display.drawFrameTriange( basis, self, 1.0, fill="red" )
-#         vol = self.platform.volume
-#         self.display.drawFrameTriange( basis, self, vol, fill="white" )
-#
-#
-# class VolumeTextFrame(TextFrame):
-#     def draw(self, basis):
-#         if self.platform.muteState:
-#             vol = 0
-#         else:
-#             vol = self.platform.volume * 100
-#
-#         self.display.drawFrameCentredText(basis, self, "%2d" % vol, self.font)
-#
-# class SourceTextFrame(TextFrame):
-#     def draw(self, basis):
-#         self.display.drawFrameCentredText(basis, self, self.platform.activeSourceText, self.font)
-#
-# class dbVolumeTextFrame(TextFrame):
-#     def draw(self, basis):
-#         if self.platform.muteState:
-#             text = "Mute"
-#         else:
-#             text = "%3.1fdB" % self.platform.volume_db
-#         self.display.drawFrameCentredText(basis, self, text, self.font)
-#
-# class MenuFrame(TextFrame):
-#     def draw(self, basis):
-#         text = self.platform.screenName
-#         self.display.drawFrameCentredText(basis, self, text, self.font)
-#
-# class RecordEndFrame(TextFrame):
-#     """
-#         Displays the file name used to save the recording
-#         - has a width determined by the scale
-#     """
-#     def draw(self, basis):
-#         (dirname, filename) = os.path.split(self.platform.recordfile)
-#         self.display.drawFrameCentredText(basis, self, filename, self.font)
 
 """
 MetaData Frames
@@ -201,46 +102,22 @@ class PlayProgressFrame(Frame):
         # print("PlayProgressFrame>", elapsed, remaining)
 
 class AlbumArtFrame(Frame):
-    def __init__(self, parent, scalers=None, align=None, alpha=255):
+    # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
+    def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
-        self.image_container = Image(self)  # make square
-        self.outline = OutlineFrame(self, scalers=scalers, align=align)
-        self.alpha   = alpha
+        self.image_container = Image(self, outline=outline, opacity=opacity)  # make square
 
     def draw(self):
-        self.image_container.draw(self.platform.album_art, self.alpha)
-        # self.outline.draw()
+        self.image_container.draw(self.platform.album_art)
 
 class ArtistArtFrame(Frame):
-    def __init__(self, parent, scalers=None, align=None, alpha=255):
+    def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
-        self.outline = OutlineFrame(self, scalers=scalers, align=align)
-        self.image_container = Image(self, align=None, scalers=(1.0,1.0))  
-        self.alpha   = alpha
+        self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=opacity, outline=outline)  
+        # print("ArtistArtFrame.__init__>", opacity)
 
     def draw(self):
-        self.image_container.draw(self.platform.artist_art, self.alpha)
-        # self.outline.draw()
-
-# class MetaDataFrame(Frame):
-#     SHOW = {'artist': {'colour':'foreground', 'align': ('centre','bottom'), 'scalers': (1.0, 0.33) }, \
-#             'track': {'colour':'light', 'align': ('centre','top'), 'scalers' : (1.0, 0.33) }, \
-#             'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) } }
-
-#     def __init__(self, parent, scalers=None, align=('centre', 'top'),theme=None,show=SHOW):
-#         Frame.__init__(self, parent, scalers=scalers, align=align)
-
-#         self.show = show
-#         if 'track' in self.show:  self.track_container     = TextFrame(self, scalers=self.show['track']['scalers'], align=self.show['track']['align'], reset=True, theme=theme, wrap=True)
-#         if 'album' in self.show:  self.album_container     = TextFrame(self, scalers=self.show['album']['scalers'], align=self.show['album']['align'], reset=True, theme=theme, wrap=True)
-#         if 'artist' in self.show: self.artist_container    = TextFrame(self, scalers=self.show['artist']['scalers'], align=self.show['artist']['align'], reset=True, theme=theme, wrap=True)
-#         # self.back = Lightback(self)
-
-#     def draw(self):
-#         # self.back.draw()
-#         if 'track' in self.show: self.track_container.draw(text=self.platform.track, colour_index=self.show['track']['colour'])
-#         if 'album' in self.show: self.album_container.draw(text=self.platform.album, colour_index=self.show['album']['colour'])
-#         if 'artist' in self.show: self.artist_container.draw(text=self.platform.artist, colour_index=self.show['artist']['colour'])
+        self.image_container.draw(self.platform.artist_art)
 
 
 class MetaDataFrame(Frame):
@@ -249,7 +126,7 @@ class MetaDataFrame(Frame):
             'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) } }
 
     def __init__(self, parent, scalers=None, align=None,theme=None,show=SHOW):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, outline=None)
         self.show = show
         self.metadata  = {}
 
@@ -342,7 +219,7 @@ class VUMeter(Frame):
     NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
     VUIMAGEPATH = 'VU Images'
 
-    def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, \
+    def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
                  endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
                  needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS):
 
@@ -357,7 +234,7 @@ class VUMeter(Frame):
 
         if bgdimage is not None:
             self.path       = VUMeter.VUIMAGEPATH +'/'+ bgdimage
-            self.bgdimage   = Image(self, align=('centre', 'middle'), path=self.path )
+            self.bgdimage   = Image(self, align=('centre', 'middle'), path=self.path,outline=outline )
             # print("VUeter.__init__> setup background images", self.framestr())
         else:
             self.path        = None
@@ -487,7 +364,7 @@ class VUMeterFrame4(Frame):
 
 class VUMeterImageFrame(Frame):
     """ Image background based class - the """
-    def __init__(self, parent, type=None, scalers=None, align=('centre', 'middle')):
+    def __init__(self, parent, type=None, scalers=None, align=('centre', 'middle'),outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
 
         NEEDLE      = { 'width':3, 'colour': 'dark', 'length': 0.7, 'radius_pc': 0.7 }
@@ -508,9 +385,9 @@ class VUMeterImageFrame(Frame):
         # meter colour themes assume meter1
         meter = METERS[type]
         self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), theme=meter['theme'],\
-                        pivot=meter['pivot'], endstops=meter['endstops'], needle=meter['needle'], bgdimage=meter['file'])
+                        pivot=meter['pivot'], endstops=meter['endstops'], needle=meter['needle'], bgdimage=meter['file'],outline=outline)
         self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('left', 'bottom'), theme=meter['theme'],\
-                        pivot=meter['pivot'], endstops=meter['endstops'], needle=meter['needle'], bgdimage=meter['file'])
+                        pivot=meter['pivot'], endstops=meter['endstops'], needle=meter['needle'], bgdimage=meter['file'],outline=outline)
 
 
 """
@@ -534,9 +411,7 @@ class VU:
         Decay work by assuming that all bars naturally decay at a fixed rate and manner (eg lin /log)
         Use the same method as spectrum analyser
         """
-        # self.display.outline( basis, self, outline="white")
         target_height      = self.platform.vu[self.channel]
-        # target_height = 0.7
         smoothedpeak = 0
 
         if target_height > self.current.smoothed():
@@ -938,7 +813,7 @@ class CircleModulator(Frame):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, square=True)
 
-        self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.8)
+        self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
         # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
         self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=0.5)
         self.VU      = VU(self.platform, channel, decay=0.2)
@@ -954,7 +829,7 @@ class CircleModulator(Frame):
         samples = self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )  # reduce the dataset quite a bit
         high_samples = self.platform.filter( samples, hpf_freq, type='highpass' )
         low_samples = self.platform.filter( samples, lpf_freq, type='lowpass' )
-        self.lines.draw_mod_line(low_samples, amplitude=height, gain=0.3, colour_index='light')
+        self.lines.draw_mod_line(low_samples, amplitude=height, gain=0.3, colour_index=height*self.h/2)
         self.dots.draw_mod_dots(samples, trigger=self.platform.trigger_detected, amplitude=1.0)
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
 

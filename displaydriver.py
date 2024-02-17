@@ -140,16 +140,19 @@ class Bar(Frame):
             self.draw_peak(peak_w, False, pcoords)
 
 class Image(Frame):
-    def __init__(self, parent, wh=None, path=None, align=None, scalers=None):
+    DEFAULT_OPACITY = 255
+    DEFAULT_CACHE   = 300
+    def __init__(self, parent, wh=None, path=None, align=None, scalers=None, opacity=None, outline=None):
 
-        self.image_cache = Cache(300)
+        self.image_cache = Cache(Image.DEFAULT_CACHE)
         self.path        = path
-        Frame.__init__(self, parent, align=align, scalers=scalers)
+        Frame.__init__(self, parent, align=align, scalers=scalers, outline=outline)
+        self.opacity     = Image.DEFAULT_OPACITY if opacity is None else opacity
 
         if path is not None:
             self.scaleInProportion(path, self.boundswh[1])
 
-        # print("Image.__init__>", self.framestr(), self.geostr())
+        # print("Image.__init__>", self.framestr())
 
     def download_image(self, url):
         response = requests.get(url)
@@ -176,7 +179,7 @@ class Image(Frame):
         # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", tgt_height, self.geostr(), self.framestr())
         return image
 
-    def draw(self, image_data=None, alpha=255):
+    def draw(self, image_data=None):
         # print("Image.draw>", self.boundswh[1], self.framestr(), self.geostr())
         if image_data is None:  image_data = self.path  
         image = self.image_cache.find(image_data)
@@ -184,8 +187,9 @@ class Image(Frame):
             image = self.scaleInProportion(image_data, self.boundswh[1])
 
         if image is not None:
-            image.set_alpha(alpha)
+            image.set_alpha(self.opacity)
             self.platform.screen.blit(image, self.abs_origin())
+            self.draw_outline()
         else:
             pass
             # print("Image.draw> attempt to draw an None image", image, image_data)
@@ -193,21 +197,24 @@ class Image(Frame):
 
 class Lightback(Frame):
     # Draw the colorful arc background for the full frame
-    def __init__(self, parent, scalers=None, align=None, theme=None, colour_index='light'):
+    def __init__(self, parent, scalers=None, align=None, theme=None, colour_index='light', flip=False):
 
         Frame.__init__(self, parent, align=align, scalers=scalers, theme=theme)
         self.colour = Colour(self.theme, self.h)
         self.colour_index = colour_index
+        self.flip   = flip
 
         # Create a surface for the glow
         self.glow_surface = pygame.Surface(self.boundswh, pygame.SRCALPHA)
         
-        col = self.colour.get(colour_index)
+
         # Draw the light illumination in the center on the glow surface
         self.max_radius = self.h//2
         for radius in range(self.max_radius, 0, -1):
             alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
-            pygame.draw.circle(self.glow_surface, col + [255-alpha,], self.abs_centre(), radius)
+            opacity = alpha if flip else 255-alpha
+            col = self.colour.get(colour_index, opacity=opacity)
+            pygame.draw.circle(self.glow_surface, col, self.abs_centre(), radius)
 
         # print("Lightback.__init__>", self.wh, self.h, self.abs_origin(), self.centre, self.geostr())
 
@@ -600,6 +607,37 @@ class Dots(Frame):
             else:
                 self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
         # print("Dots.draw_mod_dots>", len(self.dotspace), trigger)
+                
+
+"""
+    Outlines can be drawn around Frames.  They are drawn at the frame edges according to the coordinates passed.
+    The flexible attributes can create a range of types of outlines, all passed in a dict:
+        width           - the thickness of the frame in pixels
+        colour_index    - the colour of the frame according to the palette
+        radius          - the degree of curvature at the corners, 0 is square
+        opacity         - 255 is fully opaque, 0 is transparent.  Good for blending
+"""
+class Outline:
+    OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground', 'opacity': 255}
+    def __init__(self, theme, w, screen, outline):
+        self.outline_colour = Colour(theme, w)
+        self.outline        = outline
+        self.screen         = screen
+
+
+    def draw(self, coords):
+        colour_index = self.outline['colour_index']  if 'colour_index' in self.outline else Outline.OUTLINE['colour_index']
+        opacity      = self.outline['opacity']       if 'opacity' in self.outline else Outline.OUTLINE['opacity']
+        radius       = self.outline['radius']        if 'radius' in self.outline else Outline.OUTLINE['radius']
+        width        = self.outline['width']         if 'width' in self.outline else Outline.OUTLINE['width']
+        colour  = self.outline_colour.get(colour_index, opacity=opacity)
+        surface = pygame.Surface( (self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
+        #adjust the outline to the outside of the coords ie add the width
+        coords = (coords[0]-width, coords[1]-width, coords[2]+width*2, coords[3]+width*2) if radius>0 else coords
+        pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
+        self.screen.blit(surface, (0,0) )
+        # print("Outline.draw>", coords, ncoords, colour, opacity )        
+
 
 class GraphicsDriver:
     """ Pygame based platform """
@@ -617,8 +655,7 @@ class GraphicsDriver:
         self.screen         = pygame.display.set_mode(GraphicsDriver.PANEL)
         self.FPS            = FPS
         pygame.display.set_caption('Visualiser')
-        # self.my_font        = pygame.font.SysFont('palatino', 16)
-        # self.dotspace       = []
+
         self.colour         = Colour('std', self.w)
         self.background     = Frame(self)
         self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
@@ -644,6 +681,9 @@ class GraphicsDriver:
         self.screen.fill(colour, pygame.Rect(rect))
         if image is not None:
             self.image_container.draw(image)
+
+    def create_outline(self, theme, outline, w):
+        return Outline(theme, w, self.screen, outline)
 
     @property
     def boundary(self):
