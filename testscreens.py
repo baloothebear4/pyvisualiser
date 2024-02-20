@@ -1,3 +1,6 @@
+from framecore import Frame
+from frames import  VUMeterImageFrame, Spectrum2chFrame, SpectrumStereoOffsetFrame, SpectrumStereoFrame, SpectrumStereoSplitFrame, SpectrumFrame
+import time
 
 
 """ VU Meters """

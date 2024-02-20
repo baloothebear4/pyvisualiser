@@ -1,4 +1,5 @@
-
+from framecore  import Frame
+from frames     import SpectrumFrame, TextFrame
 
 
 """ System Utility screens """
@@ -75,7 +76,6 @@ class SourceVUVolScreen(Frame):
         self += VUV2chFrame(self  , 0.3, 'centre')
         self += SourceIconFrame(self  , 0.3, 'left')
         self.check()
-
 
 
 
@@ -179,3 +179,36 @@ class RecordEndFrame(TextFrame):
     def draw(self, basis):
         (dirname, filename) = os.path.split(self.platform.recordfile)
         self.display.drawFrameCentredText(basis, self, filename, self.font)
+
+""" needs refactoring """
+class SourceIconFrame(Frame):
+    """
+        Displays a an Icon for the source type and animates it
+    """
+    def __init__(self, parent, scale, align) :  # size is a scaling factor
+        Frame.__init__(self, parent, scalers=(scale,1.0), align=('centre', 'middle'))
+        self.files          = {}  # dictionary of files to images
+        self.icons          = {}  # dictionary of images, sources as keys
+
+        #Build a dict of all the icon files to be used
+        sources = self.platform.sourcesAvailable
+        for s in sources:
+            self.files.update( {s: self.platform.getSourceIconFiles(s)} )
+
+        # print("source files>", self.files)
+        #Build a dict of all the images, sized, positioned, ready to go
+        for s in self.files:
+            images = []
+            for f in self.files[s]:
+                img_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), 'icons', f))
+                img = scaleImage( img_path, self )
+                # if img.width > self.w:
+                #     self.w = img.width
+                images.append( img )
+            self.icons.update( {s : images} )
+
+        # print( "SourceIcon.__init__> ready", self.icons)
+
+    def draw(self, basis):
+        # print ("SourceIconFrame.draw>", self.platform.activeSource.curr, self.platform.currentIcon)
+        self.display.drawFrameCentredImage( basis, self, self.icons[self.platform.activeSource.curr][self.platform.currentIcon])
