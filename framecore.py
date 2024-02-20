@@ -153,13 +153,13 @@ class Geometry():
         except ValueError:
             self.c = self.boundswh[0] -1
             self.align()
-            print("!!! Geometry.resize> outside bounds w %f, set to bounds, %s" % (wh[0], self.geostr()) )
+            # print("!!! Geometry.resize> outside bounds w %f, set to bounds, %s" % (wh[0], self.geostr()) )
         try:
             self.d = wh[1] -1 if wh[1] > 0 else 0
         except ValueError:
             self.d = self.boundswh[1] -1
             self.align()
-            print("!!! Geometry.resize> outside bounds h %f, set to bounds, %s" % (wh[1], self.geostr()) )
+            # print("!!! Geometry.resize> outside bounds h %f, set to bounds, %s" % (wh[1], self.geostr()) )
         self.align()
         # print("Geometry.resize to ", wh, self.geostr())
 
@@ -187,6 +187,9 @@ class Geometry():
             self.resize( [ int(self.boundswh[0] * scalers[0]), int(scalers[1] * self.boundswh[1])] )
         else:
             raise ValueError('Geometry.scale > scale is zero ', scalers, self.geostr())
+
+    def rescale(self):
+        self.scale(self.scalers)
 
     """ move the frame relative to the top/right or bottom/left corners """
     def move_ab(self, xy):
@@ -265,7 +268,7 @@ class Geometry():
 
     def abs_rect(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
         wh = [self.wh[0], self.wh[1]] if wh is None else wh
-        rect = [int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0+self.h-offset[1]-1)) ] + wh
+        rect = [int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0+self.h-offset[1])) ] + wh
         # print(self.screen_wh[1], self.y0, self.h, offset[1],"rect", rect)
         return rect
 
@@ -411,6 +414,8 @@ class Frame(Geometry):
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
             bounds is list of the bottom left and upper right corners eg (64,32)
+
+            NB: making outline = '' will draw frame outlines around all frames that do not have their own draw functions - useful for tweaking screen design
         """
         self.frames     = []         #Holds the stack of containing frames
         self.outline    = outline
@@ -459,11 +464,6 @@ class Frame(Geometry):
     def draw(self):
         # print("Framecore.draw. #frames=", len(self.frames))
         self.undraw()
-        # if type(self).__name__ == 'AlbumArtFrame':
-        #     print("outline test", self.outline)
-        # if self.outline is not None: 
-        #     self.outline.draw()
-        #     print("outline 1")
 
         for f in self.frames:
             # print("Frame.draw> ", type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
@@ -471,14 +471,9 @@ class Frame(Geometry):
 
             f.draw()
             f.draw_outline()
-            # if f.outline is not None: 
-            #     f.outline.draw()
-                # print("outline 2",type(f).__name__)
-            # if not_changed is None: self.display.refresh(self.abs_rect(self.screen_wh[1]=self.display.h))
 
     def undraw(self):
-        # print("Frame.undraw> generic", type(self).__name__)
-        # self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background, image=self.platform.artist_art)
+        # print("Frame.undraw> generic", type(self).__name__, self.abs_rect())
         self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
 
     def draw_outline(self):
@@ -636,7 +631,64 @@ class Cache:
         else:
             return None
 
+class ScreenController:
+    def __init__(self, screens, events, platform):
 
+        """Set up the screen for inital Mode"""
+        self.startScreen    = screens[0].__name__
+        self.preScreenSaver = self.startScreen
+        self.activeScreen   = self.startScreen
+        self.events         = events
+        self.platform       = platform
+
+        """ Set up the screen objects to be used """
+        self.screens    = {}  # dict for the screen objects
+
+        """ Menu functionality - sort out Control (temporary) from main (base) screens"""
+        menuSequence  = []
+        for screen in screens:
+            self.screens.update( {screen.__name__ : screen(self.platform) })
+            if screen.type != 'Control':  #ie create a menu from Test & Base screens
+                menuSequence.append(screen.__name__)
+        self.screenmenu = ListNext(menuSequence, self.startScreen)
+        # print("ScreenController.__init__> menus intialised", self.screenmenu)
+
+    def screenEvents(self, e, option=None):
+        if e == 'set':
+            self.activeScreen = option
+            print("ScreenController.self.events.Control('set',> active screen is ", option)
+
+        elif e == 'next':
+            self.baseScreen   = self.screenmenu.next
+            self.activeScreen = self.baseScreen
+
+        elif e == 'previous':
+            self.baseScreen   = self.screenmenu.prev
+            self.activeScreen = self.baseScreen
+
+        elif e == 'exit':
+            self.activeScreen = 'exit'
+
+        else: 
+            print("ScreenController.screenEvents: unknown event", e)
+
+    """ Main execution loop """
+    def run(self):
+        self.exit = False
+        self.events.Control('set', self.startScreen)
+        self.events.Control('start')
+        print("ScreenController.run> startup configured")
+
+        # main loop
+        while(self.activeScreen != 'exit'):
+            self.events.Control('check')
+            if self.activeScreen != 'exit':  # The code is reentrant, hence multiple test for exit condition  
+                screen    = self.screens[self.activeScreen]
+                self.events.Control('loop_start', text=screen.title + " > " + type(screen).__name__)
+                screen.draw()
+                self.events.Control('loop_end')
+
+        self.events.Control('exit')   
 
 
 

@@ -121,7 +121,7 @@ class Bar(Frame):
                     pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_left_radius=self.tip_radius, border_top_left_radius=self.tip_radius )
 
             peak_w  = self.w*(peak)
-            pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
+            pcoords = self.abs_rect( offset=(self.w*(1-peak), offset),  wh=[self.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
         else:
@@ -164,7 +164,8 @@ class Image(Frame):
         imagesurface = pygame.image.load(path).convert_alpha()
         original_width, original_height = imagesurface.get_size()
         aspect_ratio = original_width / original_height
-        new_width = int(tgt_height * aspect_ratio)
+        frame_width  = 0 if self.outline is None else self.outline.width 
+        new_width = int((tgt_height) * aspect_ratio)
         if new_width > self.boundswh[0]:
             new_width  = self.boundswh[0]
             new_height = int(new_width / aspect_ratio)
@@ -172,11 +173,11 @@ class Image(Frame):
             new_height = tgt_height
 
         wh=(new_width, new_height)
-        image = pygame.transform.scale(imagesurface, wh)
+        image = pygame.transform.scale(imagesurface, (new_width-frame_width*2, new_height-frame_width*2))
         self.image_cache.add(image_ref, image)
         self.resize( wh )
 
-        # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", tgt_height, self.geostr(), self.framestr())
+        # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", tgt_height, frame_width, self.framestr())
         return image
 
     def draw(self, image_data=None):
@@ -188,7 +189,8 @@ class Image(Frame):
 
         if image is not None:
             image.set_alpha(self.opacity)
-            self.platform.screen.blit(image, self.abs_origin())
+            frame_width  = 0 if self.outline is None else self.outline.width 
+            self.platform.screen.blit(image, self.abs_origin(offset=(frame_width,frame_width)))
             self.draw_outline()
         else:
             pass
@@ -419,8 +421,9 @@ class Text(Frame):
     """
     TYPEFACE = 'helvetica'
     READABLE = 16   # smallest readable font size
+    MAX_LINES= 2
 
-    def __init__(self, parent, text='Default text', fontmax=0, reset=False, wrap=False, align=None, scalers=(1.0,1.0),\
+    def __init__(self, parent, text='Default text', fontmax=None, reset=False, wrap=False, align=None, scalers=None,\
                  endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme=None, colour_index=None):  #Create a font to fit a rectangle
 
         self.text     = text
@@ -428,39 +431,35 @@ class Text(Frame):
         self.reset    = reset
         self.radius   = radius
         self.theme    = theme
-        self.fontmax  = fontmax
+
         self.cache    = Cache()
         self.colour_index = colour_index
         Frame.__init__(self, parent, align=align, scalers=scalers, theme=theme)
-        self.colours  = Colour(self.theme, 100)
+        self.colours  = Colour(self.theme, self.w)
+        self.fontmax  = self.boundswh[1] if fontmax is None else fontmax 
 
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
-        # print("Text.__init__> ", self.fontwh, self.font, self.text, self.alignment,self.geostr())
+        # print("Text.__init__> ", self.fontwh, self.font, self.text, self.scalers, self.alignment,self.geostr())
 
-    def update(self, text=None):
+    def update(self, text=None, fontmax=None):
         try:
             if text is None: text=self.text
             self.drawtext = self.cache.find(text)
             if self.drawtext is None:
-                self.font, self.fontwh = self.scalefont(self.boundswh, text)  # You can specify a font
+                self.font, self.fontwh = self.scalefont(self.boundswh, text, fontmax)  # You can specify a font
+                self.cache.add(text, self.drawtext)
                 if self.reset: self.resize( self.fontwh )
         except Exception as e:
             print("Text.update> ERROR > %s > wh %s, fontwh %s, text<%s>, %s " % (e,self.wh, self.fontwh, self.text, self.alignment ))
 
-    # def shrink_fontsize(self, wh, text, min=5):
-    #     fontsize    = self.wh[1] if self.fontmax==0 else self.fontmax
-    #     font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
-    #     fontwh      = self.textsize(text, font)  #[wh[0]+1, wh[1]+1]   # to ensure at least one cycle runs
-    #     while fontwh[0] > wh[0] or fontwh[1] > wh[1]:
-    #         font   = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
-    #         fontwh = self.textsize(text, font)
-    #         fontsize -= 1
-    #         if fontsize < min: break
-    #     return font, list(fontwh)
+    @property
+    def fontsize(self):
+        return self.fontwh[1]
     
-    def shrink_fontsize(self, wh, text, min=5):
-        fontsize    = self.boundswh[1] if self.fontmax==0 else self.fontmax
+    def shrink_fontsize(self, wh, text, fontmax=None, min=5):
+        # print("Text.shrink_fontsize> attempt", text, wh, self.fontmax, self.boundswh)
+        fontsize    = self.fontmax if fontmax is None else fontmax
         font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
         fontwh      = self.textsize(text, font) 
         if fontwh[0]> wh[0]:  
@@ -472,49 +471,51 @@ class Text(Frame):
             font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
             fontwh      = self.textsize(text, font)
 
-        # print("Text.shrink_fontsize>", text, wh, fontwh, fontsize, self.fontmax)
+        # print("Text.shrink_fontsize>", text, wh, fontwh, fontsize, fontmax)
         return font, list(fontwh)
 
 
-    def scalefont(self, wh, text):  #scale the font to fit the rect, with a min fontsize
+    def scalefont(self, wh, text, fontmax):  #scale the font to fit the rect, with a min fontsize
         # self.fontsize = wh[1] if self.fontmax == 0 else self.fontmax
         self.drawtext = ['']*2  # lines of text
-        font, fontwh = self.shrink_fontsize(wh, text)
+        font, fontwh = self.shrink_fontsize(wh, text, fontmax)
 
         if self.wrap and fontwh[1] < Text.READABLE:  # split into two lines and draw half size
             try:
-                self.drawtext = wrap(text, width=1+len(text)//2, max_lines=2)
+                self.drawtext = wrap(text, width=1+len(text)//2, max_lines=Text.MAX_LINES)
                 # print("wrap", self.drawtext)
-                font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0])
+                font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0], fontmax)
                 fontwh[1]    *= 2  # double height, 2 lines
             except ValueError as error:
                 print("Text.scalefont> textwrap failed" , error )
                 self.drawtext = text[:(1+len(text)//2)]
                 # print("wrap", self.drawtext)
-                font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0])
-
+                font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0], fontmax)
         else:
             self.drawtext[0] = text
 
-        self.cache.add(text, self.drawtext)
         # print("Text.scalefont> max %s, target wh %s, fontwh %s, text<%s>, %s" % (self.whmax, wh, fontwh, text, self.drawtext))
         return font, fontwh
 
-    def draw(self, text=None, offset=(0,0), coords=None, colour_index=None):  #Draw the text in the corner of the frame
-        if text   is None       : text = self.text
+    def draw(self, text=None, offset=(0,0), coords=None, colour_index=None, fontmax=None):  #Draw the text in the corner of the frame
+        if text   is None:
+            text = self.text 
+        else:
+            self.text = text
         if coords == None       : coords = self.abs_origin()
-        if self.reset:  #self.update(text)
-            self.drawtext = self.cache.find(text)
-            if self.drawtext is None: self.update(text)
+        fontmax = self.fontmax if fontmax is None else fontmax
+        if self.reset: 
+            self.drawtext = None #self.cache.find(text)
+            if self.drawtext is None: self.update(text, fontmax)
         if colour_index is None : colour_index = self.colour_index
         colour = self.colours.get(colour_index)
 
         for line_number, line in enumerate(self.drawtext):
             info = self.font.render(line, True, colour)
             size = info.get_rect()
-            self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[3])  )  # position the text upper left
+            self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
 
-        # print("Text.draw > ", self.reset, self.drawtext, text, offset, coords, colour, colour_index, self.alignment, size)
+        # print("Text.draw > ", self.reset, self.drawtext, text, offset, coords, colour, colour_index, self.scalers, self.alignment, size)
 
 
     def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour_index=None):
@@ -536,7 +537,7 @@ class Text(Frame):
 Dots are for drawing circles on progress bars, mood dots in space on visualisers etc
 """
 class Dots(Frame):
-    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', scalers=None, \
+    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', scalers=(1.0,1.0), \
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=1.0, dotcount=1000):
 
         self.width      = width
@@ -559,10 +560,10 @@ class Dots(Frame):
         pygame.draw.ellipse(self.platform.screen, colour, coords, self.width)
         # print("Dots.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
-    def draw_mod_dots(self, points, trigger={}, colour_index=None, amplitude=1.0, gain=0.2):
+    def draw_mod_dots(self, points, trigger={}, colour_index=None, amplitude=1.0, gain=0.8):
         size         = len(points)
         xc, yc       = self.centre[0], self.centre[1]
-        col          = self.radius*(self.amp_scale*amplitude) if colour_index is None else col # Add a get col
+        col          = self.radius*(self.amp_scale*amplitude) if colour_index is None else colour_index # Add a get col
         accelerator  = 1.01
 
         if 'bass' in trigger:
@@ -582,9 +583,9 @@ class Dots(Frame):
             # y1 = int(accelerator*(dot[1]))
             # check dot is still on the screen
             # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
-            # if x1>=0 and x1<=self.w: #and y1>0 and y1<self.h: # and len(self.dotspace)<self.dotcount:
+            if x1>=0 and x1<=self.w and y1>0 and y1<self.h and len(self.dotspace)<self.dotcount:
             # if len(self.dotspace)<self.dotcount:    
-            self.dotspace.append([x1,y1, dot[2]])
+                self.dotspace.append([x1,y1, dot[2]])
             # else:
 
             # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
@@ -595,17 +596,17 @@ class Dots(Frame):
             # xy = self.anglexy(i/size, self.radius, gain=1.5, amp_scale=abs(v), xyscale=(xscale,1.0))
             xy = self.anglexy(i/size, self.radius, gain=v*gain,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale)
             # colour = self.colours.get(v*gain)
-            if v>0.00 and len(trigger)>1: 
+            if v>0.00: # and len(trigger)>1: 
                 self.dotspace.append([ int(xy[0]),int(xy[1]),colour])
 
             # Draw the dot space and calculate the velocities
         for dot in self.dotspace:
-            # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size)
+            # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size, self.geostr())
 
-            if dot[0]<0 or dot[0]>self.w or dot[1]<0 or dot[1]>self.h: # and len(self.dotspace)<self.dotcount:
-                self.dotspace.remove(dot)
-            else:
-                self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
+            # if dot[0]<0 or dot[0]>self.w or dot[1]<0 or dot[1]>self.h: # and len(self.dotspace)<self.dotcount:
+            #     self.dotspace.remove(dot)
+            # else:
+            self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
         # print("Dots.draw_mod_dots>", len(self.dotspace), trigger)
                 
 
@@ -633,11 +634,15 @@ class Outline:
         colour  = self.outline_colour.get(colour_index, opacity=opacity)
         surface = pygame.Surface( (self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
         #adjust the outline to the outside of the coords ie add the width
-        coords = (coords[0]-width, coords[1]-width, coords[2]+width*2, coords[3]+width*2) if radius>0 else coords
+        # coords = (coords[0]-width, coords[1]-width, coords[2]+width*2, coords[3]+width*2) if radius>0 else coords
         pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
         self.screen.blit(surface, (0,0) )
         # print("Outline.draw>", coords, ncoords, colour, opacity )        
 
+    @property
+    def width(self):
+        width        = self.outline['width'] if 'width' in self.outline else Outline.OUTLINE['width']
+        return width
 
 class GraphicsDriver:
     """ Pygame based platform """
@@ -674,7 +679,7 @@ class GraphicsDriver:
         pygame.display.update(pygame.Rect(rect))
 
     def fill(self, rect=None, colour=None, colour_index='background', image=None):
-        if rect is None: rect = [0,0]+self.wh
+        if rect is None: rect = self.boundary
         if colour_index is None: colour_index = 'background'
         if colour is None: colour=self.colour
         colour = colour.get(colour_index)

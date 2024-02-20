@@ -55,15 +55,17 @@ class Controller:
         self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
-        self.baseScreen     = 'BigDialsScreen'
+        self.baseScreen     = 'MetaVUScreen'
         self.preScreenSaver = self.baseScreen
         self.status         = 'running'
         self.track_rotate   = False
 
         """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
-        self.screenList = { BigDialsScreen, TrackSpectrumScreen4,TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
-            TrackVUMeterScreen2, TestVUMetersScreen, TestVUScreen, TrackSpectrumScreen3, TrackVUMeterScreen2 }
+        self.screenList = { MetaVUScreen, BigDialsScreen, TrackSpectrumScreen4,TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, TrackSpectrumScreen, 
+                           TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, TrackVUMeterScreen2, TrackSpectrumScreen3, TrackVUMeterScreen2 }
+            
+            # TestVUMetersScreen, TestVUScreen,  }
 
             # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen}#, TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen }
 

@@ -290,13 +290,13 @@ class Roon(RoonMetaData):
 
         """ multiple events can be triggered from one event update """
         if self.track_changed:
-            self.events.Roon('new_track')
+            self.events.Metadata('new_track')
 
         if self.play_changed:
             if self.playing:
-                self.events.Roon('start')
+                self.events.Metadata('start')
             else:
-                self.events.Roon('stop')
+                self.events.Metadata('stop')
 
         # print("Roon.roon_callback> event:>> %s << changed_zone: %s --> play changed %s, track changed %s" % (event, changed_zone, self.play_changed, self.track_changed))
 

@@ -1,5 +1,85 @@
 
 
+
+""" System Utility screens """
+""" old preamp screens that need refactoring """
+class MainScreen(Frame):
+    """ Vol/source in centre - spectrum left and right """
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += SpectrumFrame(self  ,  'left', 0.3 )
+        self += dbVolumeSourceFrame(self  , 0.4, 'centre')
+        self += SpectrumFrame(self  ,  'right', 0.3 )
+
+class ScreenTitle(Frame):
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += MenuFrame(self  , 'top', 1.0, 'very very long screen title')
+        self.check()
+
+class WelcomeScreen(Frame):
+    """ Startup screen """
+    text = "Welcome to SRC Visualiser"
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        # def __init__(self, platform, bounds, Valign='top', scalers=(1.0, 1.0), text='Default Text', Halign='centre', fontsize=0):
+        self += TextFrame( platform, Valign='middle', scalers=(1.0, 1.0), text=WelcomeScreen.text)
+
+class ShutdownScreen(Frame):
+    """ Startup screen """
+    text = "Loved the music"
+
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        # def __init__(self, platform, bounds, Valign='top', scalers=(1.0, 1.0), text='Default Text', Halign='centre', fontsize=0):
+        self += TextFrame( platform, 'top', 1.0, ShutdownScreen.text)
+
+class ScreenSaver(Frame):
+    """ force the screen to go blank """
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += TextFrame( platform, 'top', 1.0, '')
+
+class VolChangeScreen(Frame):
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += VolumeAmountFrame(self  , 0.6)
+        self += VolumeSourceFrame(self  , 0.4, 'right')
+        self.check()
+
+class RecordingScreen(Frame):
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += RecordFrame( platform, 0.3)
+        self += VolumeSourceFrame(self  , 0.4, 'right')
+        self.check()
+
+class RecordFinishScreen(Frame):
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += TextFrame( platform, 'top', 0.5, 'Recording saved to')
+        self += RecordEndFrame( platform, 'bottom', 0.5)
+        self.check()
+
+class SourceVolScreen(Frame):   # comprises volume on the left, spectrum on the right
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += dbVolumeSourceFrame(self  , 0.4, 'right')
+        self += SourceIconFrame(self  , 0.6, 'left')
+        self.check()
+
+class SourceVUVolScreen(Frame):
+    def __init__(self, platform):
+        Frame.__init__(self, platform)
+        self += dbVolumeSourceFrame(self  , 0.4, 'right')
+        self += VUV2chFrame(self  , 0.3, 'centre')
+        self += SourceIconFrame(self  , 0.3, 'left')
+        self.check()
+
+
+
+
+
 """ Old preamp classes that need refactoring """
 class VolumeSourceFrame(Frame):
     """
