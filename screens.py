@@ -329,8 +329,8 @@ class MetaVUScreen(Frame):   # comprises volume on the left, spectrum on the rig
         TRACK  = {'track' : {'colour':'light', 'align': ('centre', 'middle'), 'scalers': (0.6, 1.0)}}
         ALBUM  = {'album' : {'colour':'mid',   'align': ('centre','middle'), 'scalers': (0.6, 1.0)} }
 
-        META = {'track' : {'colour':'light', 'align': ('left', 'middle'), 'scalers': (0.33, 1.0)},
-                'album' : {'colour':'mid',   'align': ('right','middle'), 'scalers': (0.33, 1.0)} }
+        META = {'track' : {'colour':'light', 'align': ('left', 'middle'), 'scalers': (0.3, 1.0)},
+                'album' : {'colour':'mid',   'align': ('right','middle'), 'scalers': (0.3, 1.0)} }
         # 'artist': {'colour':'foreground', 'align': ('centre', 'top'), 'scalers': (1.0, 1.0)},
 
         albumframe   = Frame(self, scalers=(0.33, 0.8), align=('right','top'))

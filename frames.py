@@ -42,7 +42,7 @@ class Smoother:
                 inc  = len(self.smoother) - i
                 tot += inc
                 ave += v * inc
-            return ave / (tot*1.0)  # this increased teh amplitude as the smoothing damps the range for VUs
+            return ave / (tot*0.9)  # this increased teh amplitude as the smoothing damps the range for VUs
 
 class TextFrame(Frame):
     """
@@ -154,37 +154,6 @@ class MetaDataFrame(Frame):
             
 
 
-# class SourceIconFrame(Frame):
-#     """
-#         Displays a an Icon for the source type and animates it
-#     """
-#     def __init__(self, parent, scale, align) :  # size is a scaling factor
-#         Frame.__init__(self, parent, scalers=(scale,1.0), align=('centre', 'middle'))
-#         self.files          = {}  # dictionary of files to images
-#         self.icons          = {}  # dictionary of images, sources as keys
-#
-#         #Build a dict of all the icon files to be used
-#         sources = self.platform.sourcesAvailable
-#         for s in sources:
-#             self.files.update( {s: self.platform.getSourceIconFiles(s)} )
-#
-#         # print("source files>", self.files)
-#         #Build a dict of all the images, sized, positioned, ready to go
-#         for s in self.files:
-#             images = []
-#             for f in self.files[s]:
-#                 img_path  = os.path.abspath(os.path.join(os.path.dirname(__file__), 'icons', f))
-#                 img = scaleImage( img_path, self )
-#                 # if img.width > self.w:
-#                 #     self.w = img.width
-#                 images.append( img )
-#             self.icons.update( {s : images} )
-#
-#         # print( "SourceIcon.__init__> ready", self.icons)
-#
-#     def draw(self, basis):
-#         # print ("SourceIconFrame.draw>", self.platform.activeSource.curr, self.platform.currentIcon)
-#         self.display.drawFrameCentredImage( basis, self, self.icons[self.platform.activeSource.curr][self.platform.currentIcon])
 
 """
 VU Meter frames

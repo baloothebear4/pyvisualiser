@@ -53,7 +53,7 @@ BINBANDWIDTH    = RATE/(FRAME + NUMPADS) #ie 43.5 Hz for 44.1kHz/1024
 DCOFFSETSAMPLES = 200
 TWOPI           = 2*3.14152
 
-VUGAIN          = 0.03
+VUGAIN          = 0.05
 RMSNOISEFLOOR   = -70    # dB
 DYNAMICRANGE    = 50     # Max dB
 SILENCETHRESOLD = 0.001   #0.02   # Measured from VU Noise Floor + VU offset
