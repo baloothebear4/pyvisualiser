@@ -173,7 +173,7 @@ class Image(Frame):
             new_height = tgt_height
 
         wh=(new_width, new_height)
-        image = pygame.transform.scale(imagesurface, (new_width-frame_width*2, new_height-frame_width*2))
+        image = pygame.transform.scale(imagesurface, (new_width-(frame_width*2), new_height-(frame_width*2)))
         self.image_cache.add(image_ref, image)
         self.resize( wh )
 

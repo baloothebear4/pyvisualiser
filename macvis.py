@@ -134,9 +134,8 @@ class EventHandler:
 # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen,\
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
-SCREENS = ( MetaVUScreen, BigDialsScreen, TrackSpectrumScreen4,TrackOscScreen, TrackScreen, TrackVUMeterScreen, TrackSpectrumScreen2, \
-            TrackSpectrumScreen, TrackVisScreen3, TrackVisScreen2, TrackVisScreen, TrackScreen, TrackSpectrumScreen, TrackVUMeterScreen, \
-            TrackVUMeterScreen2, TrackSpectrumScreen3, TrackVUMeterScreen2 )
+SCREENS = ( ArtistScreen, MetaVUScreen, BigDialsScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
+            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2,  )
     
 EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )   
 

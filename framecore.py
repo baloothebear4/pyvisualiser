@@ -525,8 +525,9 @@ Class to manage lists eg of menu items or sources to find previous and next item
 """
 class ListNext:
     def __init__(self, list, startItem):
-        self._list = list
-        self._curr = startItem
+        self._list       = list
+        self._curr       = startItem
+        self._curr_index = self.findItemIndex(self._curr)
 
     def findItemIndex(self, item):
         for index, element in enumerate(self._list):
@@ -546,21 +547,39 @@ class ListNext:
 
     @property
     def prev(self):
-        i = self.findItemIndex(self._curr)
-        if i > 0:
-            self.curr = self._list[i-1]
+        if self._curr_index > 0:
+            self._curr_index -= 1
         else:
-            self.curr = self._list[-1]
+            self._curr_index  = len(self._list)-1
+        self.curr = self._list[self._curr_index]
         return self.curr
 
     @property
     def next(self):
-        i = self.findItemIndex(self._curr)
-        if i < len(self._list)-1:
-            self.curr =  self._list[i+1]
+        if self._curr_index < len(self._list)-1:
+            self._curr_index += 1
         else:
-            self.curr =  self._list[0]
+            self._curr_index  = 0
+        self.curr = self._list[self._curr_index]    
         return self.curr
+
+    # @property
+    # def prev(self):
+    #     i = self.findItemIndex(self._curr)
+    #     if i > 0:
+    #         self.curr = self._list[i-1]
+    #     else:
+    #         self.curr = self._list[-1]
+    #     return self.curr
+
+    # @property
+    # def next(self):
+    #     i = self.findItemIndex(self._curr)
+    #     if i < len(self._list)-1:
+    #         self.curr =  self._list[i+1]
+    #     else:
+    #         self.curr =  self._list[0]
+    #     return self.curr
 
     def __str__(self):
         return "list>%s, current>%s" % (self._list, self.curr)
@@ -651,7 +670,7 @@ class ScreenController:
             if screen.type != 'Control':  #ie create a menu from Test & Base screens
                 menuSequence.append(screen.__name__)
         self.screenmenu = ListNext(menuSequence, self.startScreen)
-        # print("ScreenController.__init__> menus intialised", self.screenmenu)
+        print("ScreenController.__init__> menus intialised", self.screenmenu)
 
     def screenEvents(self, e, option=None):
         if e == 'set':
