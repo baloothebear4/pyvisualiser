@@ -92,9 +92,9 @@ class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the 
         ALBUM  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         self += MetaDataFrame(self  ,  scalers=(0.5, 0.5), align=('centre','top'))
-        self += Diamondiser(self  ,  'left', scalers=(0.7, 0.7), align=('right','top'))
         self += PlayProgressFrame(self  ,  scalers=(1.0, 0.05), align=('centre','bottom'))
         self += SamplesFrame(self  ,  scalers=(1.0, 0.5), align=('left','bottom'))
+        self += Diamondiser(self  ,  'left', scalers=(0.7, 0.7), align=('right','top'))
 
         # self += VUFlipFrame(self  , scalers=(0.5, 0.5), align=('left','top'), orient='horz', flip=True)
         # self += OscilogrammeBar(self  , 'mono', scalers=(0.66,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
@@ -198,8 +198,8 @@ class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on
         # self += ArtistArtFrame(self, scalers=(0.6, 0.6),align=('centre','middle'), opacity=120)
         self += AlbumArtFrame(self,  scalers=(1.0, 0.7),align=('right','middle'), opacity=255, outline={'colour_index':'light'})
         self += PlayProgressFrame(self,  scalers=(0.9, 0.05), align=('centre','bottom'))
-        self += SpectrumFrame(self,  'right', scalers=(0.8, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=True, barw_min=3, bar_space=5)
-        self += SpectrumFrame(self,  'left', scalers=(0.8, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=True, barw_min=3, bar_space=5 )
+        self += SpectrumFrame(self,  'right', scalers=(0.8, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5)
+        self += SpectrumFrame(self,  'left', scalers=(0.8, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5 )
         self += MetaDataFrame(self, scalers=(0.5, 0.2), align=('right','top'), show=ARTIST)
         
 
@@ -377,9 +377,9 @@ class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the rig
                 'artist' : {'colour':'mid',   'align': ('centre','top'), 'scalers': (1.0, 1.0)} }
         # 'artist': {'colour':'foreground', 'align': ('centre', 'top'), 'scalers': (1.0, 1.0)},
 
-        self += ArtistArtFrame(self, scalers=(1.0,0.85),align=('centre','middle'), opacity=255, outline={'colour_index':'dark', 'width':4, 'opacity': 255, 'radius': 10})
+        self += ArtistArtFrame(self, scalers=(1.0,0.85),align=('centre','middle'), opacity=255, outline={'colour_index':'dark', 'width':4, 'opacity': 255, 'radius': 0})
         albumframe   = Frame(self, scalers=(1.0, 0.8), align=('left','middle'))
-        self += AlbumArtFrame(self, scalers=(1.0,0.7),align=('left','bottom'), opacity=140, outline={'colour_index':'dark', 'width':5, 'opacity': 230, 'radius': 10})
+        self += AlbumArtFrame(self, scalers=(1.0,0.6),align=('left','bottom'), opacity=140, outline={'colour_index':'dark', 'width':5, 'opacity': 230, 'radius': 0})
 
         # self += MetaDataFrame(self  , scalers=(0.2, 0.2), align=('left','top'), show=META)
         self += MetaDataFrame(self  , scalers=(0.18, 0.3), align=('left','top'), show=ARTIST)

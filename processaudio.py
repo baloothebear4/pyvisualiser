@@ -53,7 +53,7 @@ BINBANDWIDTH    = RATE/(FRAME + NUMPADS) #ie 43.5 Hz for 44.1kHz/1024
 DCOFFSETSAMPLES = 200
 TWOPI           = 2*3.14152
 
-VUGAIN          = 0.05
+VUGAIN          = 0.06
 RMSNOISEFLOOR   = -70    # dB
 DYNAMICRANGE    = 50     # Max dB
 SILENCETHRESOLD = 0.001   #0.02   # Measured from VU Noise Floor + VU offset
@@ -253,7 +253,7 @@ class AudioProcessor(AudioData):
         return path_pattern % b
 
 
-    def process(self):
+    def process(self, bass=500, treble=5000):
         # self.smoothed_samples['left']  = np.add(SMOOTHFACTOR * self.oldsamples['left'], (1-SMOOTHFACTOR)*self.samples['left'])
         # self.smoothed_samples['right'] = np.add(SMOOTHFACTOR * self.oldsamples['right'], (1-SMOOTHFACTOR)*self.samples['right'])
         # left  = self.samples['left']
@@ -273,8 +273,8 @@ class AudioProcessor(AudioData):
         self.calcReadtime(False)
         self.trigger_detected = []
 
-        bass_signal   = np.max( self.filter( self.samples[ 'mono' ], 100, type='lowpass' )/ maxValue)
-        treble_signal = np.max( self.filter( self.samples[ 'mono' ], 5000, type='highpass')/ maxValue )
+        bass_signal   = np.max( self.filter( self.samples[ 'mono' ], bass, type='lowpass' )/ maxValue)
+        treble_signal = np.max( self.filter( self.samples[ 'mono' ], treble, type='highpass')/ maxValue )
         if bass_signal> 0.05:
             self.trigger_detected.append('bass')
             # print("bass ", bass_signal)
@@ -351,10 +351,10 @@ class AudioProcessor(AudioData):
         """
         rms = np.sqrt(np.mean(np.square((self.samples[channel][:FRAMESIZE]//2)/ maxValue)))  #√[:FRAMESIZE]//2
         if np.isnan(rms): rms=0.0
-        if rms > self.vumax[channel]: self.vumax[channel] = rms
+        # if rms > self.vumax[channel]: self.vumax[channel] = rms
 
-        db_value = 20 * np.log10 (rms + 1e-6)
-        norm     = (-FLOOR + db_value)/ (PEAK-FLOOR)
+        # db_value = 20 * np.log10 (rms + 1e-6)
+        # norm     = (-FLOOR + db_value)/ (PEAK-FLOOR)
         # print("AudioProcessor.VU> %s %f rms %f dB norm %f  vumax %f" % (channel, rms/RMSMAX, db_value, norm, self.vumax[channel]))
         return  min(1.0, rms/VUGAIN)   # normalise
 
@@ -364,8 +364,8 @@ class AudioProcessor(AudioData):
         normalised_samples = self.samples[channel]/ maxValue  #[:FRAMESIZE//2]
         end = reduceby * int(len(normalised_samples)/ reduceby)
         # reshaped_samples   = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)
-        rms_reshaped_samples   = np.sqrt( np.mean( np.square(normalised_samples[:end].reshape(-1, reduceby)), axis=1))/0.1
-        reshaped_samples       = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)/0.1
+        rms_reshaped_samples   = np.sqrt( np.mean( np.square(normalised_samples[:end].reshape(-1, reduceby)), axis=1))/0.2
+        reshaped_samples       = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)/0.2
         # print("AudioProcessor.reduceSamples by", reduceby, "from", len(normalised_samples), "to", len(reshaped_samples), "length", length)
         if rms:
             return rms_reshaped_samples.tolist()
