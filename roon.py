@@ -38,7 +38,7 @@ class RoonMetaData:
         self._play_changed, self._track_changed = False, False
         self._album_art_url        =  RoonMetaData.DEFAULT_URL
         self._artist_art_url       =  RoonMetaData.DEFAULT_URL
-        self._target_zone          =  'MacViz'
+        self._target_zone          =  'pre3'
 
 
     @property
@@ -149,7 +149,7 @@ class RoonMetaData:
         else:
             self._target_zone = target_zone['zone_id']
             self._target_zone_name = name
-            # print("RoonMetaData> target zone %s set, id %s" % (self._target_zone_name, self._target_zone))
+            print("RoonMetaData> target zone %s set, id %s" % (self._target_zone_name, self._target_zone))
 
     @property
     def target_zone_id(self):
@@ -197,7 +197,7 @@ class RoonMetaData:
         else:
             for zone_id in changed_zoneids:
                 if zone_id in self.roon.zones:
-                    print("ZoneMetadata.update> metadata update for non target zone: name %s" % (self.roon.zones[zone_id]['display_name']))
+                    print("ZoneMetadata.update> metadata update for non target zone: name %s target %s" % (self.roon.zones[zone_id]['display_name'], self.target_zone_name))
                 else:
                     print("ZoneMetadata.update> metadata update for outputs on %s" % (self.roon.outputs[zone_id]['display_name']))
 
@@ -289,14 +289,17 @@ class Roon(RoonMetaData):
         self.update(changed_zone)
 
         """ multiple events can be triggered from one event update """
-        if self.track_changed:
-            self.events.Metadata('new_track')
+        try:
+            if self.track_changed:
+                self.events.Metadata('new_track')
 
-        if self.play_changed:
-            if self.playing:
-                self.events.Metadata('start')
-            else:
-                self.events.Metadata('stop')
+            if self.play_changed:
+                if self.playing:
+                    self.events.Metadata('start')
+                else:
+                    self.events.Metadata('stop')
+        except Exception as e:
+            print(f"\n Roon callback Error: {e}") 
 
         # print("Roon.roon_callback> event:>> %s << changed_zone: %s --> play changed %s, track changed %s" % (event, changed_zone, self.play_changed, self.track_changed))
 

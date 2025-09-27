@@ -30,6 +30,7 @@ INFORMAT        = pyaudio.paInt16
 RATE            = 44100  #33075  # 22050, 24000,
 FRAME           = 1024
 FRAMESIZE       = FRAME * CHANNELS
+CRITICAL_TIME_MS = (FRAME / RATE) * 1000
 maxValue        = float(2**15)
 SAMPLEPERIOD    = FRAMESIZE/RATE
 SMOOTHFACTOR    = 0
@@ -132,7 +133,7 @@ class AudioProcessor(AudioData):
 
         self.recordingState = RECORDSTATE
         self.recording      = []
-        # self.device = 3
+        #self.device = 1
 
         AudioData.__init__(self)
 
@@ -142,26 +143,60 @@ class AudioProcessor(AudioData):
         self.readtime   = []
         self.silence    = WindowAve(SILENCESAMPLES)
         self.window     = np.kaiser(FRAME + 0, WINDOW)  #Hanning window
-        # print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_default_input_device_info()['name'], RECORDSTATE))
+        print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_default_input_device_info()['name'], RECORDSTATE))
 
     @property
     def framesize(self):
         return FRAME    
 
     def find_device_index(self, device):
-        for id in range(self.recorder.get_device_count()):
-            # print()
-            dev_dict = self.recorder.get_device_info_by_index(id)
-            for key, value in dev_dict.items():
-                if key == 'index': self.device = value
-                # print(key, value)
-                if value == device: return self.device
+        print("\nAvailable audio devices:")
+        p = self.recorder
+        for i in range(p.get_device_count()):
+            info = p.get_device_info_by_index(i)
+            if info['maxInputChannels'] > 0:
+                print(f"  Device {i}: {info['name']} (inputs: {info['maxInputChannels']})")
+    
+        try:
+            # Get default input device info first
+            default_input = p.get_default_input_device_info()
+            print(f"Default input device: {default_input['name']}")
+            print(f"Max input channels: {default_input['maxInputChannels']}")
+            print(f"Default sample rate: {default_input['defaultSampleRate']}")
+        
+            # Try to find the loopback device
+            loopback_device = None
+            for i in range(p.get_device_count()):
+                info = p.get_device_info_by_index(i)
+                if device in info['name'].lower():
+                    self.device = i
+                    print(f"Found loopin device at index {i}")
+                    break
+#                elif 'loopback' in info['name'].lower() and 'hw:2,1' in info['name']:
+#                    self.device = i
+#                    print(f"Found hardware loopback device at index {i}")
+#                    break
+
+        except Exception as e:
+            print(f"\n❌ ERROR: {e}")
+            print("Check your ALSA configuration and device permissions")
+            self.device = 4
+        
+#        for id in range(self.recorder.get_device_count()):
+#            # print()
+#            dev_dict = self.recorder.get_device_info_by_index(id)
+#            print(dev_dict)
+#            for key, value in dev_dict.items():
+#                if key == 'index': self.device = value
+#                if value == device:
+#                    print("AudioProcessor.find_device_index: device",value, " index:", self.device)
+#                    return self.device
 
     def start_capture(self):
         try:
             self.stream   = self.recorder.open(format = INFORMAT,rate = RATE,channels = CHANNELS,input = True, input_device_index=self.device, frames_per_buffer=FRAMESIZE, stream_callback=self.callback)
             self.stream.start_stream()
-            print("AudioProcessor.start_capture> ADC/DAC ready ", self.recorder.get_default_input_device_info()['name'])
+            print("AudioProcessor.start_capture> ADC/DAC ready ", self.recorder.get_default_input_device_info()['name'], " index>", self.device)
         except Exception as e:
             print("AudioProcessor.start_capture> ADC/DAC not available", e)
 
@@ -172,21 +207,79 @@ class AudioProcessor(AudioData):
         except Exception as e:
             print("AudioProcessor.Stop_capture> error", e)
 
+    # def callback(self, in_data, frame_count, time_info, status):
+
+    #     # print('AudioProcessor.callback> received %d frames, time %s, status %s, data bytes %d' % (frame_count, time_info, status, len(in_data)))
+    #     self.calcReadtime()
+    #     data        = np.frombuffer(in_data, dtype=np.int16 )   #/maxValue
+    #     # self.oldsamples['left']  = self.samples['left']
+    #     # self.oldsamples['right'] = self.samples['right']
+    #     self.samples['left']  = data[0::2] # * self.window
+    #     self.samples['right'] = data[1::2] # * self.window
+    #     self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1)
+    #     # print('AudioProcessor.callback>', len(self.samples['left']), len(self.samples['right']), len(self.samples['mono']))
+    #     self.record(in_data)
+    #     self.events.Audio('capture')
+    #     # self.calcReadtime(False)
+    #     return (in_data, pyaudio.paContinue)
+
+# --- CRITICAL CONSTANT (Define this in your class __init__ once) ---
+# Example: self.CRITICAL_TIME_MS = (self.CHUNK / self.RATE) * 1000 
+# For 44100 Hz and 1024 frames, this is approx 23.22 ms
+# -------------------------------------------------------------------
+
     def callback(self, in_data, frame_count, time_info, status):
 
-        # print('AudioProcessor.callback> received %d frames, time %s, status %s, data bytes %d' % (frame_count, time_info, status, len(in_data)))
-        self.calcReadtime()
-        data        = np.frombuffer(in_data, dtype=np.int16 )   #/maxValue
-        # self.oldsamples['left']  = self.samples['left']
-        # self.oldsamples['right'] = self.samples['right']
-        self.samples['left']  = data[0::2] # * self.window
-        self.samples['right'] = data[1::2] # * self.window
-        self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1)
-        # print('AudioProcessor.callback>', len(self.samples['left']), len(self.samples['right']), len(self.samples['mono']))
+        # 1. START HIGH-RESOLUTION TIMER
+        start_time = time.perf_counter()
+        
+        # 2. CHECK FOR AUDIO BUFFER OVERFLOW
+        # The 'status' flag tells us if the buffer overflowed BEFORE we even started processing.
+        if status & pyaudio.paInputOverflow:
+            print("\n*** [FATAL REAL-TIME WARNING] Input Buffer Overflow! ***")
+            print("    -> Processing is too slow. Previous frame was dropped.")
+            
+        # --- Existing Audio Capture and Processing ---
+
+        # Your custom time tracking hook (if you still need it)
+        self.calcReadtime() 
+        
+        # Convert bytes to numpy array (assuming dtype=np.int16)
+        data = np.frombuffer(in_data, dtype=np.int16) 
+        
+        # Split/Reshape Samples
+        # Note: Using a global/class variable CHANNELS here
+        self.samples['left']  = data[0::2]
+        self.samples['right'] = data[1::2]
+        
+        # Mono conversion (Efficiently handles multiple channels)
+        self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1) 
+        
+        # Run the expensive audio processing/visual update functions here
         self.record(in_data)
         self.events.Audio('capture')
-        # self.calcReadtime(False)
+        
+        # The visualization logic (drawing to the DSI screen) MUST be placed here 
+        # for the timing check to be meaningful.
+        # self.update_dsi_screen() # <-- ADD YOUR GRAPHICS CALL HERE!
+
+        # self.calcReadtime(False) # Your custom time tracking hook (if you still need it)
+
+        # --- END HIGH-RESOLUTION TIMER & CHECK ---
+        
+        processing_time_ms = (time.perf_counter() - start_time) * 1000
+    
+        # 3. CHECK AGAINST TIME BUDGET
+        # We must ensure this method runs faster than the time it took the audio to arrive.
+        if processing_time_ms > CRITICAL_TIME_MS:
+            print(f"\n*** [LATENCY WARNING] FRAME LATE! ***")
+            print(f"    -> Time Spent: {processing_time_ms:.2f} ms")
+            print(f"    -> Time Limit: {CRITICAL_TIME_MS:.2f} ms")
+            print(f"    -> **ACTION REQUIRED**: Increase CHUNK size or optimize code.")
+        
+        # Continue stream
         return (in_data, pyaudio.paContinue)
+
 
     def start_recording(self):
         self.recordingState = True
@@ -261,7 +354,9 @@ class AudioProcessor(AudioData):
 
         self.bins['left']   = self.calcFFT(self.samples['left'])
         self.bins['right']  = self.calcFFT(self.samples['right'])
-        self.bins['mono']   = self.calcFFT(self.samples['mono'])
+        # The fastest way using already computed magnitude bins
+        self.bins['mono'] = (self.bins['left'] + self.bins['right']) / 2.0
+        # self.bins['mono']   = self.calcFFT(self.samples['mono'])
         # self.bins['left']     = self.spectral_average(left, 'left')
         # self.bins['right']    = self.spectral_average(right, 'right')
 
@@ -273,8 +368,10 @@ class AudioProcessor(AudioData):
         self.calcReadtime(False)
         self.trigger_detected = []
 
-        bass_signal   = np.max( self.filter( self.samples[ 'mono' ], bass, type='lowpass' )/ maxValue)
-        treble_signal = np.max( self.filter( self.samples[ 'mono' ], treble, type='highpass')/ maxValue )
+        # bass_signal   = np.max( self.filter( self.samples[ 'mono' ], bass, type='lowpass' )/ maxValue)
+        # treble_signal = np.max( self.filter( self.samples[ 'mono' ], treble, type='highpass')/ maxValue )
+        bass_signal   = 0
+        treble_signal = 0
         if bass_signal> 0.05:
             self.trigger_detected.append('bass')
             # print("bass ", bass_signal)
@@ -342,21 +439,32 @@ class AudioProcessor(AudioData):
         return intervalUpperF
 
 
-    def VU(self,channel):
-        PEAK   = 0.0
-        FLOOR  = -120.0
-        RMSMAX = 0.03
-        """
-        Simply find the RMS level of a sample and take the log to get the average power
-        """
-        rms = np.sqrt(np.mean(np.square((self.samples[channel][:FRAMESIZE]//2)/ maxValue)))  #√[:FRAMESIZE]//2
-        if np.isnan(rms): rms=0.0
-        # if rms > self.vumax[channel]: self.vumax[channel] = rms
+    # def VU(self,channel):
+    #     PEAK   = 0.0
+    #     FLOOR  = -120.0
+    #     RMSMAX = 0.03
+    #     """
+    #     Simply find the RMS level of a sample and take the log to get the average power
+    #     """
+    #     rms = np.sqrt(np.mean(np.square((self.samples[channel][:FRAMESIZE]//2)/ maxValue)))  #√[:FRAMESIZE]//2
+    #     if np.isnan(rms): rms=0.0
+    #     # if rms > self.vumax[channel]: self.vumax[channel] = rms
 
-        # db_value = 20 * np.log10 (rms + 1e-6)
-        # norm     = (-FLOOR + db_value)/ (PEAK-FLOOR)
-        # print("AudioProcessor.VU> %s %f rms %f dB norm %f  vumax %f" % (channel, rms/RMSMAX, db_value, norm, self.vumax[channel]))
-        return  min(1.0, rms/VUGAIN)   # normalise
+    #     # db_value = 20 * np.log10 (rms + 1e-6)
+    #     # norm     = (-FLOOR + db_value)/ (PEAK-FLOOR)
+    #     # print("AudioProcessor.VU> %s %f rms %f dB norm %f  vumax %f" % (channel, rms/RMSMAX, db_value, norm, self.vumax[channel]))
+    #     return  min(1.0, rms/VUGAIN)   # normalise
+
+    def VU(self, channel):
+        # Use full framesize, normalize AFTER squaring/before mean for consistency
+        normalized_data = self.samples[channel] / maxValue
+        
+        # Calculate RMS
+        rms = np.sqrt(np.mean(np.square(normalized_data)))
+        
+        if np.isnan(rms): rms = 0.0
+
+        return min(1.0, rms / VUGAIN)
 
 
     def reduceSamples(self, channel, reduceby, rms=True ):
@@ -400,15 +508,36 @@ class AudioProcessor(AudioData):
 
         return self.dcoffset
 
+    # def calcFFT(self, data):
+    #     """
+    #     Calculate the FFT and normalise to 0-1
+    #     """
+    #     data        = data[:FRAMESIZE//2] * self.window
+    #     data        = np.pad(data, (0, NUMPADS), 'constant')
+    #     spectrum    = np.abs(np.fft.fft(data)) # * self.window))
+    #     spectrum    = spectrum / maxValue  #Normalize to 0-1 range
+
+    #     return spectrum
+
     def calcFFT(self, data):
         """
-        Calculate the FFT and normalise to 0-1
+        Calculate the Real FFT and normalise (fastest method)
         """
-        data        = data[:FRAMESIZE//2] * self.window
-        data        = np.pad(data, (0, NUMPADS), 'constant')
-        spectrum    = np.abs(np.fft.fft(data)) # * self.window))
-        spectrum    = spectrum / maxValue  #Normalize to 0-1 range
-
+        # 1. Apply Window/Slice: (Make sure your window is applied as efficiently as possible)
+        # If self.window is already the correct length (FRAMESIZE//2), this is fine.
+        windowed_data = data[:FRAMESIZE//2] * self.window 
+        
+        # 2. Apply Zero Padding:
+        # If the length is not a power of 2, FFT is much slower. Ensure (FRAMESIZE//2 + NUMPADS) is a power of 2.
+        padded_len = FRAMESIZE//2 + NUMPADS
+        
+        # 3. Use rfft for a ~2x speedup on real-valued data
+        # Specify the exact FFT length using 'n' to include the padding
+        spectrum = np.fft.rfft(windowed_data, n=padded_len)
+        
+        # 4. Get magnitude and normalize
+        spectrum = np.abs(spectrum) / maxValue
+        
         return spectrum
 
 

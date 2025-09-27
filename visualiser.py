@@ -32,8 +32,8 @@ class MetaData(Roon):
 class Platform(AudioProcessor, MetaData, GraphicsDriver):
     def __init__(self, events):
         GraphicsDriver.__init__(self, events, FPS)
-        AudioProcessor.__init__(self, events)
-        MetaData.__init__(self, events, maxwh=self.wh, target_name='MacViz')
+        AudioProcessor.__init__(self, events, device="loopin")
+        MetaData.__init__(self, events, maxwh=self.wh, target_name='pre3')
 
 
     def stop(self):
@@ -46,13 +46,13 @@ class Platform(AudioProcessor, MetaData, GraphicsDriver):
 class Controller:
     def __init__(self):
 
-        self.events         = Events(( 'Audio', 'KeyPress', 'Roon'))
+        self.events         = Events(( 'Audio', 'KeyPress', 'Metadata'))
         self.platform       = Platform(self.events)
 
         """ Setup the event callbacks """
         self.events.KeyPress  += self.KeyAction    # when the remote controller is pressed
         self.events.Audio     += self.AudioAction     # respond to a new sample, or audio silence
-        self.events.Roon      += self.RoonAction     # respond to a new sample, or audio silence
+        self.events.Metadata  += self.MetadataAction     # respond to a new sample, or audio silence
 
         """Set up the screen for inital Mode"""
         self.baseScreen     = 'MetaVUScreen'
@@ -96,7 +96,7 @@ class Controller:
 
     def AudioAction(self, e):
         if e == 'capture':
-            if self.audioready>0:
+            if self.audioready>1:
                 print("Controller.AudioAction> %d sample buffer underrun, dump old data " % self.audioready)
             self.platform.process()
             self.audioready +=1
@@ -141,7 +141,7 @@ class Controller:
         else:
             print("Controller.KeyAction> unknown event ",key)
 
-    def RoonAction(self, key):
+    def MetadataAction(self, key):
         print("Controller.RoonAction> event ", key)
         if key == 'start':
             print("Controller.RoonAction> track started")

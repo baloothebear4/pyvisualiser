@@ -18,6 +18,7 @@ from   textwrap import shorten, wrap
 from    io import BytesIO
 import requests
 import warnings
+import os
 """ Prevent image coolour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
 
@@ -654,10 +655,9 @@ class GraphicsDriver:
     Base class to manage all the graphics i/o functions
     """
     def __init__(self, events, FPS):
-        pygame.init()   #create the drawing canvas
         self.events         = events
+        self.screen         = self.init_display()
         self.clock          = pygame.time.Clock()
-        self.screen         = pygame.display.set_mode(GraphicsDriver.PANEL)
         self.FPS            = FPS
         pygame.display.set_caption('Visualiser')
 
@@ -665,14 +665,59 @@ class GraphicsDriver:
         self.background     = Frame(self)
         self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
 
+    def init_display(self):
+        """Initialize pygame for Waveshare 7.9" horizontal display"""
+    
+        # Force pygame to use framebuffer
+        os.environ['SDL_VIDEODRIVER'] = 'kmsdrm'
+        os.environ['SDL_VIDEODEVICE'] = '/dev/dri/card1'
+        # Remove any rotation overrides - let hardware handle it
+        if 'SDL_VIDEO_KMSDRM_ROTATION' in os.environ:
+            del os.environ['SDL_VIDEO_KMSDRM_ROTATION']    
+        #os.environ['SDL_VIDEO_KMSDRM_ROTATION'] = '90'
+
+        os.environ['SDL_NOMOUSE']     = '1'  # Hide mouse cursor initially
+    
+        pygame.init()
+    
+        # The physical screen is reported by the OS as 400x1280 (tall).
+        self._physical_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        actual_size = self._physical_screen.get_size()
+        print(f"Fullscreen mode size: {actual_size}")
+        
+        # Create a virtual surface with our desired drawing dimensions (1280x400)
+        self.virtual_surface = pygame.Surface((GraphicsDriver.W, GraphicsDriver.H))
+        
+        # Hide mouse cursor for a cleaner look.
+        pygame.mouse.set_visible(False)
+        
+        # Return the virtual surface for all drawing operations
+        return self.virtual_surface        # Waveshare 7.9" resolution: 400x1280 native (portrait)
+
+
     def draw_start(self, text=None):
         # self.screen.fill((0,0,0))       # erase whole screen
+        # All drawing now happens on the virtual surface.
+        self.virtual_surface.fill((0,0,0))       # erase the virtual screen
         if text is not None: pygame.display.set_caption(text)
 
     def draw_end(self):
-        # print("Screen.draw [END]")
+        # Clear the physical screen
+        self._physical_screen.fill((0, 0, 0))
+        
+        # Rotate the virtual surface by -90 degrees to "undo" the OS rotation
+        rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
+        
+        # Blit the rotated surface onto the physical screen
+        rotated_rect = rotated_surface.get_rect(center=self._physical_screen.get_rect().center)
+        self._physical_screen.blit(rotated_surface, rotated_rect)
+        
+        # Update the display to show the changes
         pygame.display.flip()
+        
+        # Control the frame rate
         self.clock.tick(self.FPS)
+
 
     def refresh(self, rect=None):
         # if rect is None: rect = [0,0]+self.wh
@@ -683,7 +728,8 @@ class GraphicsDriver:
         if colour_index is None: colour_index = 'background'
         if colour is None: colour=self.colour
         colour = colour.get(colour_index)
-        self.screen.fill(colour, pygame.Rect(rect))
+        #self.screen.fill(colour, pygame.Rect(rect))
+        self.virtual_surface.fill(colour, pygame.Rect(rect))
         if image is not None:
             self.image_container.draw(image)
 

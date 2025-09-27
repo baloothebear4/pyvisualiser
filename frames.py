@@ -459,7 +459,7 @@ class OutlineFrame(Frame):
 Spectrum Analyser Frames
 """
 class Spectrum:
-    DECAY     = 0.3   # Lower is longer delay - This is the amount that a bar reduces each period
+    DECAY     = 0.5   # Lower is longer delay - This is the amount that a bar reduces each period
     PEAKDECAY = 0.01  # pc of Decay to use for peak bars
 
 
