@@ -763,6 +763,79 @@ class GraphicsDriver:
                 self.events.KeyPress(event.key)
 
 
+
+class GraphicsDriverMac:
+    """ Pygame based platform """
+    H       = 400
+    W       = 1280
+    PANEL   = [W, H]   # h x w
+
+    """
+    Base class to manage all the graphics i/o functions
+    """
+    def __init__(self, events, FPS):
+        pygame.init()   #create the drawing canvas
+        self.events         = events
+        self.clock          = pygame.time.Clock()
+        self.screen         = pygame.display.set_mode(GraphicsDriver.PANEL)
+        self.FPS            = FPS
+        pygame.display.set_caption('Visualiser')
+
+        self.colour         = Colour('std', self.w)
+        self.background     = Frame(self)
+        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+
+    def draw_start(self, text=None):
+        # self.screen.fill((0,0,0))       # erase whole screen
+        if text is not None: pygame.display.set_caption(text)
+
+    def draw_end(self):
+        # print("Screen.draw [END]")
+        pygame.display.flip()
+        self.clock.tick(self.FPS)
+
+    def refresh(self, rect=None):
+        # if rect is None: rect = [0,0]+self.wh
+        pygame.display.update(pygame.Rect(rect))
+
+    def fill(self, rect=None, colour=None, colour_index='background', image=None):
+        if rect is None: rect = self.boundary
+        if colour_index is None: colour_index = 'background'
+        if colour is None: colour=self.colour
+        colour = colour.get(colour_index)
+        self.screen.fill(colour, pygame.Rect(rect))
+        if image is not None:
+            self.image_container.draw(image)
+
+    def create_outline(self, theme, outline, w):
+        return Outline(theme, w, self.screen, outline)
+
+    @property
+    def boundary(self):
+        return [0 , 0, self.w-1, self.h-1]
+
+    @property
+    def h(self):
+        return GraphicsDriver.H
+
+    @property
+    def w(self):
+        return GraphicsDriver.W
+
+    @property
+    def wh(self):
+        return (self.w, self.h)
+
+    def graphics_end(self):
+        pygame.quit()
+
+    def checkKeys(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.events.KeyPress('exit')
+            elif event.type == KEYDOWN:
+                self.events.KeyPress(event.key)
+
 """
 Test code
 """

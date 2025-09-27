@@ -143,14 +143,15 @@ class AudioProcessor(AudioData):
         self.readtime   = []
         self.silence    = WindowAve(SILENCESAMPLES)
         self.window     = np.kaiser(FRAME + 0, WINDOW)  #Hanning window
-        print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_default_input_device_info()['name'], RECORDSTATE))
+        print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_device_info_by_index(self.device)['name'], RECORDSTATE))
 
     @property
     def framesize(self):
         return FRAME    
 
     def find_device_index(self, device):
-        print("\nAvailable audio devices:")
+        print("\nTarget audio device:", device)
+        print("Available audio devices:")
         p = self.recorder
         for i in range(p.get_device_count()):
             info = p.get_device_info_by_index(i)
@@ -158,19 +159,13 @@ class AudioProcessor(AudioData):
                 print(f"  Device {i}: {info['name']} (inputs: {info['maxInputChannels']})")
     
         try:
-            # Get default input device info first
-            default_input = p.get_default_input_device_info()
-            print(f"Default input device: {default_input['name']}")
-            print(f"Max input channels: {default_input['maxInputChannels']}")
-            print(f"Default sample rate: {default_input['defaultSampleRate']}")
-        
             # Try to find the loopback device
             loopback_device = None
             for i in range(p.get_device_count()):
                 info = p.get_device_info_by_index(i)
-                if device in info['name'].lower():
+                if device.lower() in info['name'].lower():
                     self.device = i
-                    print(f"Found loopin device at index {i}")
+                    print(f"Found loop back device {info['name']}  at index {info['index']} ")
                     break
 #                elif 'loopback' in info['name'].lower() and 'hw:2,1' in info['name']:
 #                    self.device = i
@@ -196,7 +191,7 @@ class AudioProcessor(AudioData):
         try:
             self.stream   = self.recorder.open(format = INFORMAT,rate = RATE,channels = CHANNELS,input = True, input_device_index=self.device, frames_per_buffer=FRAMESIZE, stream_callback=self.callback)
             self.stream.start_stream()
-            print("AudioProcessor.start_capture> ADC/DAC ready ", self.recorder.get_default_input_device_info()['name'], " index>", self.device)
+            print("AudioProcessor.start_capture> ADC/DAC ready ", self.recorder.get_device_info_by_index(self.device)['name'], " index>", self.device)
         except Exception as e:
             print("AudioProcessor.start_capture> ADC/DAC not available", e)
 

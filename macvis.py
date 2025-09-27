@@ -13,7 +13,7 @@
 """
 from    processaudio import AudioProcessor
 from    roon import Roon
-from    displaydriver import GraphicsDriver
+from    displaydriver import GraphicsDriverMac
 from    screens import *
 from    events import Events
 from    framecore import ListNext, ScreenController
@@ -26,10 +26,10 @@ class MetaData(Roon):
     pass
 
 """ HW Platform providing display, audio and physical controls """
-class Platform(AudioProcessor, MetaData, GraphicsDriver):
+class Platform(AudioProcessor, MetaData, GraphicsDriverMac):
     def __init__(self, events):
-        GraphicsDriver.__init__(self, events, FPS)
-        AudioProcessor.__init__(self, events)
+        GraphicsDriverMac.__init__(self, events, FPS)
+        AudioProcessor.__init__(self, events, device='BlackHole 2ch')
         MetaData.__init__(self, events, maxwh=self.wh, target_name='MacViz')
 
 
@@ -102,7 +102,9 @@ class EventHandler:
 
         elif key == K_DOWN:
             print("EventHandler.KeyAction> DOWN: screen variant scrolling not implemented")
-
+        elif key == 'exit':
+            print("EventHandler.KeyAction> quit")
+            exit()
         else:
             print("EventHandler.KeyAction> unknown event ",key)
         
