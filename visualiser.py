@@ -177,7 +177,10 @@ class Controller:
         while(self.status != 'exit'):
             self.platform.checkKeys()
 
-            if self.audioready>0:
+            if self.platform.audio_available:
+
+                self.platform.process() 
+                self.platform.data_available = False # Reset the flag
 
                 screen = self.screens[self.activeScreen]
                 self.platform.draw_start(screen.title + " > " + type(screen).__name__)

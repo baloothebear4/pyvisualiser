@@ -127,6 +127,7 @@ class AudioProcessor(AudioData):
     def __init__(self, events, device='BlackHole 2ch'):
         self.events   = events
         self.recorder = pyaudio.PyAudio()
+        self.audio_available = False
 
         # set up audio input
         self.find_device_index(device)
@@ -252,7 +253,8 @@ class AudioProcessor(AudioData):
         
         # Run the expensive audio processing/visual update functions here
         self.record(in_data)
-        self.events.Audio('capture')
+        self.audio_available = True 
+        # self.events.Audio('capture')
         
         # The visualization logic (drawing to the DSI screen) MUST be placed here 
         # for the timing check to be meaningful.
