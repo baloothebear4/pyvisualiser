@@ -32,7 +32,7 @@ MAC_PLATFORM = { "gfx": "mac", "loopback":"BlackHole 2ch", "roon_zone":"MacViz" 
 
 if __name__ == "__main__":
 
-    visualiser = ScreenController(SCREENS, hw_platform=MAC_PLATFORM )
+    visualiser = ScreenController(SCREENS, hw_platform=PI_PLATFORM )
 
     try:
         visualiser.run()

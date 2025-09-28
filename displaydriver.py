@@ -645,7 +645,7 @@ class Outline:
         width        = self.outline['width'] if 'width' in self.outline else Outline.OUTLINE['width']
         return width
 
-class GraphicsDriver:
+class GraphicsDriverPI:
     """ Pygame based platform """
     H       = 400
     W       = 1280
@@ -654,16 +654,16 @@ class GraphicsDriver:
     """
     Base class to manage all the graphics i/o functions
     """
-    def __init__(self, events, FPS):
-        self.events         = events
+    def __init__(self):
+        # self.events         = events
         self.screen         = self.init_display()
-        self.clock          = pygame.time.Clock()
-        self.FPS            = FPS
-        pygame.display.set_caption('Visualiser')
+        # self.clock          = pygame.time.Clock()
+        # self.FPS            = FPS
+        # pygame.display.set_caption('Visualiser')
 
-        self.colour         = Colour('std', self.w)
-        self.background     = Frame(self)
-        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+        # self.colour         = Colour('std', self.w)
+        # self.background     = Frame(self)
+        # self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
 
     def init_display(self):
         """Initialize pygame for Waveshare 7.9" horizontal display"""
@@ -736,33 +736,6 @@ class GraphicsDriver:
     def create_outline(self, theme, outline, w):
         return Outline(theme, w, self.screen, outline)
 
-    @property
-    def boundary(self):
-        return [0 , 0, self.w-1, self.h-1]
-
-    @property
-    def h(self):
-        return GraphicsDriver.H
-
-    @property
-    def w(self):
-        return GraphicsDriver.W
-
-    @property
-    def wh(self):
-        return (self.w, self.h)
-
-    def graphics_end(self):
-        pygame.quit()
-
-    def checkKeys(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.events.KeyPress('exit')
-            elif event.type == KEYDOWN:
-                self.events.KeyPress(event.key)
-
-
 
 class GraphicsDriverMac:
     """ Pygame based platform """
@@ -773,17 +746,12 @@ class GraphicsDriverMac:
     """
     Base class to manage all the graphics i/o functions
     """
-    def __init__(self, events, FPS):
-        pygame.init()   #create the drawing canvas
-        self.events         = events
-        self.clock          = pygame.time.Clock()
-        self.screen         = pygame.display.set_mode(GraphicsDriver.PANEL)
-        self.FPS            = FPS
-        pygame.display.set_caption('Visualiser')
+    def __init__(self):
+        self.screen         = self.init_display()
 
-        self.colour         = Colour('std', self.w)
-        self.background     = Frame(self)
-        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+    def init_display(self):
+        pygame.init()   #create the drawing canvas
+        return pygame.display.set_mode(GraphicsDriver.PANEL)
 
     def draw_start(self, text=None):
         # self.screen.fill((0,0,0))       # erase whole screen
@@ -810,6 +778,59 @@ class GraphicsDriverMac:
     def create_outline(self, theme, outline, w):
         return Outline(theme, w, self.screen, outline)
 
+    # @property
+    # def boundary(self):
+    #     return [0 , 0, self.w-1, self.h-1]
+
+    # @property
+    # def h(self):
+    #     return GraphicsDriver.H
+
+    # @property
+    # def w(self):
+    #     return GraphicsDriver.W
+
+    # @property
+    # def wh(self):
+    #     return (self.w, self.h)
+
+    # def graphics_end(self):
+    #     pygame.quit()
+
+    # def checkKeys(self):
+    #     for event in pygame.event.get():
+    #         if event.type == pygame.QUIT:
+    #             self.events.KeyPress('exit')
+    #         elif event.type == KEYDOWN:
+    #             self.events.KeyPress(event.key)
+
+class GraphicsDriver(GraphicsDriverMac, GraphicsDriverPI):
+    """ Pygame based platform """
+    H       = 400
+    W       = 1280
+    PANEL   = [W, H]   # h x w
+    FPS     = 30 #Frames per second
+
+    """
+    Base class to manage all the graphics i/o functions
+    """
+    def __init__(self, events, gfx='mac'):
+
+        self.events         = events
+        self.clock          = pygame.time.Clock()
+        self.FPS            = GraphicsDriver.FPS
+
+        if gfx=='pi_kms':
+            GraphicsDriverPI.__init__(self)
+        else:
+            GraphicsDriverMac.__init__(self)
+
+        pygame.display.set_caption('Visualiser')
+
+        self.colour         = Colour('std', self.w)
+        self.background     = Frame(self)
+        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+
     @property
     def boundary(self):
         return [0 , 0, self.w-1, self.h-1]
@@ -835,6 +856,7 @@ class GraphicsDriverMac:
                 self.events.KeyPress('exit')
             elif event.type == KEYDOWN:
                 self.events.KeyPress(event.key)
+
 
 """
 Test code

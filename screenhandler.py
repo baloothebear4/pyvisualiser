@@ -7,51 +7,48 @@
 """
 from    processaudio import AudioProcessor
 from    roon import Roon
-from    displaydriver import GraphicsDriverMac
+from    displaydriver import GraphicsDriver
 from    screens import *
 from    events import Events
 from    framecore import ListNext
-from    screenhandler import ScreenController, EventHandler
 from    pygame.locals import *   # this pulls down all the K_* constants
 
-FPS = 30 #Frames per second
-
+EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )   
+# for an api - this needs to have inbuilt events and additional events with a binder
 
 """ Use this sub class the either stub out or setup the metadata source """
 class MetaData(Roon):
     pass
 
 """ HW Platform providing display, audio and physical controls """
-class Platform(AudioProcessor, MetaData, GraphicsDriverMac):
-    def __init__(self, events):
-        GraphicsDriverMac.__init__(self, events, FPS)
-        AudioProcessor.__init__(self, events, device='BlackHole 2ch')
-        MetaData.__init__(self, events, maxwh=self.wh, target_name='MacViz')
+class Platform(AudioProcessor, MetaData, GraphicsDriver):
+    def __init__(self, events, hw_platform):
+        GraphicsDriver.__init__(self, events, gfx=hw_platform['gfx'])
+        AudioProcessor.__init__(self, events, device=hw_platform['loopback'])
+        MetaData.__init__(self, events, maxwh=self.wh, target_name=hw_platform['roon_zone'])
 
 
     def stop(self):
         self.graphics_end()
         self.stop_capture()
-        self.stop_roon()
+        self.metadata_stop()
 
 
 class ScreenController:
     def __init__(self, screens, hw_platform):
 
+        """ Set up the HW platform inc GFS driver, key handling and audio loopback """
+        self.events         = Events(EVENTS)
+        self.platform       = Platform(self.events, hw_platform)
+
+        """ Setup the event callbacks """
+        EventHandler(self.events, self.platform, self.screenEvents)
+
+
         """Set up the screen for inital Mode"""
         self.startScreen    = screens[0].__name__
         self.preScreenSaver = self.startScreen
         self.activeScreen   = self.startScreen
-        self.events         = events
-        self.platform       = platform
-
-        """ Setup the event callbacks """
-        events          = Events(EVENTS)
-        platform        = Platform(events)
-
-        EventHandler(events, platform, visualiser.screenEvents)
-
-        """ Set up the screen objects to be used """
         self.screens    = {}  # dict for the screen objects
 
         """ Menu functionality - sort out Control (temporary) from main (base) screens"""
@@ -89,24 +86,43 @@ class ScreenController:
         self.exit = False
         self.events.Control('set', self.startScreen)
         self.events.Control('start')
+        loop_count = 0
         print("ScreenController.run> startup configured")
 
         # main loop
         while(self.activeScreen != 'exit'):
-            self.events.Control('check')
-            if self.activeScreen != 'exit':  # The code is reentrant, hence multiple test for exit condition  
+            self.events.Control('check_keys')
+            
+            if self.activeScreen != 'exit' and self.platform.audio_available:  # The code is reentrant, hence multiple test for exit condition  
+
+                # instument the real-time audio processing to see where the time bottlenecks are
+                start_time = time.perf_counter()
+
+                # perform the audio processing
+                self.platform.process() 
+                self.platform.data_available = False # Reset the flag
+                self.audioready = 0
+                processing_time_ms = (time.perf_counter() - start_time) * 1000
+
+                # build and update the display
                 screen    = self.screens[self.activeScreen]
                 self.events.Control('loop_start', text=screen.title + " > " + type(screen).__name__)
                 screen.draw()
                 self.events.Control('loop_end')
+                drawing_time_ms = (time.perf_counter() - start_time) * 1000
+
+                # analyse the loop time, only display every 2 seconds       
+                if loop_count % 20 == 0:
+                    loop_time = processing_time_ms + drawing_time_ms
+                    print("Controller.run> loop time: %.2f ms, audio processing %.2f ms, display drawing %.2f ms" % (loop_time, processing_time_ms, drawing_time_ms))
+                    loop_count = 0
+                loop_count += 1
 
         self.events.Control('exit')   
 
+    
  
- """ Event processing - this is configured according to the platform/enviroment"""
-
-EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )   
-# for an api - this needs to have inbuilt events and additional events with a binder
+""" Event processing - this is configured according to the platform/enviroment"""
 class EventHandler:        
     def __init__(self, events, platform, screen_handler):
 
@@ -128,7 +144,7 @@ class EventHandler:
         elif e =='exit':
             self.platform.stop()
 
-        elif e == 'check':
+        elif e == 'check_keys':
             self.platform.checkKeys()
 
         elif e == 'loop_start':
