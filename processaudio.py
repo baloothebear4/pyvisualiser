@@ -168,25 +168,12 @@ class AudioProcessor(AudioData):
                     self.device = i
                     print(f"Found loop back device {info['name']}  at index {info['index']} ")
                     break
-#                elif 'loopback' in info['name'].lower() and 'hw:2,1' in info['name']:
-#                    self.device = i
-#                    print(f"Found hardware loopback device at index {i}")
-#                    break
 
         except Exception as e:
             print(f"\n❌ ERROR: {e}")
             print("Check your ALSA configuration and device permissions")
             self.device = 4
         
-#        for id in range(self.recorder.get_device_count()):
-#            # print()
-#            dev_dict = self.recorder.get_device_info_by_index(id)
-#            print(dev_dict)
-#            for key, value in dev_dict.items():
-#                if key == 'index': self.device = value
-#                if value == device:
-#                    print("AudioProcessor.find_device_index: device",value, " index:", self.device)
-#                    return self.device
 
     def start_capture(self):
         try:
@@ -219,11 +206,6 @@ class AudioProcessor(AudioData):
     #     # self.calcReadtime(False)
     #     return (in_data, pyaudio.paContinue)
 
-# --- CRITICAL CONSTANT (Define this in your class __init__ once) ---
-# Example: self.CRITICAL_TIME_MS = (self.CHUNK / self.RATE) * 1000 
-# For 44100 Hz and 1024 frames, this is approx 23.22 ms
-# -------------------------------------------------------------------
-
     def callback(self, in_data, frame_count, time_info, status):
 
         # 1. START HIGH-RESOLUTION TIMER
@@ -232,13 +214,9 @@ class AudioProcessor(AudioData):
         # 2. CHECK FOR AUDIO BUFFER OVERFLOW
         # The 'status' flag tells us if the buffer overflowed BEFORE we even started processing.
         if status & pyaudio.paInputOverflow:
-            print("\n*** [FATAL REAL-TIME WARNING] Input Buffer Overflow! ***")
-            print("    -> Processing is too slow. Previous frame was dropped.")
+            print(f"AudioProcessor.callback> *** [FRAME DROPPED] ***")
             
         # --- Existing Audio Capture and Processing ---
-
-        # Your custom time tracking hook (if you still need it)
-        self.calcReadtime() 
         
         # Convert bytes to numpy array (assuming dtype=np.int16)
         data = np.frombuffer(in_data, dtype=np.int16) 
@@ -260,8 +238,6 @@ class AudioProcessor(AudioData):
         # for the timing check to be meaningful.
         # self.update_dsi_screen() # <-- ADD YOUR GRAPHICS CALL HERE!
 
-        # self.calcReadtime(False) # Your custom time tracking hook (if you still need it)
-
         # --- END HIGH-RESOLUTION TIMER & CHECK ---
         
         processing_time_ms = (time.perf_counter() - start_time) * 1000
@@ -269,10 +245,7 @@ class AudioProcessor(AudioData):
         # 3. CHECK AGAINST TIME BUDGET
         # We must ensure this method runs faster than the time it took the audio to arrive.
         if processing_time_ms > CRITICAL_TIME_MS:
-            print(f"\n*** [LATENCY WARNING] FRAME LATE! ***")
-            print(f"    -> Time Spent: {processing_time_ms:.2f} ms")
-            print(f"    -> Time Limit: {CRITICAL_TIME_MS:.2f} ms")
-            print(f"    -> **ACTION REQUIRED**: Increase CHUNK size or optimize code.")
+            print(f"AudioProcessor.callback> *** [LATENCY WARNING]: {processing_time_ms:.2f} vs {CRITICAL_TIME_MS:.2f} ms ***")
         
         # Continue stream
         return (in_data, pyaudio.paContinue)
@@ -362,7 +335,6 @@ class AudioProcessor(AudioData):
         self.vu['right']    = self.VU('right')
         self.vu['mono']     = self.VU('mono')
         self.detectSilence()
-        self.calcReadtime(False)
         self.trigger_detected = []
 
         # bass_signal   = np.max( self.filter( self.samples[ 'mono' ], bass, type='lowpass' )/ maxValue)

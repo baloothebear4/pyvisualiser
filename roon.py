@@ -240,7 +240,7 @@ class Roon(RoonMetaData):
         # print(self.roon.core_id)
         self.roon.register_state_callback(self.roon_callback) # , id_filter=[self.target_zone_id])
 
-    def stop_roon(self):
+    def metadata_stop(self):
         self.roon.stop()
 
     def startup(self):

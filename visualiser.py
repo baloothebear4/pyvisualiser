@@ -39,7 +39,7 @@ class Platform(AudioProcessor, MetaData, GraphicsDriver):
     def stop(self):
         self.graphics_end()
         self.stop_capture()
-        self.stop_roon()
+        self.metadata_stop()
 
 
 """ Event processor """
@@ -137,7 +137,7 @@ class Controller:
             elif key == K_DOWN:
                 print("Controller.KeyAction> DOWN: screen variant scrolling not implemented")
             else:
-                print("Key Press ", key)
+                print("Controller.KeyAction: Key Press ", key)
         else:
             print("Controller.KeyAction> unknown event ",key)
 
@@ -172,22 +172,35 @@ class Controller:
         self.audioready = 0
         print("Controller.run> startup configured")
         t = time.time()
+        loop_count = 0
 
         # main loop
         while(self.status != 'exit'):
             self.platform.checkKeys()
 
             if self.platform.audio_available:
+                # instument the real-time audio processing to see where the time bottlenecks are
+                start_time = time.perf_counter()
 
+                # perform the audio processing
                 self.platform.process() 
                 self.platform.data_available = False # Reset the flag
+                self.audioready = 0
+                processing_time_ms = (time.perf_counter() - start_time) * 1000
 
+                # build and update the display
                 screen = self.screens[self.activeScreen]
                 self.platform.draw_start(screen.title + " > " + type(screen).__name__)
                 self.screens[self.activeScreen].draw()
                 self.platform.draw_end()
+                drawing_time_ms = (time.perf_counter() - start_time) * 1000
 
-                self.audioready = 0
+                # analyse the loop time, only display every 2 seconds       
+                if loop_count % 20 == 0:
+                    loop_time = processing_time_ms + drawing_time_ms
+                    print("Controller.run> loop time: %.2f ms, audio processing %.2f ms, display drawing %.2f ms" % (loop_time, processing_time_ms, drawing_time_ms))
+                    loop = 0
+                loop_count += 1
 
                 # print("run> waited for audio: waited", 1000*(time.time()-t))
                 t = time.time()
