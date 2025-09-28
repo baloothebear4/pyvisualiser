@@ -27,7 +27,7 @@ from    screenhandler import ScreenController
 SCREENS = ( ArtistScreen, MetaVUScreen, BigDialsScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2,  )
     
-PI_PLATFORM  = { "gfx": "pi_kms", "loopback":"loopin", "roon_zone":"MacViz" }
+PI_PLATFORM  = { "gfx": "pi_kms", "loopback":"loopin", "roon_zone":"pre3" }
 MAC_PLATFORM = { "gfx": "mac", "loopback":"BlackHole 2ch", "roon_zone":"MacViz" }
 
 if __name__ == "__main__":

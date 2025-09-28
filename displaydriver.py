@@ -645,25 +645,86 @@ class Outline:
         width        = self.outline['width'] if 'width' in self.outline else Outline.OUTLINE['width']
         return width
 
-class GraphicsDriverPI:
+class Gfx:
+    """
+    Base class to manage all the graphics i/o functions
+    """
+    def __init__(self, events, w, h, fps):
+        self.events         = events
+        self.clock          = pygame.time.Clock()
+        self.FPS            = fps
+        self.W              = w
+        self.H              = h
+
+        pygame.display.set_caption('Visualiser')
+
+        self.colour         = Colour('std', self.w)
+        self.background     = Frame(self)
+        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+
+    def draw_start(self, text=None):
+        self.gfx_driver.draw_start(text)
+
+    def draw_end(self):
+        self.gfx_driver.draw_end()
+
+    def refresh(self, rect=None):
+        self.gfx_driver.refresh(rect)
+
+    def fill(self, rect=None, colour=None, colour_index='background', image=None):     
+        self.gfx_driver.fill(rect, colour, colour_index, image)   
+
+    def create_outline(self, theme, outline, w):
+        self.gfx_driver.create_outline(theme, outline, w)
+
+    @property
+    def boundary(self):
+        return [0 , 0, self.w-1, self.h-1]
+
+    @property
+    def h(self):
+        return self.H
+
+    @property
+    def w(self):
+        return self.W
+
+    @property
+    def wh(self):
+        return (self.w, self.h)
+
+    def graphics_end(self):
+        pygame.quit()
+
+    def checkKeys(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.events.KeyPress('exit')
+            elif event.type == KEYDOWN:
+                self.events.KeyPress(event.key)
+
+
+
+class GraphicsDriverPi:
     """ Pygame based platform """
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
+    FPS     = 30
 
     """
     Base class to manage all the graphics i/o functions
     """
-    def __init__(self):
-        # self.events         = events
-        self.screen         = self.init_display()
-        # self.clock          = pygame.time.Clock()
-        # self.FPS            = FPS
-        # pygame.display.set_caption('Visualiser')
+    def __init__(self, events):
+        self.W      = GraphicsDriverPi.W
+        self.H      = GraphicsDriverPi.H
+        self.FPS    = GraphicsDriverPi.FPS
+        self.events = events
 
-        # self.colour         = Colour('std', self.w)
-        # self.background     = Frame(self)
-        # self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+        self.clock            = pygame.time.Clock()
+        self.screen           = self.init_display()
+        print("GraphicsDriverPI.init_display> Pi ", self.screen.get_size())
+
 
     def init_display(self):
         """Initialize pygame for Waveshare 7.9" horizontal display"""
@@ -683,10 +744,9 @@ class GraphicsDriverPI:
         # The physical screen is reported by the OS as 400x1280 (tall).
         self._physical_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         actual_size = self._physical_screen.get_size()
-        print(f"Fullscreen mode size: {actual_size}")
         
         # Create a virtual surface with our desired drawing dimensions (1280x400)
-        self.virtual_surface = pygame.Surface((GraphicsDriver.W, GraphicsDriver.H))
+        self.virtual_surface = pygame.Surface((GraphicsDriverPi.W, GraphicsDriverPi.H))
         
         # Hide mouse cursor for a cleaner look.
         pygame.mouse.set_visible(False)
@@ -711,6 +771,7 @@ class GraphicsDriverPI:
         # Blit the rotated surface onto the physical screen
         rotated_rect = rotated_surface.get_rect(center=self._physical_screen.get_rect().center)
         self._physical_screen.blit(rotated_surface, rotated_rect)
+        # print("rotate")
         
         # Update the display to show the changes
         pygame.display.flip()
@@ -742,12 +803,20 @@ class GraphicsDriverMac:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
+    FPS     = 30
 
     """
     Base class to manage all the graphics i/o functions
     """
-    def __init__(self):
-        self.screen         = self.init_display()
+    def __init__(self, events):
+        self.events = events
+        self.W      = GraphicsDriverMac.W
+        self.H      = GraphicsDriverMac.H
+        self.FPS    = GraphicsDriverMac.FPS
+
+        self.screen = self.init_display()
+        self.clock  = pygame.time.Clock()
+        print("GraphicsDriverMac.init_display> Mac ", self.screen.get_size())
 
     def init_display(self):
         pygame.init()   #create the drawing canvas
@@ -778,74 +847,54 @@ class GraphicsDriverMac:
     def create_outline(self, theme, outline, w):
         return Outline(theme, w, self.screen, outline)
 
-    # @property
-    # def boundary(self):
-    #     return [0 , 0, self.w-1, self.h-1]
 
-    # @property
-    # def h(self):
-    #     return GraphicsDriver.H
-
-    # @property
-    # def w(self):
-    #     return GraphicsDriver.W
-
-    # @property
-    # def wh(self):
-    #     return (self.w, self.h)
-
-    # def graphics_end(self):
-    #     pygame.quit()
-
-    # def checkKeys(self):
-    #     for event in pygame.event.get():
-    #         if event.type == pygame.QUIT:
-    #             self.events.KeyPress('exit')
-    #         elif event.type == KEYDOWN:
-    #             self.events.KeyPress(event.key)
-
-class GraphicsDriver(GraphicsDriverMac, GraphicsDriverPI):
-    """ Pygame based platform """
-    H       = 400
-    W       = 1280
-    PANEL   = [W, H]   # h x w
-    FPS     = 30 #Frames per second
-
-    """
-    Base class to manage all the graphics i/o functions
-    """
+class GraphicsDriver:
     def __init__(self, events, gfx='mac'):
-
-        self.events         = events
-        self.clock          = pygame.time.Clock()
-        self.FPS            = GraphicsDriver.FPS
-
         if gfx=='pi_kms':
-            GraphicsDriverPI.__init__(self)
+            self.gfx_driver=GraphicsDriverPi(events)
         else:
-            GraphicsDriverMac.__init__(self)
+            self.gfx_driver=GraphicsDriverMac(events)
 
         pygame.display.set_caption('Visualiser')
 
+        self.screen         = self.gfx_driver.screen
         self.colour         = Colour('std', self.w)
         self.background     = Frame(self)
         self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
 
+
+    # All public methods delegate to the composed driver
+    def draw_start(self, text=None):
+        self.gfx_driver.draw_start(text)
+
+    def draw_end(self):
+        self.gfx_driver.draw_end()
+
+    def refresh(self, rect=None):
+        self.gfx_driver.refresh(rect)    
+        
+    def fill(self, *args, **kwargs):
+        self.gfx_driver.fill(*args, **kwargs)
+
+    def create_outline(self, theme, outline, w):
+        self.gfx_driver.create_outline(theme, outline, w)
+
+
     @property
     def boundary(self):
-        return [0 , 0, self.w-1, self.h-1]
+        return [0 , 0, self.gfx_driver.W-1, self.gfx_driver.H-1]
 
     @property
     def h(self):
-        return GraphicsDriver.H
+        return self.gfx_driver.H
 
     @property
     def w(self):
-        return GraphicsDriver.W
+        return self.gfx_driver.W
 
     @property
     def wh(self):
-        return (self.w, self.h)
+        return (self.gfx_driver.W, self.gfx_driver.H)
 
     def graphics_end(self):
         pygame.quit()
