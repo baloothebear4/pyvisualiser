@@ -168,6 +168,7 @@ class EventHandler:
 
     def KeyAction(self, key):
         if key == K_SPACE:
+            print("EventHandler.KeyAction> Exiting....")
             self.events.Screen('exit')
 
         elif key == K_LEFT:

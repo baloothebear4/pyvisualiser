@@ -710,7 +710,7 @@ class GraphicsDriverPi:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 40
+    FPS     = 45
 
     """
     Base class to manage all the graphics i/o functions
@@ -781,10 +781,6 @@ class GraphicsDriverPi:
         # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
 
 
-    def refresh(self, rect=None):
-        # if rect is None: rect = [0,0]+self.wh
-        pygame.display.update(pygame.Rect(rect))
-
     def fill(self, rect=None, colour=None, colour_index='background', image=None):
         if rect is None: rect = self.boundary
         if colour_index is None: colour_index = 'background'
@@ -795,8 +791,7 @@ class GraphicsDriverPi:
         if image is not None:
             self.image_container.draw(image)
 
-    def create_outline(self, theme, outline, w):
-        return Outline(theme, w, self.screen, outline)
+
 
 
 class GraphicsDriverMac:
@@ -804,7 +799,7 @@ class GraphicsDriverMac:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 40
+    FPS     = 45
 
     """
     Base class to manage all the graphics i/o functions
@@ -833,9 +828,9 @@ class GraphicsDriverMac:
         self.clock.tick(self.FPS)
         # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
 
-    def refresh(self, rect=None):
-        # if rect is None: rect = [0,0]+self.wh
-        pygame.display.update(pygame.Rect(rect))
+    # def refresh(self, rect=None):
+    #     # if rect is None: rect = [0,0]+self.wh
+    #     pygame.display.update(pygame.Rect(rect))
 
     def fill(self, rect=None, colour=None, colour_index='background', image=None):
         if rect is None: rect = self.boundary
@@ -846,8 +841,8 @@ class GraphicsDriverMac:
         if image is not None:
             self.image_container.draw(image)
 
-    def create_outline(self, theme, outline, w):
-        return Outline(theme, w, self.screen, outline)
+    # def create_outline(self, theme, outline, w):
+    #     return Outline(theme, w, self.screen, outline)
 
 
 class GraphicsDriver:
@@ -868,6 +863,13 @@ class GraphicsDriver:
     def __getattr__(self, item):
         """Delegate calls to the implementation"""
         return getattr(self.gfx_driver, item)
+
+    def refresh(self, rect=None):
+        # if rect is None: rect = [0,0]+self.wh
+        pygame.display.update(pygame.Rect(rect))    
+
+    def create_outline(self, theme, outline, w):
+        return Outline(theme, w, self.screen, outline)    
 
     @property
     def boundary(self):
