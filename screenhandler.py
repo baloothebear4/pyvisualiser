@@ -108,13 +108,14 @@ class ScreenController:
                 screen    = self.screens[self.activeScreen]
                 self.events.Control('loop_start', text=screen.title + " > " + type(screen).__name__)
                 screen.draw()
+                drawing_time_ms = ((time.perf_counter() - start_time) * 1000) - processing_time_ms
                 self.events.Control('loop_end')
-                drawing_time_ms = (time.perf_counter() - start_time) * 1000
+                render_time_ms = ((time.perf_counter() - start_time ) * 1000 ) - drawing_time_ms
 
                 # analyse the loop time, only display every 2 seconds       
                 if loop_count % 20 == 0:
-                    loop_time = processing_time_ms + drawing_time_ms
-                    print("Controller.run> loop time: %.2f ms, audio processing %.2f ms, display drawing %.2f ms" % (loop_time, processing_time_ms, drawing_time_ms))
+                    loop_time = processing_time_ms + drawing_time_ms + render_time_ms
+                    print("Controller.run> loop time: %.2f ms, audio processing %.2f ms, draw %.2f ms, render %.2f, fps %.2f" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps()) )
                     loop_count = 0
                 loop_count += 1
 
@@ -192,7 +193,7 @@ class EventHandler:
         
 
     def MetadataAction(self, key):
-        print("EventHandler.MetadataAction> event ", key)
+        # print("EventHandler.MetadataAction> event ", key)
         if key == 'start':
             print("EventHandler.MetadataAction> track started")
 

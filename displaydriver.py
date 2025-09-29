@@ -710,7 +710,7 @@ class GraphicsDriverPi:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 30
+    FPS     = 40
 
     """
     Base class to manage all the graphics i/o functions
@@ -778,6 +778,7 @@ class GraphicsDriverPi:
         
         # Control the frame rate
         self.clock.tick(self.FPS)
+        # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
 
 
     def refresh(self, rect=None):
@@ -803,7 +804,7 @@ class GraphicsDriverMac:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 30
+    FPS     = 40
 
     """
     Base class to manage all the graphics i/o functions
@@ -820,7 +821,7 @@ class GraphicsDriverMac:
 
     def init_display(self):
         pygame.init()   #create the drawing canvas
-        return pygame.display.set_mode(GraphicsDriver.PANEL)
+        return pygame.display.set_mode(GraphicsDriverMac.PANEL)
 
     def draw_start(self, text=None):
         # self.screen.fill((0,0,0))       # erase whole screen
@@ -830,6 +831,7 @@ class GraphicsDriverMac:
         # print("Screen.draw [END]")
         pygame.display.flip()
         self.clock.tick(self.FPS)
+        # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
 
     def refresh(self, rect=None):
         # if rect is None: rect = [0,0]+self.wh
@@ -863,22 +865,9 @@ class GraphicsDriver:
         self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
 
 
-    # All public methods delegate to the composed driver
-    def draw_start(self, text=None):
-        self.gfx_driver.draw_start(text)
-
-    def draw_end(self):
-        self.gfx_driver.draw_end()
-
-    def refresh(self, rect=None):
-        self.gfx_driver.refresh(rect)    
-        
-    def fill(self, *args, **kwargs):
-        self.gfx_driver.fill(*args, **kwargs)
-
-    def create_outline(self, theme, outline, w):
-        self.gfx_driver.create_outline(theme, outline, w)
-
+    def __getattr__(self, item):
+        """Delegate calls to the implementation"""
+        return getattr(self.gfx_driver, item)
 
     @property
     def boundary(self):
