@@ -469,8 +469,13 @@ class Frame(Geometry):
             # print("Frame.draw> ", type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # if hasattr(f, 'undraw'):  f.undraw()
 
+            # Clear the rect space, draw the new content, save the new rect for screen update
+            # f.platform.screen.blit(self.background, f.abs_rect(), f.abs_rect())
+            f.undraw()
             f.draw()
             f.draw_outline()
+            self.platform.dirty_mgr.add(tuple(f.abs_rect()))
+            # print("Frame.draw> rect", f.abs_rect())
 
     def undraw(self):
         # print("Frame.undraw> generic", type(self).__name__, self.abs_rect())
@@ -649,69 +654,6 @@ class Cache:
             return self.cache[key]
         else:
             return None
-
-class ScreenController:
-    def __init__(self, screens, events, platform):
-
-        """Set up the screen for inital Mode"""
-        self.startScreen    = screens[0].__name__
-        self.preScreenSaver = self.startScreen
-        self.activeScreen   = self.startScreen
-        self.events         = events
-        self.platform       = platform
-
-        """ Set up the screen objects to be used """
-        self.screens    = {}  # dict for the screen objects
-
-        """ Menu functionality - sort out Control (temporary) from main (base) screens"""
-        menuSequence  = []
-        for screen in screens:
-            self.screens.update( {screen.__name__ : screen(self.platform) })
-            if screen.type != 'Control':  #ie create a menu from Test & Base screens
-                menuSequence.append(screen.__name__)
-        self.screenmenu = ListNext(menuSequence, self.startScreen)
-        print("ScreenController.__init__> menus intialised", self.screenmenu)
-
-    def screenEvents(self, e, option=None):
-        if e == 'set':
-            self.activeScreen = option
-            print("ScreenController.self.events.Control('set',> active screen is ", option)
-
-        elif e == 'next':
-            self.baseScreen   = self.screenmenu.next
-            self.activeScreen = self.baseScreen
-
-        elif e == 'previous':
-            self.baseScreen   = self.screenmenu.prev
-            self.activeScreen = self.baseScreen
-
-        elif e == 'exit':
-            self.activeScreen = 'exit'
-
-        else: 
-            print("ScreenController.screenEvents: unknown event", e)
-
-    """ Main execution loop """
-    def run(self):
-        self.exit = False
-        self.events.Control('set', self.startScreen)
-        self.events.Control('start')
-        print("ScreenController.run> startup configured")
-
-        # main loop
-        while(self.activeScreen != 'exit'):
-            self.events.Control('check')
-            if self.activeScreen != 'exit':  # The code is reentrant, hence multiple test for exit condition  
-                screen    = self.screens[self.activeScreen]
-                self.events.Control('loop_start', text=screen.title + " > " + type(screen).__name__)
-                screen.draw()
-                self.events.Control('loop_end')
-
-        self.events.Control('exit')   
-
-
-
-
 
 
 

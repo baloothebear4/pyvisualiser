@@ -646,12 +646,76 @@ class Outline:
         return width
 
 
+
+class DirtyRectManager:
+    """
+    A class to collect and manage "dirty" rectangles for partial screen updates.
+    It provides methods to add Rects and a method to get the final list 
+    for pygame.display.update().
+    """
+    def __init__(self):
+        # The list to store all dirty pygame.Rect objects
+        self.dirty_rects = []
+
+    def add(self, rect: pygame.Rect | tuple):
+        """
+        Adds a single dirty rectangle to the list.
+        If a tuple (x, y, w, h) is passed, it is converted to a pygame.Rect.
+        """
+        if isinstance(rect, tuple):
+            self.dirty_rects.append(pygame.Rect(rect))
+        elif isinstance(rect, pygame.Rect):
+            self.dirty_rects.append(rect)
+        else:
+            raise TypeError("Expected pygame.Rect or (x, y, w, h) tuple")
+
+    def add_list(self, rect_list: list[pygame.Rect | tuple]):
+        """
+        Adds a list of dirty rectangles.
+        """
+        for rect in rect_list:
+            self.add(rect)
+
+    def get_and_clear(self) -> list[pygame.Rect]:
+        """
+        Returns the list of dirty Rects and clears the internal list for the next frame.
+        The union of all rects could also be calculated here for efficiency, 
+        but for simplicity, we return the raw list.
+        """
+        # Optionally, merge overlapping rects to reduce update calls.
+        # For simplicity, we just return the current list.
+        rects_to_update = self.dirty_rects
+        self.dirty_rects = [] # Clear the list for the next frame
+        return rects_to_update
+    
+    def get_union_and_clear(self) -> list[pygame.Rect]:
+        """
+        Calculates the union of all dirty rects, returns a list with the one 
+        bounding Rect, and clears the internal list. More efficient for 
+        small, spread-out areas.
+        """
+        if not self.dirty_rects:
+            return []
+        
+        # Calculate the union of all dirty rects
+        union_rect = self.dirty_rects[0].unionall(self.dirty_rects[1:])
+
+        self.dirty_rects = [] # Clear for the next frame
+        return [union_rect]
+
+    def clear(self):
+        """
+        Clears the list of dirty rectangles without returning them.
+        """
+        self.dirty_rects = []
+
+
 class GraphicsDriverPi:
-    """ Pygame based platform """
+    """ Raspberry PI-4B Waveshare 7.9" DSI based platform """
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 45
+    FPS     = 47
 
     """
     Base class to manage all the graphics i/o functions
@@ -661,9 +725,10 @@ class GraphicsDriverPi:
         self.H      = GraphicsDriverPi.H
         self.FPS    = GraphicsDriverPi.FPS
         self.events = events
+        self.dirty_mgr = DirtyRectManager()
 
-        self.clock            = pygame.time.Clock()
-        self.screen           = self.init_display()
+        self.clock  = pygame.time.Clock()
+        self.screen = self.init_display()
         print("GraphicsDriverPI.init_display> Pi ", self.screen.get_size())
 
 
@@ -700,7 +765,7 @@ class GraphicsDriverPi:
     def draw_start(self, text=None):
         # self.screen.fill((0,0,0))       # erase whole screen
         # All drawing now happens on the virtual surface.
-        self.virtual_surface.fill((0,0,0))       # erase the virtual screen
+        # --->self.virtual_surface.fill((0,0,0))       # erase the virtual screen
         if text is not None: pygame.display.set_caption(text)
 
     def draw_end(self):
@@ -716,7 +781,10 @@ class GraphicsDriverPi:
         # print("rotate")
         
         # Update the display to show the changes
-        pygame.display.flip()
+        # pygame.display.flip()
+        dirty_rects = self.dirty_mgr.get_and_clear()
+        if dirty_rects:
+            pygame.display.update(dirty_rects)
         
         # Control the frame rate
         # self.clock.tick(self.FPS)
@@ -741,7 +809,7 @@ class GraphicsDriverMac:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 45
+    FPS     = 50
 
     """
     Base class to manage all the graphics i/o functions
@@ -751,6 +819,7 @@ class GraphicsDriverMac:
         self.W      = GraphicsDriverMac.W
         self.H      = GraphicsDriverMac.H
         self.FPS    = GraphicsDriverMac.FPS
+        self.dirty_mgr = DirtyRectManager()
 
         self.screen = self.init_display()
         self.clock  = pygame.time.Clock()
@@ -766,13 +835,13 @@ class GraphicsDriverMac:
 
     def draw_end(self):
         # print("Screen.draw [END]")
-        pygame.display.flip()
-        # self.clock.tick(self.FPS)
-        # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
+        # pygame.display.flip()
 
-    # def refresh(self, rect=None):
-    #     # if rect is None: rect = [0,0]+self.wh
-    #     pygame.display.update(pygame.Rect(rect))
+        # Update only the dirty areas - to save draw and render time
+        dirty_rects = self.dirty_mgr.get_and_clear()
+        if dirty_rects:
+            pygame.display.update(dirty_rects)
+
 
     def fill(self, rect=None, colour=None, colour_index='background', image=None):
         if rect is None: rect = self.boundary
@@ -783,8 +852,7 @@ class GraphicsDriverMac:
         if image is not None:
             self.image_container.draw(image)
 
-    # def create_outline(self, theme, outline, w):
-    #     return Outline(theme, w, self.screen, outline)
+       
 
 
 class GraphicsDriver:
@@ -812,6 +880,9 @@ class GraphicsDriver:
 
     def create_outline(self, theme, outline, w):
         return Outline(theme, w, self.screen, outline)    
+    
+    def regulate_fps(self):
+        self.gfx_driver.clock.tick(self.gfx_driver.FPS)
 
     @property
     def boundary(self):
@@ -828,6 +899,10 @@ class GraphicsDriver:
     @property
     def wh(self):
         return (self.gfx_driver.W, self.gfx_driver.H)
+    
+    # @property
+    # def FPS(self):
+    #     return (self.gfx_driver.FPS)
 
     def graphics_end(self):
         # print("GraphicsDriver.graphics_end>")

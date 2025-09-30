@@ -95,6 +95,7 @@ class ScreenController:
         self.events.Control('start')
         loop_count = 0
         CRITICAL_LOOPTIME = (1024000/44100)
+        FPS = 50
         print("ScreenController.run> startup configured")
 
         # main loop
@@ -119,7 +120,9 @@ class ScreenController:
                 drawing_time_ms = ((time.perf_counter() - start_time) * 1000) - processing_time_ms
                 self.events.Control('loop_end')
                 render_time_ms = ((time.perf_counter() - start_time ) * 1000 ) - drawing_time_ms
-                self.platform.clock.tick(45)
+                
+                self.platform.regulate_fps()
+
                 # analyse the loop time, only display every 2 seconds       
                 if loop_count % 20 == 0:
                     loop_time = processing_time_ms + drawing_time_ms + render_time_ms
@@ -201,7 +204,7 @@ class EventHandler:
             print("EventHandler.KeyAction> DOWN: screen variant scrolling not implemented")
         elif key == 'exit':
             print("EventHandler.KeyAction> quit")
-            exit()
+            self.events.Screen('exit')
         else:
             print("EventHandler.KeyAction> unknown event ",key)
         
