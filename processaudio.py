@@ -151,14 +151,14 @@ class AudioProcessor(AudioData):
         return FRAME    
 
     def find_device_index(self, device):
-        print("\nTarget audio device:", device)
-        print("Available audio devices:")
+        # print("\nTarget audio device:", device)
+        # print("Available audio devices:")
+        # for i in range(p.get_device_count()):
+        #     info = p.get_device_info_by_index(i)
+        #     if info['maxInputChannels'] > 0:
+        #         print(f"  Device {i}: {info['name']} (inputs: {info['maxInputChannels']})")
+  
         p = self.recorder
-        for i in range(p.get_device_count()):
-            info = p.get_device_info_by_index(i)
-            if info['maxInputChannels'] > 0:
-                print(f"  Device {i}: {info['name']} (inputs: {info['maxInputChannels']})")
-    
         try:
             # Try to find the loopback device
             loopback_device = None
@@ -166,12 +166,12 @@ class AudioProcessor(AudioData):
                 info = p.get_device_info_by_index(i)
                 if device.lower() in info['name'].lower():
                     self.device = i
-                    print(f"Found loop back device {info['name']}  at index {info['index']} ")
+                    # print(f"Found loop back device {info['name']}  at index {info['index']} ")
                     break
 
         except Exception as e:
-            print(f"\n❌ ERROR: {e}")
-            print("Check your ALSA configuration and device permissions")
+            print(f"\nAudioProcessor.find_device_index> ❌ ERROR: {e}")
+            print("AudioProcessor.find_device_index> Check your ALSA configuration and device permissions")
             self.device = 4
         
 
@@ -190,21 +190,7 @@ class AudioProcessor(AudioData):
         except Exception as e:
             print("AudioProcessor.Stop_capture> error", e)
 
-    # def callback(self, in_data, frame_count, time_info, status):
 
-    #     # print('AudioProcessor.callback> received %d frames, time %s, status %s, data bytes %d' % (frame_count, time_info, status, len(in_data)))
-    #     self.calcReadtime()
-    #     data        = np.frombuffer(in_data, dtype=np.int16 )   #/maxValue
-    #     # self.oldsamples['left']  = self.samples['left']
-    #     # self.oldsamples['right'] = self.samples['right']
-    #     self.samples['left']  = data[0::2] # * self.window
-    #     self.samples['right'] = data[1::2] # * self.window
-    #     self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1)
-    #     # print('AudioProcessor.callback>', len(self.samples['left']), len(self.samples['right']), len(self.samples['mono']))
-    #     self.record(in_data)
-    #     self.events.Audio('capture')
-    #     # self.calcReadtime(False)
-    #     return (in_data, pyaudio.paContinue)
 
     def callback(self, in_data, frame_count, time_info, status):
 
@@ -407,22 +393,6 @@ class AudioProcessor(AudioData):
         # print("AudioProcessor.createBands>  %d bands determined at: %s" % (len(centres), ["%1.0f" % f for f in centres]))
         return intervalUpperF
 
-
-    # def VU(self,channel):
-    #     PEAK   = 0.0
-    #     FLOOR  = -120.0
-    #     RMSMAX = 0.03
-    #     """
-    #     Simply find the RMS level of a sample and take the log to get the average power
-    #     """
-    #     rms = np.sqrt(np.mean(np.square((self.samples[channel][:FRAMESIZE]//2)/ maxValue)))  #√[:FRAMESIZE]//2
-    #     if np.isnan(rms): rms=0.0
-    #     # if rms > self.vumax[channel]: self.vumax[channel] = rms
-
-    #     # db_value = 20 * np.log10 (rms + 1e-6)
-    #     # norm     = (-FLOOR + db_value)/ (PEAK-FLOOR)
-    #     # print("AudioProcessor.VU> %s %f rms %f dB norm %f  vumax %f" % (channel, rms/RMSMAX, db_value, norm, self.vumax[channel]))
-    #     return  min(1.0, rms/VUGAIN)   # normalise
 
     def VU(self, channel):
         # Use full framesize, normalize AFTER squaring/before mean for consistency

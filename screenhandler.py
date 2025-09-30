@@ -29,9 +29,15 @@ class Platform(AudioProcessor, MetaData, GraphicsDriver):
 
 
     def stop(self):
-        self.graphics_end()
+        print("Platform.stop> shutting down...")
         self.stop_capture()
+        print("Platform.stop> shutting down audio")
         self.metadata_stop()
+        print("Platform.stop> shutting down metadata")
+        self.graphics_end()
+        print("Platform.stop> shutting down graphics")
+
+
 
 
 class ScreenController:
@@ -82,11 +88,13 @@ class ScreenController:
             print("ScreenController.screenEvents: unknown event", e)
 
     """ Main execution loop """
+    
     def run(self):
         self.exit = False
-        self.events.Control('set', self.startScreen)
+        self.events.Screen('set', self.startScreen)
         self.events.Control('start')
         loop_count = 0
+        CRITICAL_LOOPTIME = (1024000/44100)
         print("ScreenController.run> startup configured")
 
         # main loop
@@ -111,11 +119,16 @@ class ScreenController:
                 drawing_time_ms = ((time.perf_counter() - start_time) * 1000) - processing_time_ms
                 self.events.Control('loop_end')
                 render_time_ms = ((time.perf_counter() - start_time ) * 1000 ) - drawing_time_ms
-
+                self.platform.clock.tick(45)
                 # analyse the loop time, only display every 2 seconds       
                 if loop_count % 20 == 0:
                     loop_time = processing_time_ms + drawing_time_ms + render_time_ms
-                    print("Controller.run> loop time: %.2f ms, audio processing %.2f ms, draw %.2f ms, render %.2f, fps %.2f" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps()) )
+                    
+                    if loop_time > CRITICAL_LOOPTIME: 
+                        print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps()) )
+                    else:    
+                        print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps()) )
+
                     loop_count = 0
                 loop_count += 1
 

@@ -645,65 +645,6 @@ class Outline:
         width        = self.outline['width'] if 'width' in self.outline else Outline.OUTLINE['width']
         return width
 
-class Gfx:
-    """
-    Base class to manage all the graphics i/o functions
-    """
-    def __init__(self, events, w, h, fps):
-        self.events         = events
-        self.clock          = pygame.time.Clock()
-        self.FPS            = fps
-        self.W              = w
-        self.H              = h
-
-        pygame.display.set_caption('Visualiser')
-
-        self.colour         = Colour('std', self.w)
-        self.background     = Frame(self)
-        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
-
-    def draw_start(self, text=None):
-        self.gfx_driver.draw_start(text)
-
-    def draw_end(self):
-        self.gfx_driver.draw_end()
-
-    def refresh(self, rect=None):
-        self.gfx_driver.refresh(rect)
-
-    def fill(self, rect=None, colour=None, colour_index='background', image=None):     
-        self.gfx_driver.fill(rect, colour, colour_index, image)   
-
-    def create_outline(self, theme, outline, w):
-        self.gfx_driver.create_outline(theme, outline, w)
-
-    @property
-    def boundary(self):
-        return [0 , 0, self.w-1, self.h-1]
-
-    @property
-    def h(self):
-        return self.H
-
-    @property
-    def w(self):
-        return self.W
-
-    @property
-    def wh(self):
-        return (self.w, self.h)
-
-    def graphics_end(self):
-        pygame.quit()
-
-    def checkKeys(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.events.KeyPress('exit')
-            elif event.type == KEYDOWN:
-                self.events.KeyPress(event.key)
-
-
 
 class GraphicsDriverPi:
     """ Pygame based platform """
@@ -739,7 +680,8 @@ class GraphicsDriverPi:
 
         os.environ['SDL_NOMOUSE']     = '1'  # Hide mouse cursor initially
     
-        pygame.init()
+        pygame.display.init()
+        pygame.font.init()   
     
         # The physical screen is reported by the OS as 400x1280 (tall).
         self._physical_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -777,7 +719,7 @@ class GraphicsDriverPi:
         pygame.display.flip()
         
         # Control the frame rate
-        self.clock.tick(self.FPS)
+        # self.clock.tick(self.FPS)
         # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
 
 
@@ -825,7 +767,7 @@ class GraphicsDriverMac:
     def draw_end(self):
         # print("Screen.draw [END]")
         pygame.display.flip()
-        self.clock.tick(self.FPS)
+        # self.clock.tick(self.FPS)
         # print("GraphicsDriverPI.draw_end> ave FPS ", self.clock.get_fps())
 
     # def refresh(self, rect=None):
@@ -888,6 +830,8 @@ class GraphicsDriver:
         return (self.gfx_driver.W, self.gfx_driver.H)
 
     def graphics_end(self):
+        # print("GraphicsDriver.graphics_end>")
+        # pygame.mixer.quit()
         pygame.quit()
 
     def checkKeys(self):
