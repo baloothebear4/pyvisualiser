@@ -34,7 +34,7 @@ SCREENS = ( ArtistScreen, MetaVUScreen, BigDialsScreen, TrackScreen, TrackSpectr
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 
     the loopback and roon zones are all configured by the user to match their system
 """ 
-PI_PLATFORM  = { "gfx": "pi_kms", "loopback":"loopin", "roon_zone":"MacViz" }
+PI_PLATFORM  = { "gfx": "pi_kms", "loopback":"loopin", "roon_zone":"pre3" }
 MAC_PLATFORM = { "gfx": "mac", "loopback":"BlackHole 2ch", "roon_zone":"MacViz" }
 
 def machine():
