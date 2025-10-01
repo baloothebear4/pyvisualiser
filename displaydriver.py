@@ -903,7 +903,7 @@ class GraphicsDriverMac:
 
         self.screen = self.init_display()
         self.clock  = pygame.time.Clock()
-        print("GraphicsDriverMac.init_display> Mac ", self.screen.get_size())
+        print("\nGraphicsDriverMac.init_display> Mac ", self.screen.get_size())
 
     def init_display(self):
         pygame.init()   #create the drawing canvas
@@ -915,12 +915,12 @@ class GraphicsDriverMac:
 
     def draw_end(self):
         # print("Screen.draw [END]")
-        # pygame.display.flip()
+        pygame.display.flip()
 
         # Update only the dirty areas - to save draw and render time
-        dirty_rects = self.dirty_mgr.get_and_clear()
-        if dirty_rects:
-            pygame.display.update(dirty_rects)
+        # dirty_rects = self.dirty_mgr.get_and_clear()
+        # if dirty_rects:
+        #     pygame.display.update(dirty_rects)
 
 
     def fill(self, rect=None, colour=None, colour_index='background', image=None):

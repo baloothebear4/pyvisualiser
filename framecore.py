@@ -474,7 +474,7 @@ class Frame(Geometry):
             # f.undraw()
             f.draw()
             f.draw_outline()
-            self.platform.dirty_mgr.add(tuple(f.abs_rect()))
+            # self.platform.dirty_mgr.add(tuple(f.abs_rect()))
             # print("Frame.draw> rect", f.abs_rect())
 
     def undraw(self):
