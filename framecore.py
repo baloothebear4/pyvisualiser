@@ -471,7 +471,7 @@ class Frame(Geometry):
 
             # Clear the rect space, draw the new content, save the new rect for screen update
             # f.platform.screen.blit(self.background, f.abs_rect(), f.abs_rect())
-            f.undraw()
+            # f.undraw()
             f.draw()
             f.draw_outline()
             self.platform.dirty_mgr.add(tuple(f.abs_rect()))
