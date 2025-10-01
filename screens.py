@@ -388,11 +388,10 @@ class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the rig
         # self += MetaDataFrame(self  , scalers=(0.33, 0.3), align=('left','bottom'), show=TRACK)
 
         # self += SpectrumFrame(self,  'mono', scalers=(0.68, 0.7), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
-        self += PlayProgressFrame(self  , scalers=(0.55, 0.05), align=('centre','bottom'))
-
 
         # VUFrame API (self, parent, channel, scalers=None, align=None, barsize_pc=0.7, theme=None, flip=False, \
         #             led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert'):
         vusubframe   = Frame(self,scalers=(0.18, 1.0), align=('right','middle') )
         self += VUFrame(vusubframe, 'left',  align=('centre','bottom'), scalers=(0.6, 0.5), orient='vert',flip=True, barsize_pc=0.7,led_h=5, led_gap=1, peak_h=3, radius=3, barw_min=10 )
         self += VUFrame(vusubframe, 'right', align=('centre','top'), scalers=(0.6, 0.5), orient='vert',flip=False, barsize_pc=0.7,led_h=5, led_gap=1, peak_h=3, radius=3, barw_min=10 )
+        self += PlayProgressFrame(self  , scalers=(0.55, 0.05), align=('centre','bottom'))

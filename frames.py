@@ -115,7 +115,10 @@ class AlbumArtFrame(Frame):
         self.parent          = parent
 
     def draw(self):
-        if self.image_container.draw(self.platform.album_art): self.set_redraw() 
+        # print(" album art", self.image_container.path, self.image_path)
+        if self.image_container.draw(self.platform.album_art):
+            self.set_redraw() 
+            # print("AlbumArtFrame.draw> new album art")
 
 class ArtistArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):

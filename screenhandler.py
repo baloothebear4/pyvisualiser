@@ -76,10 +76,12 @@ class ScreenController:
         elif e == 'next':
             self.baseScreen   = self.screenmenu.next
             self.activeScreen = self.baseScreen
+            print("ScreenController.self.events.Control('next',> active screen is ", self.activeScreen)
 
         elif e == 'previous':
             self.baseScreen   = self.screenmenu.prev
             self.activeScreen = self.baseScreen
+            print("ScreenController.self.events.Control('previous',> active screen is ", self.activeScreen)
 
         elif e == 'exit':
             self.activeScreen = 'exit'
@@ -124,7 +126,7 @@ class ScreenController:
                 self.platform.regulate_fps()
 
                 # analyse the loop time, only display every 2 seconds       
-                if loop_count % 20 == 0:
+                if loop_count % 40 == 0:
                     loop_time = processing_time_ms + drawing_time_ms + render_time_ms
                     
                     if loop_time > CRITICAL_LOOPTIME: 

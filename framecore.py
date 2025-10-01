@@ -477,6 +477,8 @@ class Frame(Geometry):
             # f.platform.screen.blit(self.background, f.abs_rect(), f.abs_rect())
 
             if f._need_to_redraw: 
+                # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, f.abs_rect(), "has draw ", hasattr(f, 'draw') )
+
                 f.undraw()
                 f._need_to_redraw = False
                 f.draw()
