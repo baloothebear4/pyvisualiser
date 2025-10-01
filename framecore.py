@@ -440,6 +440,7 @@ class Frame(Geometry):
 
         self.background = 'background' if background is None else background
         self.colour     = Colour(self.theme, self.w)
+        self._need_to_redraw = True
 
         if outline is not None: 
             self.outline     = self.platform.create_outline(self.theme, outline, self.w)
@@ -456,6 +457,9 @@ class Frame(Geometry):
 
         # print("Frame.__init__> done", self.geostr())
 
+    def set_redraw(self):
+        self._need_to_redraw = True
+        self.parent._need_to_redraw = True
 
     def __iadd__(self, frame):
         self.frames.append(frame)
@@ -463,18 +467,21 @@ class Frame(Geometry):
 
     def draw(self):
         # print("Framecore.draw. #frames=", len(self.frames))
-        self.undraw()
+        # self.undraw()
 
         for f in self.frames:
-            # print("Frame.draw> ", type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
+            # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # if hasattr(f, 'undraw'):  f.undraw()
 
             # Clear the rect space, draw the new content, save the new rect for screen update
             # f.platform.screen.blit(self.background, f.abs_rect(), f.abs_rect())
-            # f.undraw()
-            f.draw()
-            f.draw_outline()
-            # self.platform.dirty_mgr.add(tuple(f.abs_rect()))
+
+            if f._need_to_redraw: 
+                f.undraw()
+                f._need_to_redraw = False
+                f.draw()
+                f.draw_outline()
+                self.platform.dirty_mgr.add(tuple(f.abs_rect()))
             # print("Frame.draw> rect", f.abs_rect())
 
     def undraw(self):

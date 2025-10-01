@@ -198,8 +198,8 @@ class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on
         # self += ArtistArtFrame(self, scalers=(0.6, 0.6),align=('centre','middle'), opacity=120)
         self += AlbumArtFrame(self,  scalers=(1.0, 0.7),align=('right','middle'), opacity=255, outline={'colour_index':'light'})
         self += PlayProgressFrame(self,  scalers=(0.9, 0.05), align=('centre','bottom'))
-        self += SpectrumFrame(self,  'right', scalers=(0.8, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5)
-        self += SpectrumFrame(self,  'left', scalers=(0.8, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5 )
+        self += SpectrumFrame(self,  'right', scalers=(0.8, 0.45), align=('left','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5)
+        self += SpectrumFrame(self,  'left', scalers=(0.8, 0.45), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5 )
         self += MetaDataFrame(self, scalers=(0.5, 0.2), align=('right','top'), show=ARTIST)
         
 

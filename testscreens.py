@@ -56,6 +56,11 @@ class StereoSpectrumScreen(Frame):
 
 class StereoSpectrumSplitScreen(Frame):
     """ Volume/Source on left - Stereo Spectrum overlaid """
+    @property
+    def title(self): return 'Full Spectrum Analyser, Roon Album Art, Metadata and progress bar'
+
+    @property
+    def type(self): return 'Test'
     def __init__(self, platform):
         Frame.__init__(self, platform)
         # self += VolumeSourceFrame(self  , 0.3, 'right')

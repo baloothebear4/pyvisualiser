@@ -188,9 +188,11 @@ class EventHandler:
             self.events.Screen('exit')
 
         elif key == K_LEFT:
+            self.platform.clear_screen()
             self.events.Screen('previous')
 
         elif key == K_RIGHT:
+            self.platform.clear_screen()
             self.events.Screen('next')
 
         elif key == 114:  #R key pressed

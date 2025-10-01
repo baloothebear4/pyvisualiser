@@ -220,12 +220,6 @@ class AudioProcessor(AudioData):
         self.audio_available = True 
         # self.events.Audio('capture')
         
-        # The visualization logic (drawing to the DSI screen) MUST be placed here 
-        # for the timing check to be meaningful.
-        # self.update_dsi_screen() # <-- ADD YOUR GRAPHICS CALL HERE!
-
-        # --- END HIGH-RESOLUTION TIMER & CHECK ---
-        
         processing_time_ms = (time.perf_counter() - start_time) * 1000
     
         # 3. CHECK AGAINST TIME BUDGET

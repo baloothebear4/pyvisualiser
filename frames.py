@@ -54,12 +54,13 @@ class TextFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, colour_index='foreground'):
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
         self.text     = Text(self, text=text, reset=reset, align=align, scalers=scalers, theme=theme, colour_index=colour_index, wrap=wrap)
-
+        self.parent   = parent
         # print("TextFrame.__init__>", text, self.text.fontwh, scalers, self.alignment, self.geostr())
 
     def draw(self, text=None, colour_index=None, fontmax=None):
         # print("TextFrame.draw ", text, colour_index, self.geostr())
         self.text.draw(text=text, colour_index=colour_index, fontmax=fontmax)
+        self.set_redraw()
 
     @property
     def width(self):
@@ -84,6 +85,7 @@ class PlayProgressFrame(Frame):
         self.orient         = orient   # Horz or vert bars
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
         self.barw           = self.w * barsize_pc if orient == 'vert' else self.h * barsize_pc   # width of the bar
+        self.parent         = parent
 
         text = " 22:22 "
         self.elapsed     = Text(self, fontmax=self.barw, text=text, reset=True, align=('left', 'middle'), theme=theme, colour_index='mid')
@@ -97,31 +99,33 @@ class PlayProgressFrame(Frame):
         hide_backline = -self.h/2 if self.platform.elapsedpc*self.w > self.h/2 else 0 # offset by the radius, makes sure the very start is OK too
         self.boxbar.drawH(self.platform.elapsedpc, flip=True, colour_index='dark', offset=(hide_backline,0))
         self.boxbar.drawH(self.platform.elapsedpc, colour_index='light')
-
-    # Create the string representation
+        # Create the string representation
         elapsed   = f"  {int( self.platform.elapsed//60)}:{int( self.platform.elapsed %60):02d}"
         remaining = f"{int( self.platform.remaining//60)}:{int(  self.platform.remaining%60):02d}  "
         self.elapsed.draw(elapsed, colour_index='light')
         self.remaining.draw(remaining, colour_index='light')
         # print("PlayProgressFrame>", elapsed, remaining)
+        self.set_redraw()
 
 class AlbumArtFrame(Frame):
     # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
         self.image_container = Image(self, outline=outline, opacity=opacity)  # make square
+        self.parent          = parent
 
     def draw(self):
-        self.image_container.draw(self.platform.album_art)
+        if self.image_container.draw(self.platform.album_art): self.set_redraw() 
 
 class ArtistArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=opacity, outline=outline)  
+        self.parent         = parent
         # print("ArtistArtFrame.__init__>", opacity)
 
     def draw(self):
-        self.image_container.draw(self.platform.artist_art)
+        if self.image_container.draw(self.platform.artist_art): self.set_redraw() 
 
 
 class MetaDataFrame(Frame):
@@ -134,6 +138,7 @@ class MetaDataFrame(Frame):
         self.show       = show
         self.same_size  = same_size
         self.metadata   = {}
+        self.parent     = parent
 
         for meta, attributes in self.show.items():
             scalers = attributes['scalers'] if 'scalers' in attributes else MetaDataFrame.SHOW[meta]['scalers']
@@ -150,7 +155,7 @@ class MetaDataFrame(Frame):
             if 'track'  in meta: container.draw(text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
             if 'album'  in meta: container.draw(text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
             if 'artist' in meta: container.draw(text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])
-
+        self.set_redraw()
             
 
 
@@ -205,6 +210,7 @@ class VUMeter(Frame):
         self.marks   = marks
         channel      = channel if channel == 'left' or channel == 'right' else align[0]
         Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme)
+        self.parent = parent
 
         # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
         # METERS      = { 'blueVU' : {'file': 'blue-bgr.png', 'needle':NEEDLE, 'endstops':ENDSTOPS, 'pivot':0}
@@ -237,6 +243,7 @@ class VUMeter(Frame):
         else:
             self.bgdimage.draw()
         self.drawNeedle()
+        self.set_redraw()
 
     def drawBackground(self):
         for val, mark in self.marks.items():
@@ -428,6 +435,7 @@ class VUFrame(Frame):
         self.barw_min       = barw_min      # min widths
         self.barw_max       = barw_max      # max width
         self.orient         = orient   # Horz or vert bars
+        self.parent         = parent
 
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.barw           = self.w * barsize_pc if orient == 'vert' else self.h * barsize_pc   # width of the bar
@@ -440,7 +448,7 @@ class VUFrame(Frame):
     def draw(self):
         height, peaks = self.VU.read()
         self.bar.draw( 0, height, self.barw, peaks)
-
+        self.set_redraw()
 
 
 """
@@ -450,9 +458,11 @@ class OutlineFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, theme=None, width=4):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.out     = Box(self, self.wh, width=width, theme=theme)
+        self.parent  = parent
     # def __init__( self, platform, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
     def draw(self):
         self.out.draw( colour_index='foreground' )
+        self.set_redraw()
 
 
 """
@@ -545,6 +555,7 @@ class SpectrumFrame(Frame, Spectrum):
 
         self.channel        = channel
         self.right_offset   = right_offset
+        self.parent         = parent
 
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
 
@@ -563,6 +574,7 @@ class SpectrumFrame(Frame, Spectrum):
         self.read(self.channel)
         for i in range(len(self.current)):
             self.bar.draw( (i * (self.barw + self.bar_gap)+self.right_offset), self.current[i].smoothed(), self.barw, self.peaks[i])
+        self.set_redraw()
 
     @property
     def width(self):
@@ -660,6 +672,7 @@ class OscilogrammeBar(Frame):
         self.bar_space      = barsize_pc     # pc of barwidth
         self.decay          = decay
         self.channel        = channel
+        self.parent         = parent
 
         # Calculate how many bars can be drawn in the width available
         # Go down the bar widths to see what will fit
@@ -704,6 +717,7 @@ class OscilogrammeBar(Frame):
 
             x = i * (self.barw + self.bar_gap)
             self.bar.draw( x, self.current[i].smoothed(), self.barw, colour_index=x)
+        self.set_redraw()
 
 
 class Oscilogramme(Frame):
@@ -714,10 +728,12 @@ class Oscilogramme(Frame):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
         self.lines   = Line(self, circle=False, amp_scale=0.6)
+        self.parent  = parent
 
     def draw(self):
         samples =  self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )
         self.lines.draw_mod_line(samples, colour_index='foreground')
+        self.set_redraw()
 
 
 class Octaviser(Frame, Spectrum):
@@ -727,6 +743,7 @@ class Octaviser(Frame, Spectrum):
         Spectrum.__init__(self, self.w, bar_space=5)
         self.num_octaves=len(self.octaves)
         self.arcs = ArcsOctaves(self.parent, theme='rainbow', NumOcts=self.num_octaves)
+        self.parent  = parent
 
     def draw(self):
         fft = self.read(self.channel)
@@ -734,6 +751,7 @@ class Octaviser(Frame, Spectrum):
         for octave in range(1, self.num_octaves):
             self.arcs.draw(octave, fft[self.octaves[octave-1]:self.octaves[octave]])
             # print(bin, self.octaves[octave]) #, fft[bin:self.octaves[octave]])
+        self.set_redraw()
 
 
 class CircleModulator(Frame):
@@ -745,6 +763,7 @@ class CircleModulator(Frame):
         # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
         self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
         self.VU      = VU(self.platform, channel, decay=0.2)
+        self.parent  = parent
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
@@ -760,6 +779,7 @@ class CircleModulator(Frame):
         self.lines.draw_mod_line(low_samples, amplitude=0.5, gain=0.1, colour_index=height*self.h/2)
         self.dots.draw_mod_dots(low_samples, trigger=self.platform.trigger_detected, amplitude=0.1, gain=0.1, colour_index='alert')
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
+        self.set_redraw()
 
 
 """ A visualiser based on a circle display of spectrum lines """
@@ -774,6 +794,7 @@ class Diamondiser(Frame, Spectrum):
         self.max_radius  = self.h/2
         self.ray_angle   = 1/self.bars
         self.centre_pc   = 0.7
+        self.parent      = parent
 
         self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=bar_space*2, tick_pc=self.centre_pc, centre_offset=0, radius=self.max_radius, theme=theme, colour_index='mid') \
                              for _ in range(self.bars)]
@@ -786,3 +807,4 @@ class Diamondiser(Frame, Spectrum):
             col = self.max_radius*(ray_index/self.bars)
             amp = radius*self.current[ray_index].smoothed() if self.current[ray_index].smoothed() > 0 else 0
             ray.drawFrameCentredVector(ray_index*self.ray_angle, amplitude=amp, gain=1-radius, colour_index=col)
+        self.set_redraw()

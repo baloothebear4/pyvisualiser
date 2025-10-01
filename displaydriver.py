@@ -193,8 +193,9 @@ class Image(Frame):
             frame_width  = 0 if self.outline is None else self.outline.width 
             self.platform.screen.blit(image, self.abs_origin(offset=(frame_width,frame_width)))
             self.draw_outline()
+            return True
         else:
-            pass
+            return False
             # print("Image.draw> attempt to draw an None image", image, image_data)
 
 
@@ -734,7 +735,7 @@ class GraphicsDriverPi:
 
 
 
-        print("GraphicsDriverPI.init_display> Pi ", self.screen.get_size())
+        print("\nGraphicsDriverPI.init_display> Pi ", self.screen.get_size())
 
 
     def init_display(self):
@@ -915,14 +916,15 @@ class GraphicsDriverMac:
 
     def draw_end(self):
         # print("Screen.draw [END]")
-        pygame.display.flip()
+        # pygame.display.flip()
 
         # Update only the dirty areas - to save draw and render time
-        # dirty_rects = self.dirty_mgr.get_and_clear()
-        # if dirty_rects:
-        #     pygame.display.update(dirty_rects)
+        dirty_rects = self.dirty_mgr.get_and_clear()
+        if dirty_rects:
+            pygame.display.update(dirty_rects)
 
 
+    """ No evidence this is evver called """
     def fill(self, rect=None, colour=None, colour_index='background', image=None):
         if rect is None: rect = self.boundary
         if colour_index is None: colour_index = 'background'
@@ -964,6 +966,9 @@ class GraphicsDriver:
     def regulate_fps(self):
         self.gfx_driver.clock.tick(self.gfx_driver.FPS)
 
+    def clear_screen(self):
+        self.screen.fill((0,0,0))       # erase whole screen    
+
     @property
     def boundary(self):
         return [0 , 0, self.gfx_driver.W-1, self.gfx_driver.H-1]
@@ -979,10 +984,6 @@ class GraphicsDriver:
     @property
     def wh(self):
         return (self.gfx_driver.W, self.gfx_driver.H)
-    
-    # @property
-    # def FPS(self):
-    #     return (self.gfx_driver.FPS)
 
     def graphics_end(self):
         # print("GraphicsDriver.graphics_end>")

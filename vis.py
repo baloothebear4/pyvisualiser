@@ -11,13 +11,10 @@
         - bars made of rectangles
 
 """
-# from    processaudio import AudioProcessor
-# from    roon import Roon
-# from    displaydriver import GraphicsDriverMac
-from    screens import *
-# from    events import Events
-# from    framecore import ListNext
-from    screenhandler import ScreenController
+
+from   screens import *
+from   testscreens import *
+from   screenhandler import ScreenController
 import platform
 
 
@@ -26,14 +23,14 @@ import platform
 # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen,\
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
-SCREENS = ( ArtistScreen, MetaVUScreen, BigDialsScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
-            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2,  )
-
+SCREENS = ( StereoSpectrumSplitScreen, TrackScreen, ArtistScreen, MetaVUScreen, BigDialsScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
+            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2  )
 
 """ 
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 
     the loopback and roon zones are all configured by the user to match their system
 """ 
+
 PI_PLATFORM  = { "gfx": "pi_kms", "loopback":"loopin", "roon_zone":"pre3" }
 MAC_PLATFORM = { "gfx": "mac", "loopback":"BlackHole 2ch", "roon_zone":"MacViz" }
 
