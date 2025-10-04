@@ -1073,6 +1073,7 @@ class GraphicsDriverMac:
 
         self.screen = self.init_display()
         self.clock  = pygame.time.Clock()
+        self.area_tracker = DirtyAreaTracker(self.screen, alpha=0.05)
         print("\nGraphicsDriverMac.init_display> Mac ", self.screen.get_size())
 
     def init_display(self):
@@ -1091,6 +1092,9 @@ class GraphicsDriverMac:
         dirty_rects = self.dirty_mgr.get_and_clear()
         if dirty_rects:
             pygame.display.update(dirty_rects)
+
+         # 7. Update the area tracker
+        self.ave_area_pc = self.area_tracker.update_average(dirty_rects)               
 
 
     """ No evidence this is evver called """

@@ -104,10 +104,12 @@ class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the 
         TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
         ALBUM  = {'track' : {'colour':'mid', 'align': ('centre', 'top')}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(self  ,  scalers=(0.5, 0.5), align=('centre','top'))
-        self += PlayProgressFrame(self  ,  scalers=(1.0, 0.05), align=('centre','bottom'))
-        self += SamplesFrame(self  ,  scalers=(1.0, 0.5), align=('left','bottom'))
-        self += Diamondiser(self  ,  'left', scalers=(0.7, 0.7), align=('right','top'))
+        subframe = Frame(self, scalers=(1.0,0.9), align=('centre', 'top'))
+        self += MetaDataFrame(subframe,  scalers=(0.9, 0.4), align=('centre','top'))
+        # self += Diamondiser(self  ,  'left', scalers=(0.7, 0.7), align=('right','top'))
+        self += SamplesFrame(subframe,  scalers=(1.0, 0.6), align=('left','bottom'))
+        self += PlayProgressFrame(self,  scalers=(1.0, 0.05), align=('centre','bottom'))
+
 
         # self += VUFlipFrame(self  , scalers=(0.5, 0.5), align=('left','top'), orient='horz', flip=True)
         # self += OscilogrammeBar(self  , 'mono', scalers=(0.66,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
@@ -132,11 +134,12 @@ class TrackSpectrumScreen(Frame):   # comprises volume on the left, spectrum on 
 
         subframe = Frame(self, scalers=(0.45,1.0),align=('centre', 'bottom'))
         self += MetaDataFrame(self  , scalers=(0.33, 0.8), align=('centre','middle'))
-        self += PlayProgressFrame(self  , scalers=(0.38, 0.05), align=('centre','bottom'))
+        self += PlayProgressFrame(self  , scalers=(0.33, 0.05), align=('centre','bottom'))
 
         self += AlbumArtFrame(self  , scalers=(0.31, 1.0), align=('right','middle'))
-        self += SpectrumFrame(self  ,  'right', scalers=(0.33, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, barw_min=5, bar_space=0.6)
-        self += SpectrumFrame(self  ,  'left', scalers=(0.33, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, barw_min=5, bar_space=0.6)
+        # self += SpectrumFrame(self  ,  'right', scalers=(0.33, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, barw_min=5, bar_space=0.6)
+        # self += SpectrumFrame(self  ,  'left', scalers=(0.33, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, barw_min=5, bar_space=0.6)
+        self += SpectrumFrame(self  ,  'mono', scalers=(0.33, 1.0), align=('left','bottom'), flip=False, led_gap=2, peak_h=2, radius=2, barw_min=5, bar_space=0.6)
 
 class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -188,11 +191,13 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
         ARTIST = {'artist': {'colour':'light', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.5)}}
         TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.5)}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
-        self += MetaDataFrame(self  , scalers=(0.45, 0.5), align=('right','top'), show=ARTIST)
-        self += MetaDataFrame(self  , scalers=(0.45, 0.5), align=('right','bottom'), show=TRACK)
-        self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'))
-        self += SpectrumFrame(self  ,  'right', scalers=(1.0, 0.5), align=('centre','bottom'), led_gap=0, flip=True, barw_min=3, bar_space=0.5, tip=True )
-        self += SpectrumFrame(self  ,  'left', scalers=(1.0, 0.5), align=('centre','top'), led_gap=0, barw_min=3, bar_space=0.5, tip=True )
+        spectrumframe = Frame(self, scalers=(0.7,0.9), align=('left', 'top'))
+        self += SpectrumFrame(spectrumframe  ,  'right', scalers=(1.0, 0.5), align=('centre','bottom'), led_gap=0, flip=True, barw_min=3, bar_space=0.5, tip=True )
+        self += SpectrumFrame(spectrumframe  ,  'left', scalers=(1.0, 0.5), align=('centre','top'), led_gap=0, barw_min=3, bar_space=0.5, tip=True )
+        self += MetaDataFrame(self  , scalers=(0.3, 0.5), align=('right','top'), show=ARTIST)
+        self += MetaDataFrame(self  , scalers=(0.3, 0.5), align=('right','bottom'), show=TRACK)
+        self += PlayProgressFrame(self  , scalers=(0.7, 0.05), align=('left','bottom'))
+
 
 class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -250,13 +255,14 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
         ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
         PIVOT     = -0.5
+        OUTLINE={'colour_index':'light', 'width':2, 'opacity': 200, 'radius': 20}
         # self += AlbumArtFrame(self  , (0.25, 0.93),align=('right','middle'))
         # self += AlbumArtFrame(self  , (0.3, 0.3),align=('centre','top'))
         self += MetaDataFrame(self  , scalers=(0.3, 0.8), align=('centre','middle'))
         # self += ArtistArtFrame(self  , scalers=(1.0,1.0),align=('centre','middle'), opacity=40)
         self += PlayProgressFrame(self  , scalers=(0.3, 0.05), align=('centre','bottom'))
-        self += VUMeter(self  ,  'left', scalers=(0.35, 0.85), align=('left','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
-        self += VUMeter(self  ,  'right', scalers=(0.35, 0.85), align=('right','middle'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
+        self += VUMeter(self  ,  'left', scalers=(0.3, 0.9), align=('left','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
+        self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
 
         # self += VUMeterFrame1(self  , scalers=(0.7,0.7), align=('left','middle'))
         # self += Diamondiser(self  , 'left', scalers=(0.3, 1.0), align=('right','middle'))
@@ -317,12 +323,12 @@ class MinSpectrumArt(Frame):   # comprises volume on the left, spectrum on the r
         subframe = Frame(self,scalers=(0.32, 0.9), align=('left','middle') ) # for album art with padding
         self += AlbumArtFrame(subframe, (1.0, 1.0),align=('centre','middle'), outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
 
-        subframe2= Frame(self, scalers=(0.65, 0.7), align=('right','top'))     # for playprogress and Meta data 
-        self += MetaDataFrame(subframe2, scalers=(1.0,0.95), align=('left','top'))
-        self += PlayProgressFrame(subframe2  , scalers=(1.0, 0.1), align=('left','bottom'))
+        subframe2= Frame(self, scalers=(0.7, 0.8), align=('right','top'))     # for playprogress and Meta data 
+        self += MetaDataFrame(subframe2, scalers=(1.0,0.9), align=('centre','top'))
+        self += PlayProgressFrame(subframe2  , scalers=(0.9, 0.075), align=('centre','bottom'))
         
-        subframe3= Frame(self, scalers=(0.65, 0.25), align=('right','bottom'))     # for playprogress and Meta data 
-        self += SpectrumFrame(subframe3,  'mono', scalers=(1.0, 0.9), align=('centre','middle'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=1, col_mode='horz' )
+        subframe3= Frame(self, scalers=(0.7, 0.2), align=('right','bottom'))     # for playprogress and Meta data 
+        self += SpectrumFrame(subframe3,  'mono', scalers=(0.9,0.9), align=('centre','middle'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )
 
 
 class BigDialsScreen2(Frame):   # comprises volume on the left, spectrum on the right

@@ -230,12 +230,12 @@ class VUMeter(Frame):
 
     def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
                  endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
-                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS):
+                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None):
 
         self.channel = channel
         self.marks   = marks
         channel      = channel if channel == 'left' or channel == 'right' else align[0]
-        Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme)
+        Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme, background=background)
         self.parent = parent
 
         # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
@@ -498,7 +498,7 @@ class OutlineFrame(Frame):
 Spectrum Analyser Frames
 """
 class Spectrum:
-    DECAY     = 0.5   # Lower is longer delay - This is the amount that a bar reduces each period
+    DECAY     = 0.4   # Lower is longer delay - This is the amount that a bar reduces each period
     PEAKDECAY = 0.01  # pc of Decay to use for peak bars
 
 
