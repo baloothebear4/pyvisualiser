@@ -895,40 +895,40 @@ class GraphicsDriverPi:
         if text is not None: pygame.display.set_caption(text)
  
     """ Stable and works well - but has a flip so least efficient """
-    def draw_end(self):
-        # NOTE: When rotating the entire virtual surface, you effectively
-        # must update the entire physical screen. Dirty rect optimization 
-        # is incompatible with this approach.
+    # def draw_end(self):
+    #     # NOTE: When rotating the entire virtual surface, you effectively
+    #     # must update the entire physical screen. Dirty rect optimization 
+    #     # is incompatible with this approach.
 
         
-        # 1. Clear the physical screen (Necessary if physical screen size != virtual size)
-        self._physical_screen.fill((0, 0, 0))
+    #     # 1. Clear the physical screen (Necessary if physical screen size != virtual size)
+    #     self._physical_screen.fill((0, 0, 0))
         
-        # 2. Rotate the virtual surface by the required angle (e.g., -90 degrees)
-        # This returns a NEW surface with its own dimensions
-        rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
+    #     # 2. Rotate the virtual surface by the required angle (e.g., -90 degrees)
+    #     # This returns a NEW surface with its own dimensions
+    #     rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
         
-        # 3. Get the rect for the physical screen, NOT the rotated surface.
-        # This keeps the image centered correctly.
-        screen_rect = self._physical_screen.get_rect()
+    #     # 3. Get the rect for the physical screen, NOT the rotated surface.
+    #     # This keeps the image centered correctly.
+    #     screen_rect = self._physical_screen.get_rect()
         
-        # 4. Get the rect of the rotated surface and center it on the physical screen's center
-        # This ensures the rotated image stays centered on the physical display.
-        rotated_rect = rotated_surface.get_rect(center=screen_rect.center)
+    #     # 4. Get the rect of the rotated surface and center it on the physical screen's center
+    #     # This ensures the rotated image stays centered on the physical display.
+    #     rotated_rect = rotated_surface.get_rect(center=screen_rect.center)
         
-        # 5. Blit the rotated surface onto the physical screen
-        self._physical_screen.blit(rotated_surface, rotated_rect)
+    #     # 5. Blit the rotated surface onto the physical screen
+    #     self._physical_screen.blit(rotated_surface, rotated_rect)
         
-        # 6. Update the ENTIRE display.
-        # If any part of the screen is updated via a full-surface rotation,
-        # you need to update the whole physical screen for correctness.
-        pygame.display.flip() 
+    #     # 6. Update the ENTIRE display.
+    #     # If any part of the screen is updated via a full-surface rotation,
+    #     # you need to update the whole physical screen for correctness.
+    #     pygame.display.flip() 
         
-        # 7. IMPORTANT: Disable Dirty Rect Tracking!
-        # Because we updated the whole screen, the efficiency is 100% (or 1.0)
-        # You are intentionally sacrificing Dirty Rect optimization for screen rotation.
-        self.ave_area_pc = 100.0 
-        # Note: You should not call self.dirty_mgr.get_and_clear() or update area_tracker here.
+    #     # 7. IMPORTANT: Disable Dirty Rect Tracking!
+    #     # Because we updated the whole screen, the efficiency is 100% (or 1.0)
+    #     # You are intentionally sacrificing Dirty Rect optimization for screen rotation.
+    #     self.ave_area_pc = 100.0 
+    #     # Note: You should not call self.dirty_mgr.get_and_clear() or update area_tracker here.
   
 
     """ Draw on the transformed parts -optimised algorithm"""
