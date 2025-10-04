@@ -57,10 +57,16 @@ class TextFrame(Frame):
         self.parent   = parent
         # print("TextFrame.__init__>", text, self.text.fontwh, scalers, self.alignment, self.geostr())
 
-    def draw(self, text=None, colour_index=None, fontmax=None):
+    def update(self, full, text=None, colour_index=None, fontmax=None):
         # print("TextFrame.draw ", text, colour_index, self.geostr())
-        self.text.draw(text=text, colour_index=colour_index, fontmax=fontmax)
-        self.set_redraw()
+        if full or self.text.new_content_available(text):
+            self.draw_background() # clear whats there -- not needed for
+            self.text.draw(text=text, colour_index=colour_index, fontmax=fontmax)
+        else:
+            pass # no need to redraw
+        
+
+        
 
     @property
     def width(self):
@@ -95,17 +101,25 @@ class PlayProgressFrame(Frame):
         box = (self.barw, self.h) if orient == 'vert' else (self.w-text_width, self.barw)
         self.boxbar      = Box(self, align=('centre', 'middle'), theme=theme, box=box, radius=10)
 
-    def draw(self):
-        hide_backline = -self.h/2 if self.platform.elapsedpc*self.w > self.h/2 else 0 # offset by the radius, makes sure the very start is OK too
-        self.boxbar.drawH(self.platform.elapsedpc, flip=True, colour_index='dark', offset=(hide_backline,0))
-        self.boxbar.drawH(self.platform.elapsedpc, colour_index='light')
-        # Create the string representation
+    def update(self, full):
         elapsed   = f"  {int( self.platform.elapsed//60)}:{int( self.platform.elapsed %60):02d}"
         remaining = f"{int( self.platform.remaining//60)}:{int(  self.platform.remaining%60):02d}  "
-        self.elapsed.draw(elapsed, colour_index='light')
-        self.remaining.draw(remaining, colour_index='light')
-        # print("PlayProgressFrame>", elapsed, remaining)
-        self.set_redraw()
+
+        if full or self.elapsed.new_content_available(elapsed):
+            self.draw_background()
+            hide_backline = -self.h/2 if self.platform.elapsedpc*self.w > self.h/2 else 0 # offset by the radius, makes sure the very start is OK too
+            self.boxbar.drawH(self.platform.elapsedpc, flip=True, colour_index='dark', offset=(hide_backline,0))
+            self.boxbar.drawH(self.platform.elapsedpc, colour_index='light')
+            # Create the string representation
+
+            self.elapsed.draw(elapsed, colour_index='light')
+            self.remaining.draw(remaining, colour_index='light')
+            # print("PlayProgressFrame>", elapsed, remaining)
+        else:
+            pass # no need to redraw
+
+
+        
 
 class AlbumArtFrame(Frame):
     # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
@@ -114,11 +128,15 @@ class AlbumArtFrame(Frame):
         self.image_container = Image(self, outline=outline, opacity=opacity)  # make square
         self.parent          = parent
 
-    def draw(self):
-        # print(" album art", self.image_container.path, self.image_path)
-        if self.image_container.draw(self.platform.album_art):
-            self.set_redraw() 
-            # print("AlbumArtFrame.draw> new album art")
+    def update(self, full):
+        # print("AlbumArtFrame.draw> new album art")
+        if full or self.image_container.new_content_available(self.platform.album_art):
+            self.draw_background()
+            self.image_container.draw(self.platform.album_art)
+        else:
+            pass # no need to redraw
+             
+
 
 class ArtistArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
@@ -127,8 +145,13 @@ class ArtistArtFrame(Frame):
         self.parent         = parent
         # print("ArtistArtFrame.__init__>", opacity)
 
-    def draw(self):
-        if self.image_container.draw(self.platform.artist_art): self.set_redraw() 
+    def update(self, full):
+        if full or self.image_container.new_content_available(self.platform.artist_art):
+            self.draw_background()
+            self.image_container.draw(self.platform.artist_art)
+        else:
+            pass # no need to redraw
+
 
 
 class MetaDataFrame(Frame):
@@ -152,13 +175,13 @@ class MetaDataFrame(Frame):
 
             # print("MetaDataFrame.__init__>", meta, attributes, self.wh, self.show )
 
-    def draw(self, fontsize=None):
+    def update(self, full, fontsize=None):
         # fontsize = self.h//2
         for meta, container in self.metadata.items():
-            if 'track'  in meta: container.draw(text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
-            if 'album'  in meta: container.draw(text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
-            if 'artist' in meta: container.draw(text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])
-        self.set_redraw()
+            if 'track'  in meta: container.update(full, text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
+            if 'album'  in meta: container.update(full, text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
+            if 'artist' in meta: container.update(full, text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])
+        
             
 
 
@@ -240,21 +263,23 @@ class VUMeter(Frame):
         self.peak        = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index='alert')
         self.peakmeter   = peakmeter
 
-    def draw(self):
+    def update(self, full):
         if self.path is None:
-            self.drawBackground()
+            self.drawVUBackground()
         else:
             self.bgdimage.draw()
         self.drawNeedle()
-        self.set_redraw()
+        
 
-    def drawBackground(self):
+    def drawVUBackground(self):
+        self.draw_background()
         for val, mark in self.marks.items():
             self.scales[val].drawVectoredText(val, colour_index=mark['colour'])
             self.ticks.drawFrameCentredVector(val, colour_index=mark['colour'], width=mark['width'])
 
         for arc in self.arclines:
             arc.drawFrameCentredArc(0)
+
         self.dB.draw()
 
     def drawNeedle(self):
@@ -448,10 +473,11 @@ class VUFrame(Frame):
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
-    def draw(self):
+    def update(self, full):
         height, peaks = self.VU.read()
+        self.draw_background()
         self.bar.draw( 0, height, self.barw, peaks)
-        self.set_redraw()
+        
 
 
 """
@@ -463,9 +489,9 @@ class OutlineFrame(Frame):
         self.out     = Box(self, self.wh, width=width, theme=theme)
         self.parent  = parent
     # def __init__( self, platform, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
-    def draw(self):
+    def update(self, full):
         self.out.draw( colour_index='foreground' )
-        self.set_redraw()
+        
 
 
 """
@@ -554,20 +580,21 @@ class SpectrumFrame(Frame, Spectrum):
     """
 
     def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, \
-                    led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY):
+                    led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert'):
 
         self.channel        = channel
         self.right_offset   = right_offset
         self.parent         = parent
+        self.col_mode       = col_mode
 
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
 
         Spectrum.__init__(self, self.w, bar_space, barw_min, barw_max, decay=decay)
-        self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, radius=radius, tip=tip)
+        self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, radius=radius, tip=tip, col_mode=col_mode)
 
         # print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
 
-    def draw(self):
+    def update(self, full):
         """
         Decay work by assuming that all bars naturally decay at a fixed rate and manner (eg lin /log)
         If the target height is less than the current height then, the decay continues
@@ -575,9 +602,12 @@ class SpectrumFrame(Frame, Spectrum):
         This is intended to give a sharp peak response, but a slow delay
         """
         self.read(self.channel)
+        self.draw_background()
         for i in range(len(self.current)):
-            self.bar.draw( (i * (self.barw + self.bar_gap)+self.right_offset), self.current[i].smoothed(), self.barw, self.peaks[i])
-        self.set_redraw()
+            x = i * (self.barw + self.bar_gap)
+            colour_index = x if self.col_mode == 'horz' else None
+            self.bar.draw( x+self.right_offset, self.current[i].smoothed(), self.barw, self.peaks[i], colour_index=colour_index)
+        
 
     @property
     def width(self):
@@ -702,9 +732,9 @@ class OscilogrammeBar(Frame):
     def width(self):
         return self.bars * (self.bar_gap+self.barw)
 
-    def draw(self):
+    def update(self, full):
         samples =  self.platform.reduceSamples( self.channel, self.reduce_by )
-
+        self.draw_background()
         for i in range(self.bars):
             # add the new sample
             target_height = min(1.0, samples[i])
@@ -720,7 +750,7 @@ class OscilogrammeBar(Frame):
 
             x = i * (self.barw + self.bar_gap)
             self.bar.draw( x, self.current[i].smoothed(), self.barw, colour_index=x)
-        self.set_redraw()
+        
 
 
 class Oscilogramme(Frame):
@@ -733,10 +763,11 @@ class Oscilogramme(Frame):
         self.lines   = Line(self, circle=False, amp_scale=0.6)
         self.parent  = parent
 
-    def draw(self):
+    def update(self, full):
         samples =  self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )
+        self.draw_background()
         self.lines.draw_mod_line(samples, colour_index='foreground')
-        self.set_redraw()
+        
 
 
 class Octaviser(Frame, Spectrum):
@@ -748,13 +779,14 @@ class Octaviser(Frame, Spectrum):
         self.arcs = ArcsOctaves(self.parent, theme='rainbow', NumOcts=self.num_octaves)
         self.parent  = parent
 
-    def draw(self):
+    def update(self, full):
+        self.draw_background()
         fft = self.read(self.channel)
 
         for octave in range(1, self.num_octaves):
             self.arcs.draw(octave, fft[self.octaves[octave-1]:self.octaves[octave]])
             # print(bin, self.octaves[octave]) #, fft[bin:self.octaves[octave]])
-        self.set_redraw()
+        
 
 
 class CircleModulator(Frame):
@@ -770,10 +802,11 @@ class CircleModulator(Frame):
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
-    def draw(self):
+    def update(self, full):
 
         hpf_freq = 1000
         lpf_freq = 1500
+        self.draw_background()
 
         height, peaks = self.VU.read()
         samples = self.platform.reduceSamples( self.channel, self.platform.framesize//(self.w//2), rms=False )  # reduce the dataset quite a bit
@@ -782,7 +815,7 @@ class CircleModulator(Frame):
         self.lines.draw_mod_line(low_samples, amplitude=0.5, gain=0.1, colour_index=height*self.h/2)
         self.dots.draw_mod_dots(low_samples, trigger=self.platform.trigger_detected, amplitude=0.1, gain=0.1, colour_index='alert')
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
-        self.set_redraw()
+        
 
 
 """ A visualiser based on a circle display of spectrum lines """
@@ -803,11 +836,12 @@ class Diamondiser(Frame, Spectrum):
                              for _ in range(self.bars)]
         # print("Diamondiser.__init__>", self.bars, self.max_radius, self.geostr(), self.anglestr())
 
-    def draw(self, channel='left'):
+    def update(self, full, channel='left'):
         self.read(self.channel)
         radius  = self.centre_pc
+        self.draw_background()
         for ray_index, ray in enumerate(self.rays):
             col = self.max_radius*(ray_index/self.bars)
             amp = radius*self.current[ray_index].smoothed() if self.current[ray_index].smoothed() > 0 else 0
             ray.drawFrameCentredVector(ray_index*self.ray_angle, amplitude=amp, gain=1-radius, colour_index=col)
-        self.set_redraw()
+        

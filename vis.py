@@ -23,7 +23,7 @@ import platform
 # TestScreen, TestVUImageScreen1, TestVisualiserScreen, TestVUMetersScreen, TestVUScreen, TestSpectrumScreen, TestScreen,\
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
-SCREENS = ( ArtistScreen, StereoSpectrumSplitScreen, TrackScreen, MetaVUScreen, BigDialsScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
+SCREENS = ( SpectrumBaseArt, MinSpectrumArt, ArtistScreen, StereoSpectrumSplitScreen, TrackScreen, MetaVUScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2  )
 
 """ 

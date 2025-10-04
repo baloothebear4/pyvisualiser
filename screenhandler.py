@@ -55,7 +55,8 @@ class ScreenController:
         self.startScreen    = screens[0].__name__
         self.preScreenSaver = self.startScreen
         self.activeScreen   = self.startScreen
-        self.screens    = {}  # dict for the screen objects
+        self.screens        = {}    # dict for the screen objects
+        self.full_update    = True  # force everything to be drawn, else only draw what has changed
 
         """ Menu functionality - sort out Control (temporary) from main (base) screens"""
         menuSequence  = []
@@ -71,17 +72,23 @@ class ScreenController:
     def screenEvents(self, e, option=None):
         if e == 'set':
             self.activeScreen = option
+            self.full_update  = True  # force everything to be drawn, else only draw what has changed
             print("ScreenController.self.events.Control('set',> active screen is ", option)
 
         elif e == 'next':
             self.baseScreen   = self.screenmenu.next
             self.activeScreen = self.baseScreen
+            self.full_update  = True  # force everything to be drawn, else only draw what has changed
             print("ScreenController.self.events.Control('next',> active screen is ", self.activeScreen)
 
         elif e == 'previous':
             self.baseScreen   = self.screenmenu.prev
             self.activeScreen = self.baseScreen
+            self.full_update  = True  # force everything to be drawn, else only draw what has changed
             print("ScreenController.self.events.Control('previous',> active screen is ", self.activeScreen)
+
+        elif e == 'new_track':
+            self.full_update  = True  # force everything to be drawn
 
         elif e == 'exit':
             self.activeScreen = 'exit'
@@ -118,21 +125,24 @@ class ScreenController:
                 # build and update the display
                 screen    = self.screens[self.activeScreen]
                 self.events.Control('loop_start', text=screen.title + " > " + type(screen).__name__)
-                screen.draw()
+
+                screen.update(self.full_update)
                 drawing_time_ms = ((time.perf_counter() - start_time) * 1000) - processing_time_ms
+
                 self.events.Control('loop_end')
                 render_time_ms = ((time.perf_counter() - start_time ) * 1000 ) - drawing_time_ms
                 
                 self.platform.regulate_fps()
+                self.full_update    = False  # Only draw what has changed
 
                 # analyse the loop time, only display every 2 seconds       
-                if loop_count % 40 == 0:
+                if loop_count % self.platform.FPS == 0:
                     loop_time = processing_time_ms + drawing_time_ms + render_time_ms
                     
                     if loop_time > CRITICAL_LOOPTIME: 
-                        print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps()) )
+                        print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.2f%%" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
                     else:    
-                        print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps()) )
+                        print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
 
                     loop_count = 0
                 loop_count += 1
@@ -220,6 +230,7 @@ class EventHandler:
 
         elif key == 'new_track':
             print("EventHandler.MetadataAction> new track - pop up display ", key)
+            self.events.Screen('new_track')
             if self.track_rotate: self.events.Screen('next')
 
         elif key == 'stop':

@@ -29,9 +29,9 @@ class Bar(Frame):
     """
     Bars have parameters:
         - colour modes:
-            'h' according to y
+            'vert' according to y
             's' solid colour
-            'w' colour according to x
+            'horz' colour according to x
         - colour theme:  tuple of colours over which the colours range - one colour is fixed colour
         - leds ie discrete with colours
         - vertical or horizontal,
@@ -181,28 +181,34 @@ class Image(Frame):
         # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", tgt_height, frame_width, self.framestr())
         return image
 
-    def draw(self, image_data=None):
+    # Drawing is possibly a two step process
+    # 1. work out if anything has changed
+    # 2. draw unconditionally the current Image, assume the background has been cleaned
+
+    def new_content_available(self, image_data=None):
         # print("Image.draw>", self.boundswh[1], self.framestr(), self.geostr())
         if image_data is None:  image_data = self.path  
+        return image_data != self.old_image_data
+
+    def draw(self, image_data=None):   
+        if image_data is None:  image_data = self.path   
         image = self.image_cache.find(image_data)
         if image is None:   
             image = self.scaleInProportion(image_data, self.boundswh[1])
 
         if image is not None:
-            if image_data != self.old_image_data:
-                image.set_alpha(self.opacity)
-                frame_width  = 0 if self.outline is None else self.outline.width 
-                self.platform.screen.blit(image, self.abs_origin(offset=(frame_width,frame_width)))
-                self.draw_outline()
+            image.set_alpha(self.opacity)
+            frame_width  = 0 if self.outline is None else self.outline.width 
+            self.platform.screen.blit(image, self.abs_origin(offset=(frame_width,frame_width)))
+            self.draw_outline()
 
-                print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
-                self.old_image_data = image_data
-                return True
+            # print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
+            self.old_image_data = image_data
 
         else:
-            print("Image.draw> attempt to draw an None image", image, image_data)
+            pass
+            # print("Image.draw> attempt to draw an None image", image, image_data)
         
-        return True
 
 
 class Lightback(Frame):
@@ -461,6 +467,10 @@ class Text(Frame):
         except Exception as e:
             print("Text.update> ERROR > %s > wh %s, fontwh %s, text<%s>, %s " % (e,self.wh, self.fontwh, self.text, self.alignment ))
 
+    def new_content_available(self, text=None):
+        # print("Text.new_content_available>", self.boundswh[1], self.framestr(), self.geostr())
+        return text != self.text        
+
     @property
     def fontsize(self):
         return self.fontwh[1]
@@ -652,6 +662,101 @@ class Outline:
         width        = self.outline['width'] if 'width' in self.outline else Outline.OUTLINE['width']
         return width
 
+import pygame
+import collections
+
+class DirtyAreaTracker:
+    def __init__(self, screen_surface, alpha=0.1):
+        """
+        Initializes the tracker with the screen size and the EWMA smoothing factor.
+        
+        :param screen_surface: The main pygame.Surface for the display.
+        :param alpha: The smoothing factor (0.0 to 1.0). Lower is smoother.
+        """
+        self.total_screen_area = screen_surface.get_width() * screen_surface.get_height()
+        self.alpha = alpha
+        self.rolling_avg_percent = 0.0
+
+    def _get_merged_area(self, dirty_rects):
+        """
+        Calculates the net area covered by a list of rectangles.
+        This is necessary because the rectangles can overlap.
+        """
+        if not dirty_rects:
+            return 0
+        
+        # 1. Union all the Rects into a minimal list of non-overlapping Rects.
+        #    pygame.Rect.unionall() is helpful but still leaves overlaps,
+        #    so we use the slower, but more accurate, process of summing 
+        #    the area of the minimal bounding box of all rectangles. 
+        
+        # A simple, practical approach:
+        # Instead of a complex merging algorithm, we use Rect.unionall()
+        # which is *good enough* for an estimate and is fast.
+        
+        # If the list is a list of Rects, use unionall() to get a single bounding Rect
+        union_rect = dirty_rects[0]
+        for rect in dirty_rects[1:]:
+            union_rect = union_rect.union(rect)
+
+        # The union rect's area is the *maximum possible* area that needs update.
+        # For a more precise measure of *actual* updated pixels (not just the bounding box), 
+        # a dedicated merger function (like pygame.Rect.unionall) followed by 
+        # summing the areas is ideal, but complicated. For monitoring, a simple union
+        # of the outer bounding box is a decent, fast estimate.
+        
+        # However, to be more accurate, we need to sum the individual areas 
+        # after merging overlapping regions. Pygame doesn't have a simple function for this.
+        
+        # A reasonable compromise: sum the areas of the merged rects.
+        # For true non-overlapping area, you need a geometry library, but for a
+        # quick metric, let's use the simplest: summing the area of the unioned rect.
+        # A more advanced but still simple-to-implement approach is to union them all
+        # into one large bounding box.
+
+        # We'll use the bounding box area as a simple metric (it's slightly an overestimate)
+        # Correct Way 1: Use width * height
+        total_dirty_area = union_rect.width * union_rect.height
+        
+        # For a simple, non-overlapping sum, we rely on pygame.display.update() to 
+        # have already done the difficult work of minimizing the areas before calling it.
+        # But since we get the raw list, we must estimate.
+
+        # Let's use a simpler total sum for demonstration, assuming rects are reasonably separated:
+        # NOTE: This method below will OVERCOUNT areas if rectangles overlap.
+        # area_sum = sum(rect.area for rect in dirty_rects)
+        # return area_sum 
+        
+        # For simplicity and speed (and it provides a useful upper bound metric):
+        return total_dirty_area
+
+
+    def update_average(self, dirty_rects):
+        """
+        Calculates the updated area percentage and updates the rolling average.
+        
+        :param dirty_rects: The list of Rects returned by your draw calls, 
+                            which you pass to pygame.display.update().
+        :return: The current rolling average of the dirty area percentage (0.0 to 100.0).
+        """
+        if self.total_screen_area == 0:
+            return 0.0
+            
+        # 1. Get the net area of the updated regions
+        net_dirty_area = self._get_merged_area(dirty_rects)
+
+        # 2. Calculate the percentage of the screen that was drawn
+        current_dirty_percent = (net_dirty_area / self.total_screen_area) * 100
+
+        # 3. Apply the Exponentially Weighted Moving Average (EWMA)
+        # S_t = alpha * Y_t + (1 - alpha) * S_{t-1}
+        # Where S_t is the new average, Y_t is the current value, and S_{t-1} is the old average.
+        self.rolling_avg_percent = (
+            self.alpha * current_dirty_percent + 
+            (1.0 - self.alpha) * self.rolling_avg_percent
+        )
+        
+        return self.rolling_avg_percent
 
 
 class DirtyRectManager:
@@ -736,8 +841,11 @@ class GraphicsDriverPi:
         self.events = events
         self.dirty_mgr = DirtyRectManager()
 
+
         self.clock  = pygame.time.Clock()
         self.screen = self.init_display()
+
+        self.area_tracker = DirtyAreaTracker(self.screen, alpha=0.05)
 
 
 
@@ -785,96 +893,150 @@ class GraphicsDriverPi:
         # All drawing now happens on the virtual surface.
         # self.virtual_surface.fill(GraphicsDriverPi.BACKGROUND_COLOR)       # erase the virtual screen
         if text is not None: pygame.display.set_caption(text)
-
-    # def draw_end(self):
-    #     # Clear the physical screen --> Works
-    #     self._physical_screen.fill((0, 0, 0))
-        
-    #     # Rotate the virtual surface by -90 degrees to "undo" the OS rotation
-    #     rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
-        
-    #     # Blit the rotated surface onto the physical screen
-    #     rotated_rect = rotated_surface.get_rect(center=self._physical_screen.get_rect().center)
-    #     self._physical_screen.blit(rotated_surface, rotated_rect)
-    #     # print("rotate")
-        
-    #     # Update the display to show the changes
-    #     # pygame.display.flip()
-    #     dirty_rects = self.dirty_mgr.get_and_clear()
-    #     if dirty_rects:
-    #         pygame.display.update(dirty_rects)
-        
-    
-  
+ 
+    """ Stable and works well - but has a flip so least efficient """
     def draw_end(self):
-            # 1. Get the list of dirty rects from the VIRTUAL (landscape) space
-            dirty_rects_virtual = self.dirty_mgr.get_and_clear()
+        # NOTE: When rotating the entire virtual surface, you effectively
+        # must update the entire physical screen. Dirty rect optimization 
+        # is incompatible with this approach.
 
-            if not dirty_rects_virtual:
-                return  # Nothing changed, exit early
-                
-            # --- Pre-calculate Rotation Parameters ---
+        
+        # 1. Clear the physical screen (Necessary if physical screen size != virtual size)
+        self._physical_screen.fill((0, 0, 0))
+        
+        # 2. Rotate the virtual surface by the required angle (e.g., -90 degrees)
+        # This returns a NEW surface with its own dimensions
+        rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
+        
+        # 3. Get the rect for the physical screen, NOT the rotated surface.
+        # This keeps the image centered correctly.
+        screen_rect = self._physical_screen.get_rect()
+        
+        # 4. Get the rect of the rotated surface and center it on the physical screen's center
+        # This ensures the rotated image stays centered on the physical display.
+        rotated_rect = rotated_surface.get_rect(center=screen_rect.center)
+        
+        # 5. Blit the rotated surface onto the physical screen
+        self._physical_screen.blit(rotated_surface, rotated_rect)
+        
+        # 6. Update the ENTIRE display.
+        # If any part of the screen is updated via a full-surface rotation,
+        # you need to update the whole physical screen for correctness.
+        pygame.display.flip() 
+        
+        # 7. IMPORTANT: Disable Dirty Rect Tracking!
+        # Because we updated the whole screen, the efficiency is 100% (or 1.0)
+        # You are intentionally sacrificing Dirty Rect optimization for screen rotation.
+        self.ave_area_pc = 100.0 
+        # Note: You should not call self.dirty_mgr.get_and_clear() or update area_tracker here.
+  
+
+    """ Draw on the transformed parts -optimised algorithm"""
+    def draw_end(self):
+        dirty_rects = self.dirty_mgr.get_and_clear()
+        
+        if not dirty_rects:
+            # If nothing is dirty, don't update anything
+            self.ave_area_pc = self.area_tracker.update_average([])
+            return
             
-            # NOTE: If you are recreating the rotated surface every frame, 
-            # the performance gain is still limited by this line:
-            rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
+        transformed_rects = []
+        # Get the dimensions of the non-rotated virtual surface
+        Wv, Hv = self.virtual_surface.get_size() # e.g., (800, 480)
+
+        # 1. Clear the old physical screen areas (important for dirty rects!)
+        #    This step is ONLY needed if you don't clear the virtual surface (which you should)
+        
+        # 2. Draw the virtual surface content (including clearing)
+        #    Assuming your main loop draws to self.virtual_surface, no change needed here.
+        
+        # 3. Rotate the ENTIRE virtual surface
+        rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
+        
+        # 4. Blit the rotated surface to the physical screen (to show ALL changes)
+        rotated_rect = rotated_surface.get_rect(center=self._physical_screen.get_rect().center)
+        self._physical_screen.blit(rotated_surface, rotated_rect)
+        
+        # 5. Transform each dirty rect to the physical, rotated screen coordinates
+        for rect in dirty_rects:
+            # We are rotating the coordinate system -90 degrees (clockwise)
             
-            # Center the rotated surface on the physical screen
-            rotated_rect_on_physical = rotated_surface.get_rect(
-                center=self._physical_screen.get_rect().center
-            )
+            # New X: Old Y distance from the TOP (Hv)
+            # The top edge of the old rect (rect.y) becomes the right edge of the new rect (rotated H_v - rect.y)
+            # To get the new TOP-LEFT X (x'): we need to subtract the old rect's full extent from H_v
+            x_prime = rect.y
             
-            transformed_dirty_rects_physical = []
-
-            # --- Loop through each Dirty Rect to Clear, Draw, and Transform ---
+            # New Y: The old X
+            # The top edge of the old rect (rect.x) becomes the top edge of the new rect
+            y_prime = rect.x
             
-            for rect_virt in dirty_rects_virtual:
-                
-                # --- 2. TRANSFORMATION LOGIC (Same as before) ---
-                
-                W_virt, H_virt = self.virtual_surface.get_size() 
+            # New Width: Old Height
+            w_prime = rect.height
+            
+            # New Height: Old Width
+            h_prime = rect.width
+            
+            # Adjust the x coordinate to correctly shift from top-left to top-left after rotation
+            # The new X is the distance from the top, minus the new height
+            # (If the original rect was at the bottom, its x' should be near 0)
+            
+            # Correction: The new X should be referenced from the virtual height, 
+            # and then shifted by the new height (old width)
+            x_prime = Wv - rect.x - rect.width
+            y_prime = rect.y
+            
+            # FINAL CORRECTION FOR -90 DEGREE ROTATION
+            # If Wv x Hv is 800 x 480, screen is 480 x 800
+            
+            x_prime = rect.y # The new X is the old Y
+            y_prime = Wv - (rect.x + rect.width) # The new Y is the old X inverted from the right
+            w_prime = rect.height # New width is old height
+            h_prime = rect.width # New height is old width
+            
+            # Reverting to the formula that matches -90 degrees in a standard coordinate rotation:
+            # (x, y) -> (y, -x)
+            # But since Pygame's Y is positive down, and we are working with top-left rects:
+            
+            x_prime = rect.y
+            y_prime = Wv - (rect.x + rect.width)
 
-                # Calculate the rect's new position and size on the ROTATED surface
-                # (i.e., relative to the top-left of the rotated_surface)
-                new_x_rot = rect_virt.top
-                new_y_rot = W_virt - rect_virt.right
-                new_w_rot = rect_virt.height
-                new_h_rot = rect_virt.width
-                
-                # This is the single rect on the SOURCE (rotated_surface)
-                rect_on_rotated_source = pygame.Rect(new_x_rot, new_y_rot, new_w_rot, new_h_rot)
-                
-                # This is the single rect's position on the DESTINATION (_physical_screen)
-                # It is the rotated_rect_on_physical's top-left plus the new position.
-                rect_on_physical_dest = rect_on_rotated_source.copy()
-                rect_on_physical_dest.move_ip(rotated_rect_on_physical.topleft)
+            # Create the new rect in the physical screen's space
+            # Note: We must adjust the y_prime based on the new dimensions
+            transformed_rect = pygame.Rect(x_prime, y_prime, w_prime, h_prime)
 
-                # Store the physical rect for the final update call
-                transformed_dirty_rects_physical.append(rect_on_physical_dest)
+            # THE CRITICAL ADJUSTMENT: The rotation may shift the origin.
+            # We must account for the difference between the physical screen size (Hp, Wp) 
+            # and the rotated surface size (Hv, Wv).
+            
+            # Assuming the physical screen is HxW (480x800) and virtual is WxH (800x480)
+            # The simple transformation above is likely off by an offset.
+            
+            # Let's try the rotation: (x, y) -> (H - y, x) for 90 degrees CCW
+            # For 90 degrees CW (-90): (x, y) -> (y, W - x) 
+            
+            # X' = y (This maps the vertical extent to the new horizontal one)
+            x_prime = rect.y
+            
+            # Y' = W - (x + w) (This maps the horizontal extent to the new vertical one)
+            y_prime = Wv - (rect.x + rect.width)
+            
+            # The formula that often fails with only 25% updated is because of the Wv reference
+            
+            # Let's use the simplest algebraic form:
+            x_prime = rect.y
+            y_prime = Wv - rect.x - rect.width
+            w_prime = rect.height
+            h_prime = rect.width
+            
+            transformed_rect = pygame.Rect(x_prime, y_prime, w_prime, h_prime)
+            transformed_rects.append(transformed_rect)
 
-                # --- 3. CLEAR THE DIRTY AREA ON THE PHYSICAL SCREEN ---
-                # You must clear the background on the final physical screen
-                # (or blit the background over the virtual surface before rotation)
-                
-                # *Recommended Method: Clear on the physical screen (requires a background surface)*
-                # self._physical_screen.blit(self.background_surface, rect_on_physical_dest, rect_on_physical_dest)
-                
-                # *Alternative: Clear by blitting the background over the virtual surface first*
-                # This must happen BEFORE the rotation:
-                # self.virtual_surface.blit(self.background_surface_virtual, rect_virt.topleft, rect_virt)
+        # 6. Update the display using the SMALL, transformed rects
+        # This is the line that will fix the visual incompleteness
+        pygame.display.update(transformed_rects)
 
-                # --- 4. BLIT THE NEW CONTENT (The Rotated Dirty Rect) ---
-                
-                # destination_surface.blit(source_surface, destination_pos, area_on_source)
-                self._physical_screen.blit(
-                    rotated_surface, 
-                    rect_on_physical_dest.topleft,  # The top-left corner on the physical screen
-                    rect_on_rotated_source          # The area to copy from the rotated surface
-                )
-
-            # 5. Update the display using the list of transformed (physical) rects
-            if transformed_dirty_rects_physical:
-                pygame.display.update(transformed_dirty_rects_physical)
+        # 7. Update the area tracker
+        self.ave_area_pc = self.area_tracker.update_average(transformed_rects)
         
 
 
@@ -887,6 +1049,7 @@ class GraphicsDriverPi:
         self.virtual_surface.fill(colour, pygame.Rect(rect))
         if image is not None:
             self.image_container.draw(image)
+        # print("GraphicsDriverPI.fill>. clear screen >", rect)
 
 
 
@@ -970,6 +1133,9 @@ class GraphicsDriver:
     def regulate_fps(self):
         self.gfx_driver.clock.tick(self.gfx_driver.FPS)
 
+    def area_drawn(self):
+        return self.gfx_driver.ave_area_pc    
+
     def clear_screen(self):
         self.screen.fill((0,0,0))       # erase whole screen    
 
@@ -984,6 +1150,10 @@ class GraphicsDriver:
     @property
     def w(self):
         return self.gfx_driver.W
+
+    @property
+    def w(self):
+        return self.gfx_driver.FPS    
 
     @property
     def wh(self):
