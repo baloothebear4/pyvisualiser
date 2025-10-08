@@ -1,4 +1,4 @@
-from framecore import Frame
+from framecore import Frame, ColFramer, RowFramer
 from frames import  VUMeterImageFrame, Spectrum2chFrame, SpectrumStereoOffsetFrame, SpectrumStereoFrame, SpectrumStereoSplitFrame, SpectrumFrame
 import time
 
@@ -61,6 +61,7 @@ class StereoSpectrumSplitScreen(Frame):
 
     @property
     def type(self): return 'Test'
+    
     def __init__(self, platform):
         Frame.__init__(self, platform)
         # self += VolumeSourceFrame(self  , 0.3, 'right')
@@ -321,3 +322,30 @@ class TestFrame(Frame):
                 self.t = self.t[3:]
         else:
             self.text.draw()
+
+class ColAlignedScreen(Frame):
+    @property
+    def title(self): return 'Creates 3 box frames and aligns them horizontally, evenly'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='ocean')
+        # print("SubFrame> ", self.geostr())
+
+        colframe = ColFramer(self, scalers=(0.4, 0.9), align=('left','middle'), background='dark', padding=0.1) #, align=('centre','middle'))
+        colframe += Frame(colframe  , scalers=(0.5, 1.0), background='light', outline={'colour_index':'alert'})
+        colframe += Frame(colframe  , background='mid')
+        colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
+
+        rowframe = RowFramer(self  ,  scalers=(0.5, 0.9), align=('right','middle'), background='dark', padding=0.2)
+        rowframe += Frame(rowframe  , background='light', outline={'colour_index':'alert'})
+        rowframe += Frame(rowframe  ,   scalers=(0.6, 0.7), background='mid')
+        rowframe += Frame(rowframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
+
+
+        # self += TestFrame(self  , scalers=(0.5, 0.3), align=('left','bottom'))
+        # self += TestFrame(self  , scalers=(0.5, 0.3), align=('centre','middle'))
+        # self += TestFrame(self  ,scalers=(0.5, 0.3), align=('right','top'))
+        # self += OutlineFrame(self  , scalers=(1.0, 1.0), align=('right','top'))            

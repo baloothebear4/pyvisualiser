@@ -126,7 +126,6 @@ class AlbumArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
         self.image_container = Image(self, outline=outline, opacity=opacity)  # make square
-        self.parent          = parent
 
     def update(self, full):
         # print("AlbumArtFrame.draw> new album art")
@@ -142,7 +141,6 @@ class ArtistArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
         self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=opacity, outline=outline)  
-        self.parent         = parent
         # print("ArtistArtFrame.__init__>", opacity)
 
     def update(self, full):
@@ -164,7 +162,6 @@ class MetaDataFrame(Frame):
         self.show       = show
         self.same_size  = same_size
         self.metadata   = {}
-        self.parent     = parent
 
         for meta, attributes in self.show.items():
             scalers = attributes['scalers'] if 'scalers' in attributes else MetaDataFrame.SHOW[meta]['scalers']

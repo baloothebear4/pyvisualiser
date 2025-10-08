@@ -29,6 +29,7 @@ TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumSc
 
 from frames import *
 from subframes import *
+from framecore import Frame, ColFramer, RowFramer
 import time
 
 # from frametest import *
@@ -297,17 +298,19 @@ class SpectrumBaseArt(Frame):   # comprises volume on the left, spectrum on the 
     def __init__(self, platform):
         Frame.__init__(self, platform, theme= 'space')
 
+        colframe  = ColFramer(self, scalers=(0.3,1.0), align=('right','middle'), padding=0.1)
+        colframe += AlbumArtFrame(colframe, (1.0, 1.0),align=('centre','middle'), outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
+
         # self += Lightback(self, scalers=(0.64,0.64), align=('centre','middle'), colour_index='dark', flip=True)
 
         # self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
         #                 pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
-        subframe = Frame(self,scalers=(0.32, 0.95), align=('right','middle') )
-        self += AlbumArtFrame(subframe, (1.0, 1.0),align=('centre','middle'), outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
 
-        subframe2= Frame(self, scalers=(0.7, 0.3), align=('right','top'))
-        self += MetaDataFrame(self, scalers=(0.65,0.3), align=('left','top'))
  
-        self += SpectrumFrame(self,  'mono', scalers=(0.68, 0.7), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
+        subframe  = RowFramer(self, scalers=(0.7, 0.2), align=('left','top'), padding=0.1)
+        subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
+ 
+        self += SpectrumFrame(self,  'mono', scalers=(0.7,0.8), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
         # self += PlayProgressFrame(self  , scalers=(0.68, 0.05), align=('left','bottom'))
 
 class MinSpectrumArt(Frame):   # comprises volume on the left, spectrum on the right

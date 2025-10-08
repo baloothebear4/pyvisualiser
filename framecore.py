@@ -40,8 +40,9 @@ class Geometry():
         self.circle_scale   = 1
         self.centre_offset  = 0  #PC of the height offsets the centre of a circle eg -0.5 moves to the bottom
         self.endstops       = (0, 2*PI)
-        # print("Geometry.init> abcd %s, bounds %s, boundswh %s, size %s, coords %s" % ( self.abcd, self._bounds, self._boundswh, self.wh, self.coords))
         self.scale(self.scalers)
+        # print("Geometry.init> abcd %s, scalers %s, boundswh %s, size %s, coords %s" % ( self.abcd, scalers, self.boundswh, self.wh, self.coords))
+
 
     """ test if this will return a from the syntax Frame.a """
     @property
@@ -223,22 +224,22 @@ class Geometry():
         self.a = int(x-w/2)
         self.c = int(x+w/2)
 
-    def go_top(self):
-        self.move_cd( (self.c, self.top) )
+    def go_top(self, offset=0):
+        self.move_cd( (self.c, self.top-offset) )
 
     def go_middle(self):
-        self.move_middle( self.top/2 )
+        self.move_middle( int(self.top/2) )
 
     def go_bottom(self):
         self.move_ab( (self.a, 0) )
         # print("Geometry.go_bottom>", self.geostr())
 
-    def go_left(self):
-        self.move_ab( (0, self.b) )
+    def go_left(self, offset=0):
+        self.move_ab( (0+offset, self.b) )
         # print("Geometry.go_left>", self.geostr())
 
     def go_centre(self):
-        self.move_centre( self.right/2 )
+        self.move_centre( int(self.right/2) )
 
     def go_right(self):
         self.move_cd( (self.right, self.d) )
@@ -351,7 +352,7 @@ class Geometry():
     def geostr(self, s=0):
         return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, abs rect %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect()))
 
-    def align(self, align=None):
+    def align(self, align=None, offset=0):
         """
             align will use the anchors: 'top, middle, bottom', 'left, centre, right' to set the
             coordinates of the Frame within the boundary
@@ -364,14 +365,16 @@ class Geometry():
         # print("Geometry.align> top %d, right %d, abcd %s, wh %s, V=%s, H=%s" % (self.top, self.right, self.abcd, self.wh, self.V, self.H))
 
         if self.alignment[1]   == 'top':
-            self.move_cd( (self.c, self.top) )
+            self.go_top( )
             # move so that self.d = self.bounds.d
         elif self.alignment[1] == 'middle':
-            self.move_middle( int(self.top/2) )
+            self.go_middle()
             # move so that middle(self) = middle(self.bounds) : middle =
+        elif self.alignment[1] == 'row':
+            self.go_top(offset)
+            # move so its packs from the top - the offset ie downwards
         elif self.alignment[1] == 'bottom':
             self.go_bottom()
-            # move so that self.b = self.bounds.b
         else:
             raise ValueError('Frame.align: expected vertical anchor (top, middle, bottom) found->', self.alignment[1])
 
@@ -384,10 +387,15 @@ class Geometry():
         elif self.alignment[0] == 'right':
             self.move_cd( (self.right, self.d) )
             # move so that self.c = self.bounds.c
+        elif self.alignment[0] == 'col':
+            self.go_left(offset)
+            # move so its packs from the top - the offset ie downwards    
         else:
             raise ValueError('Frame.align: expected horz anchor (left, centre, right) found->', self.alignment[0])
         # print("Frame.align> to", self.geostr())
 
+FULLSCALE = (1.0,1.0)
+CENTRED   = ('centre', 'middle')
 
 class Frame(Geometry):
     """
@@ -405,11 +413,12 @@ class Frame(Geometry):
         platform    is the set of objects that enable access to data sets, screen drivers and graphics
         scalers     is how the frame is scaled vs the boundary
         square      is to force the shape to have w=h
+        padding     is a % additional scaling added to the absolute size is a smaller than the scaled size
         
     """
     OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
 
-    def __init__(self, parent, scalers=None, align=None, square=False, theme=None, background=None, outline=None):
+    def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
@@ -419,7 +428,7 @@ class Frame(Geometry):
         """
         self.frames     = []         #Holds the stack of containing frames
         self.outline    = outline
-        # print("Frame.__init__>", type(self).__name__, align, scalers, theme)
+        # print("Frame.__init__> startup>>>", type(self).__name__, align, scalers, theme, background)
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
             bounds          = parent.coords
@@ -427,14 +436,14 @@ class Frame(Geometry):
             self.theme      = parent.theme      if theme    is None else theme
             alignment       = parent.alignment  if align    is None else align            
             self.platform   = parent.platform
-            # print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
+            print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
         else:
             """ Screen (aka top-level Frame), so scale to the boundary """
             bounds          = parent.boundary
             self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
-            scalers         = (1.0,1.0)              if scalers  is None else scalers
+            scalers         = FULLSCALE              if scalers  is None else scalers
             self.theme      = 'std'                  if theme    is None else theme
-            alignment       = ('centre', 'middle')   if align    is None else align         
+            alignment       = CENTRED                if align    is None else align         
 
         Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment)
 
@@ -455,6 +464,9 @@ class Frame(Geometry):
             self.resize(xy)
 
         # print("Frame.__init__> done", self.geostr())
+
+    def scale_scalers(self, scalers, padding):
+        return (scalers[0]*padding, scalers[1]*padding)
 
     def __iadd__(self, frame):
         self.frames.append(frame)
@@ -484,12 +496,15 @@ class Frame(Geometry):
     def draw_background(self):
         # print("Frame.    def draw_background(self):> generic", type(self).__name__, self.abs_rect())
         self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
+        self.platform.dirty_mgr.add(tuple(self.abs_rect()))
 
     def draw_outline(self):
-        if self.outline is not None: self.outline.draw(self.abs_rect())
+        if self.outline is not None: 
+            self.outline.draw(self.abs_rect())
+            self.platform.dirty_mgr.add(tuple(self.abs_rect()))
             
     def framestr(self):
-        return "%-10s > %s, %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.scalers, self.alignment, self.theme)
+        return "%-10s > %s, %s, %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme)
 
     def frametext(self, f):
         return "%-10s > %s" % (type().__name__, super(Frame, f).__str__())
@@ -524,6 +539,63 @@ class Frame(Geometry):
         return ok
 
 #End of Frame class
+
+"""
+Is an alignment device to equally align all the subframes in columns, with a padding (ie spacing), that is even.
+Works by scaling the scalars of each subframe accordingly.  Works iteratively, each time a subframe is added
+
+These Framer classes will override the positional alignments for their axis
+"""
+class ColFramer(Frame):
+    def __init__(self, parent, *args, **kwargs):
+        padding=kwargs.pop('padding', 0.0)
+        super().__init__(parent, *args, **kwargs)
+        self.padding =  1-padding
+        parent += self #make sure this frame is in the update() stack
+        print("ColFramer.__init__>", self.framestr())
+
+    def __iadd__(self, frame):
+        self.frames.append(frame)
+        columns = len(self.frames)
+        summed_frame_w = 0
+        for f in self.frames:
+            f.scale((f.scalers[0]*self.padding*1/columns,f.scalers[1]*self.padding))
+            summed_frame_w += f.w
+
+        # Now work out how much space there is evenly between the frames, and align them
+        frame_padding = (self.w - summed_frame_w)/(columns + 1)
+        offset = frame_padding
+        for f in self.frames:  
+            f.align( align=('col',f.alignment[1]), offset=offset)
+            offset += frame_padding + f.w
+            print("ColFrame.__iadd__>", summed_frame_w, f.framestr())
+        return self
+
+class RowFramer(Frame):
+    def __init__(self, parent, *args, **kwargs):
+        padding=kwargs.pop('padding', 0.0)
+        super().__init__(parent, *args, **kwargs)
+        self.padding =  1-padding
+        parent += self #make sure this frame is in the update() stack
+        print("RowFramer.__init__>", self.framestr())
+
+    def __iadd__(self, frame):
+        self.frames.append(frame)
+        rows = len(self.frames)
+        summed_frame_h = 0
+        for f in self.frames:
+            f.scale((f.scalers[0]*self.padding,f.scalers[1]*self.padding*1/rows))
+            summed_frame_h += f.h
+
+        # Now work out how much space there is evenly between the frames, and align them
+        frame_padding = (self.h - summed_frame_h)/(rows + 1)
+        offset = frame_padding
+        for f in self.frames:  
+            f.align( align=(f.alignment[0],'row'), offset=offset)
+            offset += frame_padding + f.h
+            print("RowFrame.__iadd__>", summed_frame_h, f.framestr())
+        return self
+
 
 """
 Class to manage lists eg of menu items or sources to find previous and next items
