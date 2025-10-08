@@ -1,0 +1,3 @@
+#!/bin/bash
+cd ~/viz/pyvisualiser
+source preamp_env/bin/activate
