@@ -18,34 +18,38 @@ set -e # Exit immediately if a command exits with a non-zero status.
 SDL_VERSION="2.28.5"
 SDL_ARCHIVE="SDL2-${SDL_VERSION}.tar.gz"
 VENV_DIR="venv"
-PYTHON_VERSION="3.11" # Targeting Python 3.11 as specified
 
 echo "Starting Pygame KMS/DRM Automated Setup for RPi 5..."
 echo "--------------------------------------------------------"
 
-# 1. Install System Dependencies (DRM, Python Dev, Font Headers)
-echo "1. Installing system build tools and development libraries..."
+# 1. Install System Build Tools and Development Libraries
+echo "1. Installing system build tools, Python dependencies, and development libraries (including image support)..."
 sudo apt update
-sudo apt install -y build-essential git python3-dev python3-venv \
+# Relying on system default Python (likely 3.12+) and its associated packages
+sudo apt install -y build-essential git \
+    python3-dev python3-venv \
     libudev-dev libgbm-dev libdrm-dev \
     libfreetype-dev libsdl2-ttf-dev \
+    libsdl2-image-dev \
+    libjpeg-dev libpng-dev \
+    libgbm1 \
     wget
 
 # 2. Custom Compile and Install SDL2 with KMS/DRM Support
 # The standard repository SDL2 often lacks the kmsdrm backend.
 
 if [ -f /usr/local/lib/libSDL2-2.0.so.0 ]; then
-    echo "   Custom SDL2 library already found in /usr/local/lib. Skipping re-compilation."
+    echo "2. Custom SDL2 library already found in /usr/local/lib. Skipping re-compilation."
 else
     echo "2. Compiling SDL2 (v${SDL_VERSION}) with KMS/DRM enabled..."
-    
+
     # Remove potentially conflicting system-installed SDL2 runtime
     sudo apt remove -y libsdl2-2.0-0
 
     # Temporarily move to /tmp for compilation
     CURRENT_DIR=$(pwd)
     cd /tmp
-    
+
     # Download and extract SDL2 source
     wget -nc "https://github.com/libsdl-org/SDL/releases/download/release-${SDL_VERSION}/${SDL_ARCHIVE}"
     tar -xzvf "${SDL_ARCHIVE}"
@@ -62,7 +66,7 @@ else
     sudo ldconfig
 
     echo "   SDL2 installed successfully to /usr/local/lib."
-    
+
     # Return to the original project directory
     cd "${CURRENT_DIR}"
 fi
@@ -87,17 +91,30 @@ else
 fi
 
 # 4. Setup Virtual Environment (Project assumed to be current directory)
-echo "4. Setting up virtual environment..."
+echo "4. Setting up virtual environment using the system default Python..."
+
+VENV_CREATE_CMD="python3 -m venv ${VENV_DIR}"
+PYTHON_USED="system default (likely 3.12+)"
 
 if [ ! -d "${VENV_DIR}" ]; then
-    python${PYTHON_VERSION} -m venv ${VENV_DIR}
+    echo "   Attempting to create venv using: ${PYTHON_USED}"
+    ${VENV_CREATE_CMD}
+else
+    echo "   Virtual environment already exists. Using existing venv with Python ${PYTHON_USED}."
 fi
 
 source "${VENV_DIR}/bin/activate"
 
 # 5. Force Pygame Source Compilation (Critical Step)
-# This forces Pygame to link against the custom SDL2 and installed font libraries.
-echo "5. Installing Pygame from source to ensure KMS/DRM and Font support..."
+echo "5. Installing Pygame from source to ensure KMS/DRM, Font, and Image support..."
+
+# --- HARDENING Pygame Compilation ---
+# CRITICAL: Explicitly set PATH, CFLAGS, and LDFLAGS to include /usr/local/ directories
+# This forces Pygame's setup to find the custom compiled SDL2 headers, libraries, and sdl-config tool.
+export PATH="/usr/local/bin:$PATH"
+export CFLAGS="-I/usr/local/include/SDL2 $CFLAGS"
+export LDFLAGS="-L/usr/local/lib $LDFLAGS"
+# --- END HARDENING ---
 
 # Purge pip cache to prevent using previously downloaded incompatible wheels
 pip cache purge
@@ -106,11 +123,19 @@ pip cache purge
 pip uninstall -y pygame
 
 # Install Pygame forcing source compilation and ignoring cache
+# --no-binary :all: is crucial for forcing the link to the custom SDL libraries
 pip install --no-binary :all: --no-cache-dir pygame
+
+# Clear environment variables after successful Pygame installation
+unset CFLAGS
+unset LDFLAGS
+unset PATH # Unset PATH modification
 
 # 6. Install Remaining Dependencies
 echo "6. Installing remaining Python dependencies from requirements.txt..."
 if [ -f "requirements.txt" ]; then
+    # We must uninstall pygame again here if it was a dependency in requirements.txt to avoid double installation errors,
+    # but since it was installed in step 5, we can just proceed.
     pip install -r requirements.txt
 else
     echo "   WARNING: requirements.txt not found. Only Pygame has been installed."
@@ -119,8 +144,8 @@ fi
 echo "--------------------------------------------------------"
 echo "✅ Setup Complete!"
 echo "A reboot is recommended for the new config.txt and asound.conf to take effect."
-echo "To run your application, use the following commands:"
+echo "To run your application, you MUST explicitly set the library path and video driver. Use the following commands:"
 echo "   source venv/bin/activate"
+echo "   export LD_LIBRARY_PATH=/usr/local/lib:\$LD_LIBRARY_PATH"
+echo "   export SDL_VIDEODRIVER=kmsdrm"
 echo "   python your_main_application.py"
-echo "   # Remember to set the environment variables if your script doesn't:"
-echo "   # SDL_VIDEODRIVER=kmsdrm SDL_VIDEODEVICE=/dev/dri/card1 python your_main_application.py"

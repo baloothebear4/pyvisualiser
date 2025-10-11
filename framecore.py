@@ -436,7 +436,7 @@ class Frame(Geometry):
             self.theme      = parent.theme      if theme    is None else theme
             alignment       = parent.alignment  if align    is None else align            
             self.platform   = parent.platform
-            print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
+            # print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
         else:
             """ Screen (aka top-level Frame), so scale to the boundary """
             bounds          = parent.boundary

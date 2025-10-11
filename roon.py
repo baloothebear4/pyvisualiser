@@ -197,9 +197,11 @@ class RoonMetaData:
         else:
             for zone_id in changed_zoneids:
                 if zone_id in self.roon.zones:
-                    print("ZoneMetadata.update> metadata update for non target zone: name %s target %s" % (self.roon.zones[zone_id]['display_name'], self.target_zone_name))
+                    pass
+                    # print("ZoneMetadata.update> metadata update for non target zone: name %s target %s" % (self.roon.zones[zone_id]['display_name'], self.target_zone_name))
                 else:
-                    print("ZoneMetadata.update> metadata update for outputs on %s" % (self.roon.outputs[zone_id]['display_name']))
+                    pass
+                    # print("ZoneMetadata.update> metadata update for outputs on %s" % (self.roon.outputs[zone_id]['display_name']))
 
     def __str__(self):
         text = ""

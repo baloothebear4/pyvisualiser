@@ -858,6 +858,10 @@ class GraphicsDriverPi:
         # Force pygame to use framebuffer
         os.environ['SDL_VIDEODRIVER'] = 'kmsdrm'
         os.environ['SDL_VIDEODEVICE'] = '/dev/dri/card1'
+        # 2. Add /usr/local/lib to LD_LIBRARY_PATH for custom SDL linkage
+        custom_lib_path = '/usr/local/lib'
+        current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
+        os.environ['LD_LIBRARY_PATH'] = f"{custom_lib_path}:{current_ld_path}"
         # Remove any rotation overrides - let hardware handle it
         if 'SDL_VIDEO_KMSDRM_ROTATION' in os.environ:
             del os.environ['SDL_VIDEO_KMSDRM_ROTATION']    
