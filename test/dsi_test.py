@@ -13,6 +13,8 @@ def test_dsi_display():
         ('kmsdrm', '/dev/dri/card1'),  # KMS/DRM - modern approach
         ('kmsdrm', '/dev/dri/card0'),  # Try card0 if card1 fails
         ('directfb', None),            # DirectFB fallback
+        ('kmsdrm', '0'),
+        ('kmsdrm', '1'),
         (None, None)                   # Auto-detect
     ]
     
@@ -41,6 +43,7 @@ def test_dsi_display():
             
             # Try to create display
             screen = pygame.display.set_mode((1280,400))
+            print(f"Actual working driver is: {pygame.display.get_driver()}")
             print(f"✅ Successfully initialized with driver: {driver or 'auto'}")
             break
             
