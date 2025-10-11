@@ -25,7 +25,7 @@ import platform
 
 # SCREENS = ( ColAlignedScreen, SpectrumBaseArt )
 SCREENS = ( SpectrumBaseArt, MinSpectrumArt, ArtistScreen, TrackScreen, MetaVUScreen, TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumScreen4, \
-            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2  )
+            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, TrackVUMeterScreen21  )
 
 """ 
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 

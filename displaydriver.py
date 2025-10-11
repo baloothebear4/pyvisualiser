@@ -156,13 +156,45 @@ class Image(Frame):
         # print("Image.__init__>", self.framestr())
 
     def download_image(self, url):
-        response = requests.get(url)
-        return BytesIO(response.content)
+        # response = requests.get(url)
+        # return BytesIO(response.content)
+        try:
+            # Use a short timeout for network requests
+            response = requests.get(url, timeout=5)
+            response.raise_for_status() # Raise exception for bad status codes (4xx or 5xx)
+            return BytesIO(response.content)
+        except requests.exceptions.RequestException as e:
+            print(f"Image.download_image ERROR: Failed to fetch image from URL {url}: {e}")
+            return None
 
     def scaleInProportion(self, image_ref, tgt_height):
         if image_ref is None: return
-        path = self.download_image(image_ref) if 'http' in image_ref else image_ref
-        imagesurface = pygame.image.load(path).convert_alpha()
+
+        # path = self.download_image(image_ref) if 'http' in image_ref else image_ref
+        # imagesurface = pygame.image.load(path).convert_alpha()
+
+        imagesurface = None
+        try:
+            if 'http' in image_ref:
+                path = self.download_image(image_ref) 
+                if path is None: return None # Download failed, log already printed
+            else:
+                path = image_ref
+
+            # CRITICAL POINT: Load the image into a Pygame surface
+            imagesurface = pygame.image.load(path).convert_alpha()
+            
+        except pygame.error as e:
+            print(f"Image.scaleInProportion ERROR: Pygame failed to load image '{image_ref}'. Error: {e}")
+            return None
+        except Exception as e:
+             print(f"Image.scaleInProportion UNEXPECTED ERROR during load '{image_ref}': {e}")
+             return None
+
+        if imagesurface is None:
+            return None
+
+
         original_width, original_height = imagesurface.get_size()
         aspect_ratio = original_width / original_height
         frame_width  = 0 if self.outline is None else self.outline.width 
@@ -433,7 +465,7 @@ class Text(Frame):
     Fonts are scaled to fit
     update triggers a resizing of the text each time its drawn
     """
-    TYPEFACE = 'helvetica'
+    TYPEFACE = 'fonts/Inter/Inter-VariableFont_opsz,wght.ttf'
     READABLE = 16   # smallest readable font size
     MAX_LINES= 2
 
@@ -478,15 +510,15 @@ class Text(Frame):
     def shrink_fontsize(self, wh, text, fontmax=None, min=5):
         # print("Text.shrink_fontsize> attempt", text, wh, self.fontmax, self.boundswh)
         fontsize    = self.fontmax if fontmax is None else fontmax
-        font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+        font        = pygame.font.Font(Text.TYPEFACE, int(fontsize))
         fontwh      = self.textsize(text, font) 
         if fontwh[0]> wh[0]:  
             fontsize   = fontsize * wh[0]/ fontwh[0]
-            font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+            font        = pygame.font.Font(Text.TYPEFACE, int(fontsize))
             fontwh      = self.textsize(text, font)
         if fontwh[1]> wh[1]:  
             fontsize    = fontsize *  wh[1]/fontwh[1]
-            font        = pygame.font.SysFont(Text.TYPEFACE, int(fontsize))
+            font        = pygame.font.Font(Text.TYPEFACE, int(fontsize))
             fontwh      = self.textsize(text, font)
 
         # print("Text.shrink_fontsize>", text, wh, fontwh, fontsize, fontmax)
@@ -528,10 +560,20 @@ class Text(Frame):
         if colour_index is None : colour_index = self.colour_index
         colour = self.colours.get(colour_index)
 
-        for line_number, line in enumerate(self.drawtext):
-            info = self.font.render(line, True, colour)
-            size = info.get_rect()
-            self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
+        # for line_number, line in enumerate(self.drawtext):
+        #     info = self.font.render(line, True, colour)
+        #     size = info.get_rect()
+        #     self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
+        if hasattr(self, 'font') and self.font is not None:
+            for line_number, line in enumerate(self.drawtext):
+                try:
+                    info = self.font.render(line, True, colour)
+                    size = info.get_rect()
+                    self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
+                except pygame.error as e:
+                    print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
+                    # Skip drawing this line but continue the loop
+
 
         # print("Text.draw > ", self.reset, self.drawtext, text, offset, coords, colour, colour_index, self.scalers, self.alignment, size)
 
@@ -858,10 +900,30 @@ class GraphicsDriverPi:
         # Force pygame to use framebuffer
         os.environ['SDL_VIDEODRIVER'] = 'kmsdrm'
         os.environ['SDL_VIDEODEVICE'] = '/dev/dri/card1'
-        # 2. Add /usr/local/lib to LD_LIBRARY_PATH for custom SDL linkage
+       
+        # 2. Hardening LD_LIBRARY_PATH for ALL required custom and system libraries
         custom_lib_path = '/usr/local/lib'
+        # CRITICAL: This path holds the system's runtime libraries (libpng, libjpeg, libfreetype)
+        # that the Pygame modules require.
+        system_lib_path_aarch64 = '/usr/lib/aarch64-linux-gnu' 
+        
+        # Prioritize custom path first, then system path
+        paths_to_add = [custom_lib_path, system_lib_path_aarch64]
+        
         current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
-        os.environ['LD_LIBRARY_PATH'] = f"{custom_lib_path}:{current_ld_path}"
+        # Filter empty strings from the path list
+        ld_path_list = [p for p in current_ld_path.split(':') if p] 
+        
+        added_paths = []
+
+        for path in paths_to_add:
+            if path not in ld_path_list:
+                # Prepend the path to ensure it is found before default system paths
+                ld_path_list.insert(0, path)
+                added_paths.append(path)
+
+        os.environ['LD_LIBRARY_PATH'] = ':'.join(ld_path_list)
+
         # Remove any rotation overrides - let hardware handle it
         if 'SDL_VIDEO_KMSDRM_ROTATION' in os.environ:
             del os.environ['SDL_VIDEO_KMSDRM_ROTATION']    

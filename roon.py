@@ -200,8 +200,8 @@ class RoonMetaData:
                     pass
                     # print("ZoneMetadata.update> metadata update for non target zone: name %s target %s" % (self.roon.zones[zone_id]['display_name'], self.target_zone_name))
                 else:
-                    pass
-                    # print("ZoneMetadata.update> metadata update for outputs on %s" % (self.roon.outputs[zone_id]['display_name']))
+                    # pass
+                    print("ZoneMetadata.update> metadata update for outputs on %s" % (self.roon.outputs[zone_id]['display_name']))
 
     def __str__(self):
         text = ""

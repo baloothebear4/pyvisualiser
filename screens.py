@@ -268,6 +268,35 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         # self += VUMeterFrame1(self  , scalers=(0.7,0.7), align=('left','middle'))
         # self += Diamondiser(self  , 'left', scalers=(0.3, 1.0), align=('right','middle'))
 
+class TrackVUMeterScreen21(Frame):   # comprises volume on the left, spectrum on the right
+    @property
+    def title(self): return 'Analogue VU Meters, Roon Album Art, Metadata and progress bar'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme= 'meter1')
+  
+        NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
+        ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
+        PIVOT     = -0.5
+        OUTLINE={'colour_index':'light', 'width':2, 'opacity': 200, 'radius': 20}
+        # self += AlbumArtFrame(self  , (0.25, 0.93),align=('right','middle'))
+        # self += AlbumArtFrame(self  , (0.3, 0.3),align=('centre','top'))
+
+        colframes = ColFramer(self, padding=0.2, background='dark')
+        colframes += VUMeter(colframes  ,  'left', scalers=(0.3, 0.9), align=('left','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
+        colframes += MetaDataFrame(colframes  , scalers=(0.3, 0.8), align=('centre','middle'))
+        colframes += VUMeter(colframes  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+
+        # self += ArtistArtFrame(self  , scalers=(1.0,1.0),align=('centre','middle'), opacity=40)
+        self += PlayProgressFrame(self  , scalers=(0.3, 0.05), align=('centre','bottom'))
+ 
+ 
+        # self += VUMeterFrame1(self  , scalers=(0.7,0.7), align=('left','middle'))
+        # self += Diamondiser(self  , 'left', scalers=(0.3, 1.0), align=('right','middle'))        
+
 class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
     def title(self): return 'Oscillogram, Roon Album Art, Metadata and progress bar'
