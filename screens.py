@@ -285,13 +285,25 @@ class TrackVUMeterScreen21(Frame):   # comprises volume on the left, spectrum on
         # self += AlbumArtFrame(self  , (0.25, 0.93),align=('right','middle'))
         # self += AlbumArtFrame(self  , (0.3, 0.3),align=('centre','top'))
 
-        colframes = ColFramer(self, padding=0.2, background='dark')
-        colframes += VUMeter(colframes  ,  'left', scalers=(0.3, 0.9), align=('left','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
-        colframes += MetaDataFrame(colframes  , scalers=(0.3, 0.8), align=('centre','middle'))
-        colframes += VUMeter(colframes  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+        colframe = ColFramer(self, padding=0.01, scalers=(1.0, 0.9), align=('centre','top'), background='dark')
 
-        # self += ArtistArtFrame(self  , scalers=(1.0,1.0),align=('centre','middle'), opacity=40)
-        self += PlayProgressFrame(self  , scalers=(0.3, 0.05), align=('centre','bottom'))
+        # colframe += AlbumArtFrame(colframe)
+
+        # centreframe = RowFramer(colframe, background='dark', padding=0.0)
+
+        self += PlayProgressFrame(self  , scalers=(1.0, 0.1), align=('centre','bottom'))
+ 
+        # colframes += VUMeter(colframes  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+        # colframe += Frame(colframe  , scalers=(0.5, 1.0), background='light', outline={'colour_index':'alert'})
+        # colframe += Frame(colframe  , background='mid')
+        # colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
+        colframe  += VUMeter(colframe,  'left',  scalers=(1.0, 1.0), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
+        colframe  += MetaDataFrame(colframe )
+        colframe  += VUMeter(colframe,  'right', scalers=(1.0, 1.0), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+  
+        # colframe   += ArtistArtFrame(colframe, opacity=100)
+
+        print("TrackVUMeterScreen21 > colframe", colframe.framestr())
  
  
         # self += VUMeterFrame1(self  , scalers=(0.7,0.7), align=('left','middle'))

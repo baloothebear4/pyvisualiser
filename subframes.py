@@ -1,5 +1,5 @@
-from framecore import Frame
-from frames import VUFrame, TextFrame
+from framecore import Frame, RowFramer, ColFramer
+from frames import VUFrame, TextFrame, MetaData,PlayProgressFrame
 
 
 class VU2chFrame(Frame):
@@ -52,3 +52,28 @@ class VU2chHorzFrame(Frame):
         self += VUHorzFrame(self, 'left',  scalers=(1.0, 0.5), align=('left','top') ,tip=tip, theme=theme )
         self += VUHorzFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom') ,tip=tip, theme=theme )
         # self += VUHorzFrame(self, 'right', scalers=(0.5,1.0), V='middle' , align=('left','middle') )
+
+class MetaDataFrame(Frame):
+    SHOW = {'track': {'colour':'foreground', 'align': ('centre','middle'), 'scalers': (1.0, 1.0) }, \
+            'artist': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.7) }, \
+            'album': {'colour':'mid', 'align': ('centre','middle'), 'scalers' : (1.0, 0.7) } }    
+
+    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre'):
+        super().__init__(parent, scalers=scalers, align=align, theme=theme)
+        self.justify = justify
+        self.create()
+
+    def create(self):  #reentrant so scaling works properly when sizing columns & rows
+        self.frames = []
+        rows = RowFramer(self, padding=0.00)
+
+        for meta, attributes in MetaDataFrame.SHOW.items():
+
+            align = attributes['align'] if self.justify is None else (self.justify, attributes['align'][1])
+            # print(meta, attributes, align)
+            rows += MetaData(rows, meta, align = align, scalers = attributes['scalers'],colour  = attributes['colour'], theme=self.theme)
+
+        rows += PlayProgressFrame(rows  , scalers=(1.0, 0.4), align=('centre','bottom'))
+
+
+    

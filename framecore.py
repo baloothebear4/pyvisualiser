@@ -392,7 +392,7 @@ class Geometry():
             # move so its packs from the top - the offset ie downwards    
         else:
             raise ValueError('Frame.align: expected horz anchor (left, centre, right) found->', self.alignment[0])
-        # print("Frame.align> to", self.geostr())
+        # print("Geometry.align> to", self.geostr())
 
 FULLSCALE = (1.0,1.0)
 CENTRED   = ('centre', 'middle')
@@ -474,6 +474,20 @@ class Frame(Geometry):
 
     # A full update drawns all frames, components and backgrounds regardless is the content is new
     #
+
+    def realign(self, align=None, offset=None):
+        if align is not None or offset is not None:
+            # Only run self.align if new alignment/offset is provided
+            self.align(align, offset) 
+            
+        if hasattr(self, 'create'):
+            self.create()
+        # Always realign children based on their own *stored* alignment.
+        # for f in self.frames:
+        #     f.align(f.alignment) # Use the child's stored alignment, relative to its new parent size/position.
+            # if hasattr(f, 'create'): f.create() # Assuming create() is needed to redraw internal components
+        # print("Frame.realign> ", align, offset, self.framestr())
+
     def update(self, full=True):
 
         if full: 
@@ -504,7 +518,7 @@ class Frame(Geometry):
             self.platform.dirty_mgr.add(tuple(self.abs_rect()))
             
     def framestr(self):
-        return "%-10s > %s, %s, %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme)
+        return "%-10s > wh %s, abs %s, parent %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme)
 
     def frametext(self, f):
         return "%-10s > %s" % (type().__name__, super(Frame, f).__str__())
@@ -552,7 +566,7 @@ class ColFramer(Frame):
         super().__init__(parent, *args, **kwargs)
         self.padding =  1-padding
         parent += self #make sure this frame is in the update() stack
-        print("ColFramer.__init__>", self.framestr())
+        # print("ColFramer.__init__>", self.framestr())
 
     def __iadd__(self, frame):
         self.frames.append(frame)
@@ -566,9 +580,13 @@ class ColFramer(Frame):
         frame_padding = (self.w - summed_frame_w)/(columns + 1)
         offset = frame_padding
         for f in self.frames:  
-            f.align( align=('col',f.alignment[1]), offset=offset)
+            f.realign( align=('col',f.alignment[1]), offset=offset)
+
+            # for child in f.frames:
+            #     child.realign(child.alignment) # Re-align child based on its *original* alignment
+            
             offset += frame_padding + f.w
-            print("ColFrame.__iadd__>", summed_frame_w, f.framestr())
+            # print("ColFrame.__iadd__> sum of frames" , summed_frame_w, f.framestr())
         return self
 
 class RowFramer(Frame):
@@ -577,7 +595,7 @@ class RowFramer(Frame):
         super().__init__(parent, *args, **kwargs)
         self.padding =  1-padding
         parent += self #make sure this frame is in the update() stack
-        print("RowFramer.__init__>", self.framestr())
+        # print("RowFramer.__init__>", self.framestr())
 
     def __iadd__(self, frame):
         self.frames.append(frame)
@@ -591,9 +609,9 @@ class RowFramer(Frame):
         frame_padding = (self.h - summed_frame_h)/(rows + 1)
         offset = frame_padding
         for f in self.frames:  
-            f.align( align=(f.alignment[0],'row'), offset=offset)
+            f.realign( align=(f.alignment[0],'row'), offset=offset)
             offset += frame_padding + f.h
-            print("RowFrame.__iadd__>", summed_frame_h, f.framestr())
+            # print("RowFrame.__iadd__> sum of frames", summed_frame_h, f.framestr())
         return self
 
 

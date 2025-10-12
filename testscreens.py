@@ -1,5 +1,5 @@
 from framecore import Frame, ColFramer, RowFramer
-from frames import  VUMeterImageFrame, Spectrum2chFrame, SpectrumStereoOffsetFrame, SpectrumStereoFrame, SpectrumStereoSplitFrame, SpectrumFrame
+from frames import  VUMeterImageFrame, Spectrum2chFrame, SpectrumStereoOffsetFrame, SpectrumStereoFrame, SpectrumStereoSplitFrame, SpectrumFrame, TextFrame
 import time
 
 
@@ -335,12 +335,12 @@ class ColAlignedScreen(Frame):
         # print("SubFrame> ", self.geostr())
 
         colframe = ColFramer(self, scalers=(0.4, 0.9), align=('left','middle'), background='dark', padding=0.1) #, align=('centre','middle'))
-        colframe += Frame(colframe  , scalers=(0.5, 1.0), background='light', outline={'colour_index':'alert'})
-        colframe += Frame(colframe  , background='mid')
+        colframe += TextFrame(colframe  , text='left', scalers=(0.5, 1.0), background='light', outline={'colour_index':'alert'})
+        colframe += TextFrame(colframe  , text='mid', background='mid')
         colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
 
         rowframe = RowFramer(self  ,  scalers=(0.5, 0.9), align=('right','middle'), background='dark', padding=0.2)
-        rowframe += Frame(rowframe  , background='light', outline={'colour_index':'alert'})
+        rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
         rowframe += Frame(rowframe  ,   scalers=(0.6, 0.7), background='mid')
         rowframe += Frame(rowframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
 

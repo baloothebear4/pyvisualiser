@@ -51,17 +51,25 @@ class TextFrame(Frame):
         - V is the vertical alignment
         - Y is the y scaler
     """
-    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, colour_index='foreground'):
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
-        self.text     = Text(self, text=text, reset=reset, align=align, scalers=scalers, theme=theme, colour_index=colour_index, wrap=wrap)
-        self.parent   = parent
+    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, colour_index='foreground', background=None, outline=None):
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=background)
+        self.colour_index   = colour_index 
+        self.wrap           = wrap
+        self.reset          = reset
+        self.text           = text
+        self.create()
+
+    def create(self):
+        self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, align=self.alignment, scalers=self.scalers, theme=self.theme, colour_index=self.colour_index, wrap=self.wrap)
         # print("TextFrame.__init__>", text, self.text.fontwh, scalers, self.alignment, self.geostr())
 
     def update(self, full, text=None, colour_index=None, fontmax=None):
         # print("TextFrame.draw ", text, colour_index, self.geostr())
-        if full or self.text.new_content_available(text):
+        # if text is None: text = self.text
+        if full or self.textcomp.new_content_available(text):
+            print("TextFrame.draw ", full, text, colour_index, self.geostr())
             self.draw_background() # clear whats there -- not needed for
-            self.text.draw(text=text, colour_index=colour_index, fontmax=fontmax)
+            self.textcomp.draw(text=text, colour_index=colour_index, fontmax=fontmax)
         else:
             pass # no need to redraw
         
@@ -89,17 +97,21 @@ class PlayProgressFrame(Frame):
         self.barsize_pc     = barsize_pc      # min widths
         self.barw_max       = barw_max      # max width
         self.orient         = orient   # Horz or vert bars
+        self.theme          = theme
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
-        self.barw           = self.w * barsize_pc if orient == 'vert' else self.h * barsize_pc   # width of the bar
-        self.parent         = parent
+        self.create()
+
+
+    def create(self):
+        self.barw           = self.w * self.barsize_pc if self.orient == 'vert' else self.h * self.barsize_pc   # width of the bar
 
         text = " 22:22 "
-        self.elapsed     = Text(self, fontmax=self.barw, text=text, reset=True, align=('left', 'middle'), theme=theme, colour_index='mid')
-        self.remaining   = Text(self, fontmax=self.barw, text=text, reset=True, align=('right', 'middle'), theme=theme, colour_index='mid')
+        self.elapsed     = Text(self, fontmax=self.barw, text=text, reset=True, align=('left', 'middle'), theme=self.theme, colour_index='mid')
+        self.remaining   = Text(self, fontmax=self.barw, text=text, reset=True, align=('right', 'middle'), theme=self.theme, colour_index='mid')
         text_width = self.elapsed.fontwh[0] + self.remaining.fontwh[0]
 
-        box = (self.barw, self.h) if orient == 'vert' else (self.w-text_width, self.barw)
-        self.boxbar      = Box(self, align=('centre', 'middle'), theme=theme, box=box, radius=10)
+        box = (self.barw, self.h) if self.orient == 'vert' else (self.w-text_width, self.barw)
+        self.boxbar      = Box(self, align=('centre', 'middle'), theme=self.theme, box=box, radius=10)
 
     def update(self, full):
         elapsed   = f"  {int( self.platform.elapsed//60)}:{int( self.platform.elapsed %60):02d}"
@@ -125,7 +137,12 @@ class AlbumArtFrame(Frame):
     # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
-        self.image_container = Image(self, outline=outline, opacity=opacity)  # make square
+        self.opacity=opacity 
+        self.outline=outline
+        self.create()
+
+    def create(self):    
+        self.image_container = Image(self, opacity=self.opacity, outline=self.outline)  
 
     def update(self, full):
         # print("AlbumArtFrame.draw> new album art")
@@ -140,8 +157,15 @@ class AlbumArtFrame(Frame):
 class ArtistArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
         Frame.__init__(self, parent, scalers=scalers, align=align)
-        self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=opacity, outline=outline)  
+        self.opacity=opacity 
+        self.outline=outline
+        self.create()
+
         # print("ArtistArtFrame.__init__>", opacity)
+
+    # rescale and align the frame
+    def create(self):
+        self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=self.opacity, outline=self.outline)  
 
     def update(self, full):
         if full or self.image_container.new_content_available(self.platform.artist_art):
@@ -151,35 +175,40 @@ class ArtistArtFrame(Frame):
             pass # no need to redraw
 
 
-
-class MetaDataFrame(Frame):
+class MetaData(Frame):
     SHOW = {'artist': {'colour':'foreground', 'align': ('centre','top'), 'scalers': (1.0, 0.33) }, \
             'track': {'colour':'light', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) }, \
             'album': {'colour':'mid', 'align': ('centre','bottom'), 'scalers' : (1.0, 0.33) } }
 
-    def __init__(self, parent, scalers=None, align=None,theme=None,show=SHOW, same_size=True):
-        Frame.__init__(self, parent, scalers=scalers, align=align, outline=None)
-        self.show       = show
-        self.same_size  = same_size
-        self.metadata   = {}
+    def __init__(self, parent, metadata_type, colour='foreground', scalers=None, align=None,theme=None, same_size=True):
+        Frame.__init__(self, parent, scalers=scalers, align=align, outline=None, theme = theme)
+        self.metadata_type   = metadata_type
+        self.colour     = colour
+        self.same_size  = same_size  # not sure what this does
+        self.create()
 
-        for meta, attributes in self.show.items():
-            scalers = attributes['scalers'] if 'scalers' in attributes else MetaDataFrame.SHOW[meta]['scalers']
-            align   = attributes['align']   if 'align'   in attributes else MetaDataFrame.SHOW[meta]['align']
-            colour  = attributes['colour']  if 'colour'  in attributes else MetaDataFrame.SHOW[meta]['colour']
-            self.metadata[meta] = TextFrame(self, scalers=scalers, align=align, colour_index=colour, reset=True, theme=theme, wrap=True)
-            # self.metadata[meta] = TextFrame(self, scalers=self.show[meta]['scalers'], align=self.show[meta]['align'], reset=True, theme=theme, wrap=True)
+    def create(self):
+        # scalers = attributes['scalers'] if 'scalers' in attributes else MetaData.SHOW[meta]['scalers']
+        # align   = attributes['align']   if 'align'   in attributes else MetaData.SHOW[meta]['align']
+        # colour  = attributes['colour']  if 'colour'  in attributes else MetaData.SHOW[meta]['colour']
+        print("MetaData.create>", self.metadata_type, self.framestr() )
+        self.metadata = TextFrame(self, scalers=self.scalers, align=self.alignment, colour_index=self.colour, reset=True, theme=self.theme, wrap=True)
+        # self.metadata[meta] = TextFrame(self, scalers=self.show[meta]['scalers'], align=self.show[meta]['align'], reset=True, theme=theme, wrap=True)
 
-            # print("MetaDataFrame.__init__>", meta, attributes, self.wh, self.show )
+        # print("MetaDataFrame.__init__>", meta, attributes, self.wh, self.show )
 
     def update(self, full, fontsize=None):
-        # fontsize = self.h//2
-        for meta, container in self.metadata.items():
-            if 'track'  in meta: container.update(full, text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
-            if 'album'  in meta: container.update(full, text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
-            if 'artist' in meta: container.update(full, text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])
-        
+        if   'track'  in self.metadata_type: 
+            self.metadata.update(full, text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
             
+        elif 'album'  in self.metadata_type: 
+            self.metadata.update(full, text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
+            
+        elif 'artist' in self.metadata_type: 
+            self.metadata.update(full, text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])        
+
+        else:
+            print("MetaDataFrame.update> Metadata type not known", self.metadata_type )            
 
 
 
@@ -225,40 +254,165 @@ class VUMeter(Frame):
     NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
     VUIMAGEPATH = 'VU Images'
 
+    # def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
+    #              endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
+    #              needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None):
+
+    #     self.channel = channel
+    #     self.marks   = marks
+    #     channel      = channel if channel == 'left' or channel == 'right' else align[0]
+    #     Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme, background=background)
+    #     self.parent = parent
+    #     self.bgdimage = bgdimage
+
+    #     # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
+    #     # METERS      = { 'blueVU' : {'file': 'blue-bgr.png', 'needle':NEEDLE, 'endstops':ENDSTOPS, 'pivot':0}
+    #     # Setup the background
+
+    #     if self.bgdimage is not None:
+    #         self.path       = VUMeter.VUIMAGEPATH +'/'+ bgdimage
+    #         self.bgdimage   = Image(self, align=('centre', 'middle'), path=self.path,outline=outline )
+    #         # print("VUeter.__init__> setup background images", self.framestr())
+    #     else:
+    #         self.path        = None
+    #         radius           = self.h*(0.5-pivot)
+    #         self.scales      = { mark : Text(self, text=marks[mark]['text'], colour_index=marks[mark]['colour'], fontmax=self.h*fonth, endstops=endstops, scalers=(1.0,1.0),centre_offset=pivot, radius=radius*scaleslen, reset=False, theme=theme ) for mark in marks }
+    #         self.dB          = Text(self, fontmax=self.h*fonth*2, text=annotate['text'], align=('centre', annotate['Valign']), colour_index=annotate['colour'], reset=True, theme=theme, scalers=(1.0,1.0))
+    #         self.ticks       = Line(self, width=tick_w, endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*ticklen, theme=theme )
+    #         self.arclines    = []
+    #         for rad_pc, arc in arcs.items():
+    #             self.arclines.append(Line(self, width=arc['width'], colour_index=arc['colour'], endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*rad_pc, theme=theme ))
+    #         print("VUeter.__init__> setup vector background", self.framestr())
+
+    #     # setup the needle
+    #     radius           = self.h*(0.5-pivot)
+    #     self.VU          = VU(self.platform, self.channel, decay=decay, smooth=smooth)
+    #     self.needle      = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index=needle['colour'])
+    #     self.peak        = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index='alert')
+    #     self.peakmeter   = peakmeter
+    #     print("VUeter.__init__> needle", self.framestr(), "\n", self.needle.framestr())
+        
     def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
-                 endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
-                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None):
+                endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC, fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
+                needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None, **kwargs):
+        
+        # 1. Capture all configuration parameters into self.config
+        self.config = {
+            'channel': channel,
+            'scalers': scalers,
+            'align': align,
+            'peakmeter': peakmeter,
+            'outline': outline,
+            'endstops': endstops,
+            'tick_w': tick_w,
+            'tick_pc': tick_pc,
+            'fonth': fonth,
+            'pivot': pivot,
+            'decay': decay,
+            'smooth': smooth,
+            'bgdimage': bgdimage,
+            'needle': needle,
+            'ticklen': ticklen,
+            'scaleslen': scaleslen,
+            'theme': theme,
+            'marks': marks,
+            'annotate': annotate,
+            'arcs': arcs,
+            'background': background,
+        }
+        # Add any remaining keyword arguments
+        self.config.update(kwargs)
 
-        self.channel = channel
-        self.marks   = marks
-        channel      = channel if channel == 'left' or channel == 'right' else align[0]
-        Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme, background=background)
-        self.parent = parent
+        # 2. Determine the channel/alignment for the parent Frame.__init__
+        align_channel = channel if channel in ('left', 'right') else align[0]
+        
+        # 3. Call the parent's __init__ using the stored values
+        super().__init__(parent, 
+                         scalers=self.config['scalers'], 
+                         align=(align_channel, self.config['align'][1]),
+                         theme=self.config['theme'], 
+                         background=self.config['background'])
 
-        # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
-        # METERS      = { 'blueVU' : {'file': 'blue-bgr.png', 'needle':NEEDLE, 'endstops':ENDSTOPS, 'pivot':0}
-        # Setup the background
+        # 4. Initialize the frame layout using the create() method
+        self.create()
 
-        if bgdimage is not None:
-            self.path       = VUMeter.VUIMAGEPATH +'/'+ bgdimage
-            self.bgdimage   = Image(self, align=('centre', 'middle'), path=self.path,outline=outline )
-            # print("VUeter.__init__> setup background images", self.framestr())
+    def create(self):
+        """
+        Re-entrant method to generate all visual components based on the 
+        current frame geometry (self.w, self.h).
+        """
+        # 1. CRITICAL: Clear all previous components to prevent drawing overlap
+        # VUMeter is a container, so we must clear its contents.
+        self.frames = [] 
+        
+        # Pull required configs locally for cleaner code
+        cfg = self.config
+        
+        # --- Background Setup (Image or Vector) ---
+        if cfg['bgdimage'] is not None:
+            self.path = VUMeter.VUIMAGEPATH + '/' + cfg['bgdimage']
+            self.bgdimage = Image(self, align=('centre', 'middle'), path=self.path, outline=cfg['outline'])
+            # Image.__init__ should add the Image to self.frames, so VUMeter is a parent
+        
         else:
-            self.path        = None
-            radius           = self.h*(0.5-pivot)
-            self.scales      = { mark : Text(self, text=marks[mark]['text'], colour_index=marks[mark]['colour'], fontmax=self.h*fonth, endstops=endstops, scalers=(1.0,1.0),centre_offset=pivot, radius=radius*scaleslen, reset=False, theme=theme ) for mark in marks }
-            self.dB          = Text(self, fontmax=self.h*fonth*2, text=annotate['text'], align=('centre', annotate['Valign']), colour_index=annotate['colour'], reset=True, theme=theme, scalers=(1.0,1.0))
-            self.ticks       = Line(self, width=tick_w, endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*ticklen, theme=theme )
-            self.arclines    = []
-            for rad_pc, arc in arcs.items():
-                self.arclines.append(Line(self, width=arc['width'], colour_index=arc['colour'], endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*rad_pc, theme=theme ))
+            # Vector Background Setup
+            self.path = None
+            radius = self.h * (0.5 - cfg['pivot'])
 
-        # setup the needle
-        radius           = self.h*(0.5-pivot)
-        self.VU          = VU(self.platform, self.channel, decay=decay, smooth=smooth)
-        self.needle      = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index=needle['colour'])
-        self.peak        = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index='alert')
-        self.peakmeter   = peakmeter
+            # Add Text objects for scales (marks)
+            self.scales = {
+                mark: Text(self, text=cfg['marks'][mark]['text'], 
+                           colour_index=cfg['marks'][mark]['colour'], 
+                           fontmax=self.h * cfg['fonth'], 
+                           endstops=cfg['endstops'], 
+                           scalers=(1.0, 1.0), 
+                           centre_offset=cfg['pivot'], 
+                           radius=radius * cfg['scaleslen'], 
+                           reset=False, theme=cfg['theme']) 
+                for mark in cfg['marks']
+            }
+            
+            # Add dB Annotation
+            self.dB = Text(self, fontmax=self.h * cfg['fonth'] * 2, 
+                           text=cfg['annotate']['text'], 
+                           align=('centre', cfg['annotate']['Valign']), 
+                           colour_index=cfg['annotate']['colour'], 
+                           reset=True, theme=cfg['theme'], scalers=(1.0, 1.0))
+            
+            # Add Ticks (Line)
+            self.ticks = Line(self, width=cfg['tick_w'], endstops=cfg['endstops'], 
+                              tick_pc=cfg['tick_pc'], centre_offset=cfg['pivot'], 
+                              radius=radius * cfg['ticklen'], theme=cfg['theme'])
+            
+            # Add Arcs (Line objects)
+            self.arclines = []
+            for rad_pc, arc in cfg['arcs'].items():
+                self.arclines.append(
+                    Line(self, width=arc['width'], colour_index=arc['colour'], 
+                         endstops=cfg['endstops'], tick_pc=cfg['tick_pc'], 
+                         centre_offset=cfg['pivot'], radius=radius * rad_pc, theme=cfg['theme'])
+                )
+            
+            # NOTE: Text and Line objects must add themselves to self.frames in their __init__
+
+        # --- Needle Setup (common to both background types) ---
+        radius = self.h * (0.5 - cfg['pivot'])
+        self.VU = VU(self.platform, cfg['channel'], decay=cfg['decay'], smooth=cfg['smooth'])
+        
+        # Needle Line
+        self.needle = Line(self, width=cfg['needle']['width'], tick_pc=cfg['needle']['radius_pc'], 
+                           centre_offset=cfg['pivot'], endstops=cfg['endstops'], 
+                           radius=radius * cfg['needle']['length'], theme=cfg['theme'], 
+                           colour_index=cfg['needle']['colour'])
+        
+        # Peak Line
+        self.peak = Line(self, width=cfg['needle']['width'], tick_pc=cfg['needle']['radius_pc'], 
+                         centre_offset=cfg['pivot'], endstops=cfg['endstops'], 
+                         radius=radius * cfg['needle']['length'], theme=cfg['theme'], 
+                         colour_index='alert')
+        
+        self.peakmeter = cfg['peakmeter']
+        # The Line objects should also add themselves to self.frames.    
 
     def update(self, full):
         if self.path is None:
@@ -270,7 +424,7 @@ class VUMeter(Frame):
 
     def drawVUBackground(self):
         self.draw_background()
-        for val, mark in self.marks.items():
+        for val, mark in self.config['marks'].items():
             self.scales[val].drawVectoredText(val, colour_index=mark['colour'])
             self.ticks.drawFrameCentredVector(val, colour_index=mark['colour'], width=mark['width'])
 
@@ -280,6 +434,7 @@ class VUMeter(Frame):
         self.dB.draw()
 
     def drawNeedle(self):
+        # print("VUeter._drawNeedle", self.framestr(), "\n", self.needle.framestr())
         vu, peaks   = self.VU.read()
         self.needle.drawFrameCentredVector(vu)
         if self.peakmeter and peaks > 0: self.peak.drawFrameCentredVector(peaks)
