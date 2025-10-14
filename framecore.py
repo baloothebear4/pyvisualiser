@@ -76,7 +76,7 @@ class Geometry():
         if val >= 0 and val <= self.boundswh[0]:
             self._abcd[2] = int(val)
         else:
-            raise ValueError('set.c > value exceed bounds ', val, self.geostr())
+            raise ValueError('set.c > value exceed bounds ', val, self.boundswh[0], self.geostr())
 
     @property
     def d(self):
@@ -185,6 +185,7 @@ class Geometry():
     def scale(self, scalers):
         # print("Geometry.scale> by", scalers," using ", self.boundswh,", to, ",[ int(self.boundswh[0] * scalers[0]), int(scalers[1] * self.boundswh[1]) ], self.geostr() )
         if scalers[0]>0 and scalers[1]>0:
+            # self.scalers = scalers
             self.resize( [ int(self.boundswh[0] * scalers[0]), int(scalers[1] * self.boundswh[1])] )
         else:
             raise ValueError('Geometry.scale > scale is zero ', scalers, self.geostr())
@@ -428,13 +429,15 @@ class Frame(Geometry):
         """
         self.frames     = []         #Holds the stack of containing frames
         self.outline    = outline
+        scalers         = FULLSCALE   if scalers  is None else scalers
+        alignment       = CENTRED     if align    is None else align      
         # print("Frame.__init__> startup>>>", type(self).__name__, align, scalers, theme, background)
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
             bounds          = parent.coords
-            scalers         = parent.scalers    if scalers  is None else scalers
+            # scalers         = parent.scalers    if scalers  is None else scalers
             self.theme      = parent.theme      if theme    is None else theme
-            alignment       = parent.alignment  if align    is None else align            
+            # alignment       = parent.alignment  if align    is None else align            
             self.platform   = parent.platform
             # print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
         else:
@@ -447,11 +450,11 @@ class Frame(Geometry):
 
         Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment)
 
-        self.background = 'background' if background is None else background
-        self.colour     = Colour(self.theme, self.w)
+        self.background     = 'background' if background is None else background
+        self.colour         = Colour(self.theme, self.w)
 
         if outline is not None: 
-            self.outline     = self.platform.create_outline(self.theme, outline, self.w)
+            self.outline    = self.platform.create_outline(self.theme, outline, self.w)
             # print("create outline ", type(self).__name__)
 
         if square:
@@ -481,41 +484,51 @@ class Frame(Geometry):
             self.align(align, offset) 
             
         if hasattr(self, 'create'):
+            self.frames=[]
             self.create()
+            
         # Always realign children based on their own *stored* alignment.
         # for f in self.frames:
         #     f.align(f.alignment) # Use the child's stored alignment, relative to its new parent size/position.
             # if hasattr(f, 'create'): f.create() # Assuming create() is needed to redraw internal components
-        # print("Frame.realign> ", align, offset, self.framestr())
+        # print("Frame.realign> ", hasattr(self, 'create'), align, offset, self.framestr())
 
-    def update(self, full=True):
-
+    def update(self, full=False):
+        drawn = False
         if full: 
             self.draw_background()
-            # print("Framecore.update> #frames=%d, full update %s" % (len(self.frames), full))
+            drawn = True
+            # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
         for f in self.frames:
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # if hasattr(f, 'undraw'):  f.undraw()
 
-            # Clear the rect space, draw the new content, save the new rect for screen update
-            # f.platform.screen.blit(self.background, f.abs_rect(), f.abs_rect())
-
             # print("Frame.draw> full", full, f._need_to_redraw, type(f).__name__, f.abs_rect(), "has draw ", hasattr(f, 'draw') )
-            f.update(full)
-            f.draw_outline()
-            self.platform.dirty_mgr.add(tuple(f.abs_rect()))
-            # print("Frame.draw> rect", f.abs_rect())
+            if f.update(full) or f.draw_outline(full): 
+                self.platform.dirty_mgr.add(tuple(f.abs_rect()))
+                drawn = True
+            
+            # print("Frame.update> rect", full, type(f).__name__, f.abs_rect())
+        if drawn: 
+            self.platform.dirty_mgr.add(tuple(self.abs_rect()))
+            return True
+        else:
+            return False
 
     def draw_background(self):
-        # print("Frame.    def draw_background(self):> generic", type(self).__name__, self.abs_rect())
+        # print("Frame.draw_background", type(self).__name__, self.abs_rect())
         self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
         self.platform.dirty_mgr.add(tuple(self.abs_rect()))
 
-    def draw_outline(self):
-        if self.outline is not None: 
+    def draw_outline(self, full):
+        if self.outline is not None and full: 
             self.outline.draw(self.abs_rect())
+            # print("Frame.draw_outline>", self.abs_rect())
             self.platform.dirty_mgr.add(tuple(self.abs_rect()))
+            return True
+        else:
+            return False
             
     def framestr(self):
         return "%-10s > wh %s, abs %s, parent %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme)
@@ -569,6 +582,7 @@ class ColFramer(Frame):
         # print("ColFramer.__init__>", self.framestr())
 
     def __iadd__(self, frame):
+        # super().__iadd__(self)
         self.frames.append(frame)
         columns = len(self.frames)
         summed_frame_w = 0
@@ -598,6 +612,7 @@ class RowFramer(Frame):
         # print("RowFramer.__init__>", self.framestr())
 
     def __iadd__(self, frame):
+        # super().__iadd__(self)
         self.frames.append(frame)
         rows = len(self.frames)
         summed_frame_h = 0

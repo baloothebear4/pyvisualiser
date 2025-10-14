@@ -1,10 +1,10 @@
 from framecore import Frame, RowFramer, ColFramer
-from frames import VUFrame, TextFrame, MetaData,PlayProgressFrame
+from frames import VUFrame, TextFrame, MetaData,PlayProgressFrame, SpectrumFrame
 
 
 class VU2chFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False, led_h=5, led_gap=1,barsize_pc=0.7, theme=None):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme='std')
         # def VUVFrame(self, platform, bounds, channel, scalers=None, align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
         if orient=='horz':
@@ -64,7 +64,7 @@ class MetaDataFrame(Frame):
         self.create()
 
     def create(self):  #reentrant so scaling works properly when sizing columns & rows
-        self.frames = []
+        # self.frames = []
         rows = RowFramer(self, padding=0.00)
 
         for meta, attributes in MetaDataFrame.SHOW.items():
@@ -73,7 +73,28 @@ class MetaDataFrame(Frame):
             # print(meta, attributes, align)
             rows += MetaData(rows, meta, align = align, scalers = attributes['scalers'],colour  = attributes['colour'], theme=self.theme)
 
-        rows += PlayProgressFrame(rows  , scalers=(1.0, 0.4), align=('centre','bottom'))
+        # rows += SpectrumFrame(rows,'mono', scalers=(1.0, 0.5), align=('centre','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )
+        rows += PlayProgressFrame(rows  , scalers=(1.0, 0.3), align=('centre','bottom'))
 
+class StereoSpectrumFrame(Frame):
+    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre'):
+        super().__init__(parent, scalers=scalers, align=align, theme=theme)
+        self.create()
 
-    
+    def create(self):  #reentrant so scaling works properly when sizing columns & rows
+        # self.frames = []
+ 
+        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5)
+        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5 )
+
+class MetaMiniSpectrumFrame(Frame):
+    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre'):
+        super().__init__(parent, scalers=scalers, align=align, theme=theme)
+        self.create()
+
+    def create(self):  #reentrant so scaling works properly when sizing columns & rows
+        # self.frames = []
+
+        rowframe    = RowFramer(self)
+        rowframe   += MetaDataFrame(rowframe, scalers=(1.0, 1.0))
+        rowframe   += SpectrumFrame(rowframe,'mono', scalers=(1.0, 0.3), align=('centre','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )

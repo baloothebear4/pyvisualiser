@@ -232,7 +232,7 @@ class Image(Frame):
             image.set_alpha(self.opacity)
             frame_width  = 0 if self.outline is None else self.outline.width 
             self.platform.screen.blit(image, self.abs_origin(offset=(frame_width,frame_width)))
-            self.draw_outline()
+            self.draw_outline(True)
 
             # print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
             self.old_image_data = image_data
@@ -548,33 +548,7 @@ class Text(Frame):
         # print("Text.scalefont> max %s, target wh %s, fontwh %s, text<%s>, %s" % (self.whmax, wh, fontwh, text, self.drawtext))
         return font, fontwh
 
-    # def draw(self, text=None, offset=(0,0), coords=None, colour_index=None, fontmax=None):  #Draw the text in the corner of the frame
-    #     if text   is None:
-    #         text = self.text 
-    #     else:
-    #         self.text = text
-    #     if coords == None       : coords = self.abs_origin()
-    #     fontmax = self.fontmax if fontmax is None else fontmax
-    #     if self.reset: 
-    #         self.drawtext = None #self.cache.find(text)
-    #         if self.drawtext is None: self.update(text, fontmax)
-    #     if colour_index is None : colour_index = self.colour_index
-    #     colour = self.colours.get(colour_index)
-
-    #     # for line_number, line in enumerate(self.drawtext):
-    #     #     info = self.font.render(line, True, colour)
-    #     #     size = info.get_rect()
-    #     #     self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
-    #     if hasattr(self, 'font') and self.font is not None:
-    #         for line_number, line in enumerate(self.drawtext):
-    #             try:
-    #                 info = self.font.render(line, True, colour)
-    #                 size = info.get_rect()
-    #                 self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
-    #             except pygame.error as e:
-    #                 print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
-    #                 # Skip drawing this line but continue the loop
-    def draw(self, text=None, offset=(0,0), coords=None, colour_index=None, fontmax=None):
+    def draw(self, text=None, offset=(0,0), coords=None, colour_index=None, fontmax=None):  #Draw the text in the corner of the frame
         if text   is None:
             text = self.text 
         else:
@@ -587,39 +561,67 @@ class Text(Frame):
         if colour_index is None : colour_index = self.colour_index
         colour = self.colours.get(colour_index)
 
-        # Get the absolute coordinates of the frame's center/edges
-        abs_rect = self.abs_rect() # (a, b, c, d) where (a, b) is top-left, (c, d) is bottom-right
-
+        # for line_number, line in enumerate(self.drawtext):
+        #     info = self.font.render(line, True, colour)
+        #     size = info.get_rect()
+        #     self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
         if hasattr(self, 'font') and self.font is not None:
             for line_number, line in enumerate(self.drawtext):
                 try:
                     info = self.font.render(line, True, colour)
-                    text_rect = info.get_rect()
-                    
-                    # --- FIX: Reposition the text_rect based on self.alignment[0] (the X-alignment) ---
-                    
-                    # Determine the target X coordinate based on alignment
-                    x_align = self.alignment[0].lower()
-                    
-                    if x_align == 'centre':
-                        text_rect.centerx = abs_rect[0] + self.w / 2
-                    elif x_align == 'right':
-                        text_rect.right = abs_rect[2] 
-                    elif x_align == 'left':
-                        text_rect.left = abs_rect[0]
-                    else: # Default or custom alignment (use the calculated left edge)
-                        text_rect.left = coords[0] 
-
-                    # Determine the Y coordinate (Y-alignment is handled by the layout manager, 
-                    # but we need to offset for multi-line text)
-                    text_rect.top = coords[1] + line_number * text_rect.height
-                    
-                    # Apply offset from the parent frame's abs_rect location
-                    # The text_rect now holds the final calculated position
-                    self.platform.screen.blit( info, text_rect ) 
-                    
+                    size = info.get_rect()
+                    self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
                 except pygame.error as e:
                     print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
+                    # Skip drawing this line but continue the loop
+                    
+    #Gemini fixed class                
+    # def draw(self, text=None, offset=(0,0), coords=None, colour_index=None, fontmax=None):
+    #     if text   is None:
+    #         text = self.text 
+    #     else:
+    #         self.text = text
+    #     if coords == None       : coords = self.abs_origin()
+    #     fontmax = self.fontmax if fontmax is None else fontmax
+    #     if self.reset: 
+    #         self.drawtext = None #self.cache.find(text)
+    #         if self.drawtext is None: self.update(text, fontmax)
+    #     if colour_index is None : colour_index = self.colour_index
+    #     colour = self.colours.get(colour_index)
+
+    #     # Get the absolute coordinates of the frame's center/edges
+    #     abs_rect = self.abs_rect() # (a, b, c, d) where (a, b) is top-left, (c, d) is bottom-right
+
+    #     if hasattr(self, 'font') and self.font is not None:
+    #         for line_number, line in enumerate(self.drawtext):
+    #             try:
+    #                 info = self.font.render(line, True, colour)
+    #                 text_rect = info.get_rect()
+                    
+    #                 # --- FIX: Reposition the text_rect based on self.alignment[0] (the X-alignment) ---
+                    
+    #                 # Determine the target X coordinate based on alignment
+    #                 x_align = self.alignment[0].lower()
+                    
+    #                 if x_align == 'centre':
+    #                     text_rect.centerx = abs_rect[0] + self.w / 2
+    #                 elif x_align == 'right':
+    #                     text_rect.right = abs_rect[2] 
+    #                 elif x_align == 'left':
+    #                     text_rect.left = abs_rect[0]
+    #                 else: # Default or custom alignment (use the calculated left edge)
+    #                     text_rect.left = coords[0] 
+
+    #                 # Determine the Y coordinate (Y-alignment is handled by the layout manager, 
+    #                 # but we need to offset for multi-line text)
+    #                 text_rect.top = coords[1] + line_number * text_rect.height
+                    
+    #                 # Apply offset from the parent frame's abs_rect location
+    #                 # The text_rect now holds the final calculated position
+    #                 self.platform.screen.blit( info, text_rect ) 
+                    
+    #             except pygame.error as e:
+    #                 print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
 
         # print("Text.draw > ", self.reset, self.drawtext, text, offset, coords, colour, colour_index, self.scalers, self.alignment, size)
 
@@ -862,6 +864,7 @@ class DirtyRectManager:
         Adds a single dirty rectangle to the list.
         If a tuple (x, y, w, h) is passed, it is converted to a pygame.Rect.
         """
+        # print("DirtyRectManager.add", rect)
         if isinstance(rect, tuple):
             self.dirty_rects.append(pygame.Rect(rect))
         elif isinstance(rect, pygame.Rect):
@@ -915,7 +918,7 @@ class GraphicsDriverPi:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 47
+    FPS     = 60
     BACKGROUND_COLOR = (10, 10, 20)  # Dark Blue/Grey, a nice HiFi screen background    
 
 
@@ -1050,6 +1053,7 @@ class GraphicsDriverPi:
         if not dirty_rects:
             # If nothing is dirty, don't update anything
             self.ave_area_pc = self.area_tracker.update_average([])
+            # print("GraphicsDriverPi.draw_end> NO dirty rects")
             return
             
         transformed_rects = []

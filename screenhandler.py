@@ -79,13 +79,13 @@ class ScreenController:
             self.baseScreen   = self.screenmenu.next
             self.activeScreen = self.baseScreen
             self.full_update  = True  # force everything to be drawn, else only draw what has changed
-            print("ScreenController.self.events.Control('next',> active screen is ", self.activeScreen)
+            print("\nScreenController.self.events.Control('next',> active screen is ", self.activeScreen)
 
         elif e == 'previous':
             self.baseScreen   = self.screenmenu.prev
             self.activeScreen = self.baseScreen
             self.full_update  = True  # force everything to be drawn, else only draw what has changed
-            print("ScreenController.self.events.Control('previous',> active screen is ", self.activeScreen)
+            print("\nScreenController.self.events.Control('previous',> active screen is ", self.activeScreen)
 
         elif e == 'new_track':
             self.full_update  = True  # force everything to be drawn

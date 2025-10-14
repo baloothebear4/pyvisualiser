@@ -325,7 +325,7 @@ class TestFrame(Frame):
 
 class ColAlignedScreen(Frame):
     @property
-    def title(self): return 'Creates 3 box frames and aligns them horizontally, evenly'
+    def title(self): return 'ColAlignedScreen> Creates 3 box frames and aligns them horizontally, evenly'
 
     @property
     def type(self): return 'Test'
@@ -333,17 +333,26 @@ class ColAlignedScreen(Frame):
     def __init__(self, platform):
         super().__init__(platform, theme='ocean')
         # print("SubFrame> ", self.geostr())
+        self.create()
 
-        colframe = ColFramer(self, scalers=(0.4, 0.9), align=('left','middle'), background='dark', padding=0.1) #, align=('centre','middle'))
-        colframe += TextFrame(colframe  , text='left', scalers=(0.5, 1.0), background='light', outline={'colour_index':'alert'})
+    def create(self):
+        
+
+        colframe = ColFramer(self, scalers=(1.0,1.0), align=('left','middle'), background='dark', padding=0.0) #, align=('centre','middle'))
+        # print("ColAlignedScreen.create> colframe", colframe.framestr())
+        colframe += TextFrame(colframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert'})
         colframe += TextFrame(colframe  , text='mid', background='mid')
-        colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
+        # colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
 
-        rowframe = RowFramer(self  ,  scalers=(0.5, 0.9), align=('right','middle'), background='dark', padding=0.2)
+        rowframe = RowFramer(colframe  ,  scalers=(0.5,1.0), align=('right','middle'), background='dark', padding=0.0)
+        # print("ColAlignedScreen.create> rowframe", rowframe.framestr())
+        rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid')
         rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
-        rowframe += Frame(rowframe  ,   scalers=(0.6, 0.7), background='mid')
-        rowframe += Frame(rowframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
+        rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
 
+        # self += Frame(self  ,  scalers=(0.3, 0.3), align=('right','top'), background='foreground')
+
+        # print("ColAlignedScreen.create")
 
         # self += TestFrame(self  , scalers=(0.5, 0.3), align=('left','bottom'))
         # self += TestFrame(self  , scalers=(0.5, 0.3), align=('centre','middle'))

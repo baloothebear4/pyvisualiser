@@ -67,11 +67,13 @@ class TextFrame(Frame):
         # print("TextFrame.draw ", text, colour_index, self.geostr())
         # if text is None: text = self.text
         if full or self.textcomp.new_content_available(text):
-            print("TextFrame.draw ", full, text, colour_index, self.geostr())
+            # print("TextFrame.draw ", full, text, colour_index, self.geostr())
             self.draw_background() # clear whats there -- not needed for
             self.textcomp.draw(text=text, colour_index=colour_index, fontmax=fontmax)
+            return True
         else:
-            pass # no need to redraw
+            # print("TextFrame.draw > NO DRAW", text, colour_index, self.geostr())
+            return False # no need to redraw
         
 
         
@@ -127,8 +129,10 @@ class PlayProgressFrame(Frame):
             self.elapsed.draw(elapsed, colour_index='light')
             self.remaining.draw(remaining, colour_index='light')
             # print("PlayProgressFrame>", elapsed, remaining)
+            return True
         else:
-            pass # no need to redraw
+            return False
+            # no need to redraw
 
 
         
@@ -149,8 +153,9 @@ class AlbumArtFrame(Frame):
         if full or self.image_container.new_content_available(self.platform.album_art):
             self.draw_background()
             self.image_container.draw(self.platform.album_art)
+            return True
         else:
-            pass # no need to redraw
+            return False
              
 
 
@@ -171,8 +176,9 @@ class ArtistArtFrame(Frame):
         if full or self.image_container.new_content_available(self.platform.artist_art):
             self.draw_background()
             self.image_container.draw(self.platform.artist_art)
+            return True
         else:
-            pass # no need to redraw
+            return False
 
 
 class MetaData(Frame):
@@ -180,7 +186,7 @@ class MetaData(Frame):
             'track': {'colour':'light', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) }, \
             'album': {'colour':'mid', 'align': ('centre','bottom'), 'scalers' : (1.0, 0.33) } }
 
-    def __init__(self, parent, metadata_type, colour='foreground', scalers=None, align=None,theme=None, same_size=True):
+    def __init__(self, parent, metadata_type, colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True):
         Frame.__init__(self, parent, scalers=scalers, align=align, outline=None, theme = theme)
         self.metadata_type   = metadata_type
         self.colour     = colour
@@ -191,7 +197,7 @@ class MetaData(Frame):
         # scalers = attributes['scalers'] if 'scalers' in attributes else MetaData.SHOW[meta]['scalers']
         # align   = attributes['align']   if 'align'   in attributes else MetaData.SHOW[meta]['align']
         # colour  = attributes['colour']  if 'colour'  in attributes else MetaData.SHOW[meta]['colour']
-        print("MetaData.create>", self.metadata_type, self.framestr() )
+        # print("MetaData.create>", self.metadata_type, self.framestr() )
         self.metadata = TextFrame(self, scalers=self.scalers, align=self.alignment, colour_index=self.colour, reset=True, theme=self.theme, wrap=True)
         # self.metadata[meta] = TextFrame(self, scalers=self.show[meta]['scalers'], align=self.show[meta]['align'], reset=True, theme=theme, wrap=True)
 
@@ -199,18 +205,18 @@ class MetaData(Frame):
 
     def update(self, full, fontsize=None):
         if   'track'  in self.metadata_type: 
-            self.metadata.update(full, text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
+            return self.metadata.update(full, text=self.platform.track, fontmax=fontsize) #, colour_index=self.show['track']['colour'])
             
         elif 'album'  in self.metadata_type: 
-            self.metadata.update(full, text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
+            return self.metadata.update(full, text=self.platform.album, fontmax=fontsize) #, colour_index=self.show['album']['colour'])
             
         elif 'artist' in self.metadata_type: 
-            self.metadata.update(full, text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])        
+            return self.metadata.update(full, text=self.platform.artist, fontmax=fontsize) #, colour_index=self.show['artist']['colour'])        
 
         else:
             print("MetaDataFrame.update> Metadata type not known", self.metadata_type )            
 
-
+        return False #no update
 
 """
 VU Meter frames
@@ -420,6 +426,7 @@ class VUMeter(Frame):
         else:
             self.bgdimage.draw()
         self.drawNeedle()
+        return True
         
 
     def drawVUBackground(self):
@@ -629,6 +636,7 @@ class VUFrame(Frame):
         height, peaks = self.VU.read()
         self.draw_background()
         self.bar.draw( 0, height, self.barw, peaks)
+        return True
         
 
 
@@ -643,6 +651,7 @@ class OutlineFrame(Frame):
     # def __init__( self, platform, bounds, colour_index=0, theme='std', box=None, width=None, radius=5, align=('centre', 'middle') ):
     def update(self, full):
         self.out.draw( colour_index='foreground' )
+        return True
         
 
 
@@ -722,29 +731,116 @@ class Spectrum:
             self.peaks[i] *= (1- self.peak_decay)
 
 
+# class SpectrumFrame(Frame, Spectrum):
+#     """
+#     Creates a spectrum analyser of the width and octave interval specified
+#     intervals are 1, 3 or 6
+#     widths    are really half or whole screen
+#     - scale is used to determine how wide the frame is as a % of the parent frame
+#     - channel 'left' or 'right' selects the audio channel and screen alignment
+#     """
+
+    # def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, \
+    #                 led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert'):
+
+    #     self.channel        = channel
+    #     self.right_offset   = right_offset
+    #     self.parent         = parent
+    #     self.col_mode       = col_mode
+
+    #     Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
+
+    #     Spectrum.__init__(self, self.w, bar_space, barw_min, barw_max, decay=decay)
+    #     self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, radius=radius, tip=tip, col_mode=col_mode)
+
+    #     # print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
+
 class SpectrumFrame(Frame, Spectrum):
     """
-    Creates a spectrum analyser of the width and octave interval specified
-    intervals are 1, 3 or 6
-    widths    are really half or whole screen
+    Creates a spectrum analyser of the width and octave interval specified.
     - scale is used to determine how wide the frame is as a % of the parent frame
     - channel 'left' or 'right' selects the audio channel and screen alignment
     """
 
     def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, \
-                    led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert'):
+                    led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert', **kwargs):
 
-        self.channel        = channel
-        self.right_offset   = right_offset
-        self.parent         = parent
-        self.col_mode       = col_mode
+        # 1. Capture all configuration parameters into self.config
+        self.config = {
+            'channel': channel,
+            'scalers': scalers,
+            'align': align,
+            'right_offset': right_offset,
+            'theme': theme,
+            'flip': flip,
+            'led_h': led_h,
+            'led_gap': led_gap,
+            'peak_h': peak_h,
+            'radius': radius,
+            'bar_space': bar_space,
+            'barw_min': barw_min,
+            'barw_max': barw_max,
+            'tip': tip,
+            'decay': decay,
+            'col_mode': col_mode,
+        }
+        self.config.update(kwargs)
+        
+        # Assign primary attributes used outside of Frame's geometry calculation
+        self.channel        = self.config['channel']
+        self.right_offset   = self.config['right_offset']
+        self.col_mode       = self.config['col_mode']
 
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
+        # 2. Call the parent Frame.__init__. This establishes self.w and self.h.
+        Frame.__init__(self, parent, 
+                         scalers=self.config['scalers'], 
+                         align=self.config['align'], 
+                         theme=self.config['theme'])
+        
+        # 3. Call Spectrum.__init__ (This only needs the initial size and bar settings)
+        # Note: Spectrum.__init__ is being called here because it manages the audio processing 
+        # structure, which might be stateful beyond simple frame redraws. If it relies 
+        # on self.w, it must be re-called in create() OR just the parts that depend on
+        # geometry must be moved to create(). Since it seems to set bar geometry:
+        # self.spectrum_reinit()
 
-        Spectrum.__init__(self, self.w, bar_space, barw_min, barw_max, decay=decay)
-        self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, radius=radius, tip=tip, col_mode=col_mode)
+        # 4. Initialize the scene components via create()
+        self.create()
 
-        # print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
+    def spectrum_reinit(self):
+        """Helper to re-initialize the Spectrum logic based on current Frame size."""
+        cfg = self.config
+        
+        # Spectrum.__init__ should be safe to call multiple times if it just recalculates bar geometry
+        Spectrum.__init__(self, self.w, cfg['bar_space'], cfg['barw_min'], cfg['barw_max'], decay=cfg['decay'])
+        # The Spectrum init populates self.bars, self.barw, etc.
+        
+    def create(self):
+        """
+        Re-entrant method to generate all visual components based on the 
+        current frame geometry (self.w, self.h).
+        """
+        # 1. CRITICAL: Clear existing children frames
+        self.frames = [] 
+        cfg = self.config
+
+        # 2. Re-initialize the Spectrum geometry (in case frame size changed)
+        self.spectrum_reinit()
+        
+        # 3. Create the Bar object using the newly calculated dimensions
+        # self.width, self.h are from Frame, self.barw is from Spectrum
+        self.bar = Bar(self, 
+                       box_size=(self.width, self.h), # Ensure width/h are correct
+                       led_h=cfg['led_h'], 
+                       led_gap=cfg['led_gap'], 
+                       peak_h=cfg['peak_h'], 
+                       flip=cfg['flip'], 
+                       radius=cfg['radius'], 
+                       tip=cfg['tip'], 
+                       col_mode=cfg['col_mode'])
+
+        # print("SpectrumFrame.create> Spectrum setup: bars=%d, bar width=%d, gap=%d" % (self.bars, self.barw, self.bar_gap))
+        # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
 
     def update(self, full):
         """
@@ -759,6 +855,8 @@ class SpectrumFrame(Frame, Spectrum):
             x = i * (self.barw + self.bar_gap)
             colour_index = x if self.col_mode == 'horz' else None
             self.bar.draw( x+self.right_offset, self.current[i].smoothed(), self.barw, self.peaks[i], colour_index=colour_index)
+        # print("SpectrumFrame.update> ", self.abs_rect())
+        return True
         
 
     @property
@@ -902,6 +1000,7 @@ class OscilogrammeBar(Frame):
 
             x = i * (self.barw + self.bar_gap)
             self.bar.draw( x, self.current[i].smoothed(), self.barw, colour_index=x)
+        return True
         
 
 
@@ -919,6 +1018,7 @@ class Oscilogramme(Frame):
         samples =  self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )
         self.draw_background()
         self.lines.draw_mod_line(samples, colour_index='foreground')
+        return True
         
 
 
@@ -938,6 +1038,7 @@ class Octaviser(Frame, Spectrum):
         for octave in range(1, self.num_octaves):
             self.arcs.draw(octave, fft[self.octaves[octave-1]:self.octaves[octave]])
             # print(bin, self.octaves[octave]) #, fft[bin:self.octaves[octave]])
+        return True
         
 
 
@@ -967,6 +1068,7 @@ class CircleModulator(Frame):
         self.lines.draw_mod_line(low_samples, amplitude=0.5, gain=0.1, colour_index=height*self.h/2)
         self.dots.draw_mod_dots(low_samples, trigger=self.platform.trigger_detected, amplitude=0.1, gain=0.1, colour_index='alert')
         # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
+        return True
         
 
 
@@ -996,4 +1098,5 @@ class Diamondiser(Frame, Spectrum):
             col = self.max_radius*(ray_index/self.bars)
             amp = radius*self.current[ray_index].smoothed() if self.current[ray_index].smoothed() > 0 else 0
             ray.drawFrameCentredVector(ray_index*self.ray_angle, amplitude=amp, gain=1-radius, colour_index=col)
+        return True
         
