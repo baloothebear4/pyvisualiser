@@ -331,7 +331,7 @@ class ColAlignedScreen(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='ocean')
+        super().__init__(platform, theme='hifi')
         # print("SubFrame> ", self.geostr())
         self.create()
 

@@ -201,7 +201,7 @@ class MetaData(Frame):
         self.metadata = TextFrame(self, scalers=self.scalers, align=self.alignment, colour_index=self.colour, reset=True, theme=self.theme, wrap=True)
         # self.metadata[meta] = TextFrame(self, scalers=self.show[meta]['scalers'], align=self.show[meta]['align'], reset=True, theme=theme, wrap=True)
 
-        # print("MetaDataFrame.__init__>", meta, attributes, self.wh, self.show )
+        # print("MetaDataFrame.create>", self.metadata_type, self.wh, self.framestr() )
 
     def update(self, full, fontsize=None):
         if   'track'  in self.metadata_type: 
@@ -259,45 +259,7 @@ class VUMeter(Frame):
     ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
     NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
     VUIMAGEPATH = 'VU Images'
-
-    # def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
-    #              endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC,fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
-    #              needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None):
-
-    #     self.channel = channel
-    #     self.marks   = marks
-    #     channel      = channel if channel == 'left' or channel == 'right' else align[0]
-    #     Frame.__init__(self, parent, scalers=scalers, align=(channel, align[1] ), theme=theme, background=background)
-    #     self.parent = parent
-    #     self.bgdimage = bgdimage
-
-    #     # if endstops is None: endstops = self.needle.endstops   # using endstops = None automatically calculates the endsstops based on the arc the needle to the edge of the sssssframe
-    #     # METERS      = { 'blueVU' : {'file': 'blue-bgr.png', 'needle':NEEDLE, 'endstops':ENDSTOPS, 'pivot':0}
-    #     # Setup the background
-
-    #     if self.bgdimage is not None:
-    #         self.path       = VUMeter.VUIMAGEPATH +'/'+ bgdimage
-    #         self.bgdimage   = Image(self, align=('centre', 'middle'), path=self.path,outline=outline )
-    #         # print("VUeter.__init__> setup background images", self.framestr())
-    #     else:
-    #         self.path        = None
-    #         radius           = self.h*(0.5-pivot)
-    #         self.scales      = { mark : Text(self, text=marks[mark]['text'], colour_index=marks[mark]['colour'], fontmax=self.h*fonth, endstops=endstops, scalers=(1.0,1.0),centre_offset=pivot, radius=radius*scaleslen, reset=False, theme=theme ) for mark in marks }
-    #         self.dB          = Text(self, fontmax=self.h*fonth*2, text=annotate['text'], align=('centre', annotate['Valign']), colour_index=annotate['colour'], reset=True, theme=theme, scalers=(1.0,1.0))
-    #         self.ticks       = Line(self, width=tick_w, endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*ticklen, theme=theme )
-    #         self.arclines    = []
-    #         for rad_pc, arc in arcs.items():
-    #             self.arclines.append(Line(self, width=arc['width'], colour_index=arc['colour'], endstops=endstops, tick_pc=tick_pc, centre_offset=pivot, radius=radius*rad_pc, theme=theme ))
-    #         print("VUeter.__init__> setup vector background", self.framestr())
-
-    #     # setup the needle
-    #     radius           = self.h*(0.5-pivot)
-    #     self.VU          = VU(self.platform, self.channel, decay=decay, smooth=smooth)
-    #     self.needle      = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index=needle['colour'])
-    #     self.peak        = Line(self, width=needle['width'], tick_pc=needle['radius_pc'], centre_offset=pivot, endstops=endstops, radius=radius*needle['length'], theme=theme, colour_index='alert')
-    #     self.peakmeter   = peakmeter
-    #     print("VUeter.__init__> needle", self.framestr(), "\n", self.needle.framestr())
-        
+ 
     def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
                 endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC, fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None, **kwargs):
@@ -616,20 +578,28 @@ class VUFrame(Frame):
 
         Creates a bar, centred in a Frame as a % of the Frame width
     """
-    def __init__(self, parent, channel, scalers=None, align=None, barsize_pc=0.7, theme=None, flip=False, \
-                    led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert'):
+    def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, outline=None,\
+                 barsize_pc=0.7, flip=False, \
+                 led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert',**kwargs):
 
-        self.barw_min       = barw_min      # min widths
-        self.barw_max       = barw_max      # max width
-        self.orient         = orient   # Horz or vert bars
-        self.parent         = parent
+        # 1. Capture all configuration parameters into self.config
+        self.config = {
+            'channel': channel, 'barsize_pc':barsize_pc, 'flip':flip, \
+            'led_h':led_h, 'led_gap':led_gap, 'peak_h':peak_h, 'radius':radius, 'barw_min':barw_min, 'barw_max':barw_max, \
+            'tip':tip, 'decay':decay, 'orient':orient }
+        # Add any remaining keyword arguments
+        self.config.update(kwargs)
 
-        Frame.__init__(self, parent, scalers=scalers, align=align)
-        self.barw           = self.w * barsize_pc if orient == 'vert' else self.h * barsize_pc   # width of the bar
-        box = (self.barw, self.h) if orient == 'vert' else (self.w, self.barw)
-        self.bar = Bar(self, align=('centre', 'middle'), box_size=box, led_h=led_h, led_gap=led_gap, peak_h=peak_h, theme=theme, flip=flip, radius=radius, tip=tip, orient=orient)
-        self.VU  = VU(self.platform, channel, decay)
+        Frame.__init__(self, parent, scalers=scalers, align=align,theme=theme,background=background, outline=outline)
+        self.create()
 
+    def create(self):
+        self.barw   = self.w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.h * self.config['barsize_pc']   # width of the bar
+        box         = (self.barw, self.h) if self.config['orient'] == 'vert' else (self.w, self.barw)
+        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, led_h=self.config['led_h'], \
+                        led_gap=self.config['led_gap'], peak_h=self.config['peak_h'], flip=self.config['flip'], \
+                        radius=self.config['radius'], tip=self.config['tip'], orient=self.config['orient'])
+        self.VU     = VU(self.platform, self.config['channel'], self.config['decay'])
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
     def update(self, full):
@@ -1011,8 +981,11 @@ class Oscilogramme(Frame):
     def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
+        self.create()
+
+    def create(self):
         self.lines   = Line(self, circle=False, amp_scale=0.6)
-        self.parent  = parent
+        
 
     def update(self, full):
         samples =  self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )
@@ -1026,10 +999,12 @@ class Octaviser(Frame, Spectrum):
     def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align)
+        self.create()
+
+    def create(self):
         Spectrum.__init__(self, self.w, bar_space=5)
         self.num_octaves=len(self.octaves)
         self.arcs = ArcsOctaves(self.parent, theme='rainbow', NumOcts=self.num_octaves)
-        self.parent  = parent
 
     def update(self, full):
         self.draw_background()
@@ -1046,17 +1021,17 @@ class CircleModulator(Frame):
     def __init__(self, parent, channel, scalers=None, align=None, theme=None):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, square=False)
+        self.create()
 
+    def create(self):
         self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
         # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
         self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
-        self.VU      = VU(self.platform, channel, decay=0.2)
-        self.parent  = parent
+        self.VU      = VU(self.platform, self.channel, decay=0.2)
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
     def update(self, full):
-
         hpf_freq = 1000
         lpf_freq = 1500
         self.draw_background()
@@ -1077,16 +1052,19 @@ class Diamondiser(Frame, Spectrum):
     BARSPACE = 1
     def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None, bar_space=BARSPACE):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True, theme=theme)
-        Spectrum.__init__(self, self.w, bar_space=bar_space, bandwidth=5000, decay=0.5)
-        # self.VU          = VU(self.platform, channel, decay=0.2)
-
         self.channel     = channel
+        self.bar_space   = bar_space
+        self.create()
+
+    def create(self):
+        Spectrum.__init__(self, self.w, bar_space=self.bar_space, bandwidth=5000, decay=0.5)
+        # self.VU          = VU(self.platform, channel, decay=0.2)
         self.max_radius  = self.h/2
         self.ray_angle   = 1/self.bars
         self.centre_pc   = 0.7
-        self.parent      = parent
 
-        self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=bar_space*2, tick_pc=self.centre_pc, centre_offset=0, radius=self.max_radius, theme=theme, colour_index='mid') \
+        self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=self.bar_space*2, tick_pc=self.centre_pc, centre_offset=0, \
+                            radius=self.max_radius, colour_index='mid') \
                              for _ in range(self.bars)]
         # print("Diamondiser.__init__>", self.bars, self.max_radius, self.geostr(), self.anglestr())
 

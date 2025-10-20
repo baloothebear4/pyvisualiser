@@ -918,7 +918,7 @@ class GraphicsDriverPi:
     H       = 400
     W       = 1280
     PANEL   = [W, H]   # h x w
-    FPS     = 60
+    FPS     = 48
     BACKGROUND_COLOR = (10, 10, 20)  # Dark Blue/Grey, a nice HiFi screen background    
 
 

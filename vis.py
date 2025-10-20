@@ -28,6 +28,7 @@ SCREENS = ( MetaVUScreen, SpectrumBaseArt, MinSpectrumArt, ArtistScreen, TrackSc
             TrackSpectrumScreen3, TrackSpectrumScreen4, \
             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
             ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
+# SCREENS = (ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, TrackVisScreen2, TrackSpectrumScreen3)
 
 """ 
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 

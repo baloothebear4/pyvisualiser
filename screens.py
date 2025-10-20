@@ -22,17 +22,10 @@ TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumSc
 
 """
 
-# from    framecore import Frame, Geometry
-# from    textwrap import shorten, wrap
-# import  os
-# from    displaydriver import Screen, Bar, Text, Box
+from    frames import *
+from    subframes import *
+from    framecore import Frame, ColFramer, RowFramer
 
-from frames import *
-from subframes import *
-from framecore import Frame, ColFramer, RowFramer
-import time
-
-# from frametest import *
 
 """
 Screen classes - these are top level frames comprising frames of frames at full display size
@@ -118,12 +111,7 @@ class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the 
         # self += OscilogrammeBar(self  , 'mono', scalers=(0.66,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0)
         # self += OscilogrammeBar(self  , 'mono', scalers=(0.33,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0)
 
-class SamplesFrame(Frame):
-    """ Volume/Source on left - Spectrum on left - one channel """
-    def __init__(self, parent, scalers=(1.0, 1.0), align=('centre','middle'), theme='std'):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
-        self += OscilogrammeBar(self  ,  'left', scalers=(1.0,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0,barw_min=2)
-        self += OscilogrammeBar(self  ,  'right', scalers=(1.0,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0, barw_min=2)
+
 
 class TrackSpectrumScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -155,11 +143,12 @@ class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on
         Frame.__init__(self, platform, theme= 'white')
 
         cols = ColFramer(self)
-        spectrum = Frame(cols)
-        spectrum += SpectrumFrame(spectrum  ,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, barw_min=3, bar_space=2)
-        spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, barw_min=3, bar_space=2 )
-
-        cols += ArtistArtFrame(cols  , scalers=(0.6,1.0),align=('left','middle'), opacity=50)
+        # spectrum = Frame(cols)
+        # spectrum += SpectrumFrame(spectrum  ,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, barw_min=3, bar_space=2)
+        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, barw_min=3, bar_space=2 )
+        cols += StereoSpectrumFrame(cols)
+        artoutline = {'colour_index':'background', 'width':5}
+        cols += ArtistArtFrame(cols  , scalers=(0.8,1.0),align=('left','middle'), opacity=100, outline=artoutline)
         cols += MetaDataFrame(cols  ,  scalers=(1.0, 1.0),align=('right','middle'))
         # self += PlayProgressFrame(self  ,  scalers=(0.5, 0.05), align=('left','bottom'))
 
@@ -201,8 +190,10 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
         # self += MetaData(self  , 'track', scalers=(0.3, 0.5), align=('right','bottom'))
         # self += PlayProgressFrame(self  , scalers=(0.7, 0.05), align=('left','bottom'))
         self += spectrumframe
-        self += MetaData(self  , 'track', scalers=(0.2, 1.0), align=('right','top'))
-        self += MetaData(self  , 'artist', scalers=(0.2, 1.0), align=('right','bottom'))
+        meta = RowFramer(self, scalers=(0.3,1.0), align=('right','middle'))
+        meta += MetaData(meta  , 'track', colour='mid') # scalers=(0.5, 1.0), align=('right','top'))
+        meta +=ArtistArtFrame(meta,  opacity=120)
+        meta += MetaData(meta  , 'artist', colour='dark') #scalers=(0.5, 1.0), align=('right','bottom'))
 
 
 class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on the right
@@ -226,7 +217,7 @@ class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on
         spectrumframe = Frame(self, scalers=(0.7,0.8), align=('left', 'middle'))
         self += SpectrumFrame(spectrumframe,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5)
         self += SpectrumFrame(spectrumframe,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5 )
-        self += MetaData(self, 'artist', scalers=(0.9, 0.1), align=('centre','top'))
+        self += MetaData(self, 'track', scalers=(1.0, 0.2), align=('centre','top'))
         
 
 class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -325,13 +316,17 @@ class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the r
 
     def __init__(self, platform):
         Frame.__init__(self, platform, theme= 'red')
- 
-        subframe = RowFramer(self, scalers=(1.0, 0.7), align=('right','top'))
-        subframe += VU2chFrame(subframe, scalers=(0.2, 1.0), align=('left','middle'))
+        self.create()
+
+    def create(self):
+        subframe = ColFramer(self, scalers=(1.0, 0.7), align=('right','top'))
+        # led_h=5, led_gap=1,barsize_pc=0.7, theme=None
+        subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
+        subframe += ArtistArtFrame(subframe, scalers=(1.0,1.0), opacity=100)
+        subframe += VU2chFrame(subframe, scalers=(0.1, 1.0), align=('right','middle'), led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour_index':'foreground', 'width':0})
         # self += AlbumArtFrame(subframe, (1.0, 1.0),align=('right','middle'))
 
-        subframe += ArtistArtFrame(subframe, scalers=(0.6,1.0),align=('left','middle'), opacity=100)
-        subframe += MetaDataFrame(subframe, scalers=(0.3, 0.8), align=('right','middle'))
+
         # self += PlayProgressFrame(self, scalers=(0.6, 0.05), align=('left','bottom'))
 
         self += Oscilogramme(self, 'mono', scalers=(1.0, 0.3), align=('left','bottom'))
@@ -458,7 +453,8 @@ class MetaVUScreen(Frame):   # comprises volume on the left, spectrum on the rig
     def type(self): return 'Visualiser and metadata'
 
     def __init__(self, platform):
-        Frame.__init__(self, platform, theme= 'ocean')
+        Frame.__init__(self, platform, theme= 'hifi')
+        self.create()
         """
             Central panel of artist with horz VUs below, progress below
             Diamondiser top left
@@ -467,25 +463,13 @@ class MetaVUScreen(Frame):   # comprises volume on the left, spectrum on the rig
         
         """
 
+    def create(self):
         colframe = ColFramer(self)
         # albumframe   = Frame(self, scalers=(0.33, 0.8), align=('right','top'))
  
         colframe += Diamondiser(colframe,  'mono')
-
-        centrecol = RowFramer(colframe)
-        centrecol += MetaData(centrecol, 'track', scalers=(1.0, 1.0), align=('centre','bottom'))
-        centrecol += MetaData(centrecol, 'artist', scalers=(1.0, 1.0), align=('centre','top'))
-
-        # centrecol += PlayProgressFrame(centrecol  , scalers=(1.0, 0.05), align=('centre','bottom'))
-        # centrecol += ArtistArtFrame(centrecol, scalers=(0.4,0.5),align=('centre','middle'), opacity=255, outline={'colour_index':'light', 'width':5, 'opacity': 255, 'radius': 20})
-
-        # # VUFrame API (self, parent, channel, scalers=None, align=None, barsize_pc=0.7, theme=None, flip=False, \
-        # #             led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert'):
-        # vusubframe   = Frame(centrecol,scalers=(0.4, 0.3), align=('centre','bottom') )
-        # vusubframe += VUFrame(vusubframe, 'left',  align=('left','middle'), scalers=(0.5, 0.8), orient='horz',flip=True, barsize_pc=0.7,led_h=5, led_gap=1, peak_h=3, radius=3, barw_min=10 )
-        # vusubframe += VUFrame(vusubframe, 'right', align=('right','middle'), scalers=(0.5, 0.8), orient='horz',flip=False, barsize_pc=0.7,led_h=5, led_gap=1, peak_h=3, radius=3, barw_min=10 )
-
-        colframe += AlbumArtFrame(colframe, scalers=(0.8,0.8), outline={'colour_index':'light', 'width':5, 'opacity': 255, 'radius': 20})
+        colframe += MetaDataFrame(colframe)
+        colframe += AlbumArtFrame(colframe, scalers=(0.95,0.95), outline={'colour_index':'light', 'width':5, 'opacity': 255, 'radius': 20})
 
 class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -511,21 +495,6 @@ class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the rig
                 'artist' : {'colour':'mid',   'align': ('centre','top'), 'scalers': (1.0, 1.0)} }
  
         cols = ColFramer(self)
-        cols += AlbumArtFrame(cols, scalers=(1.0,1.0),align=('left','middle'), opacity=140, outline={'colour_index':'dark', 'width':5, 'opacity': 230, 'radius': 0})
-       
-        rows = RowFramer(cols, scalers=(1.0,1.0))
-        rows += ArtistArtFrame(rows, opacity=255, outline={'colour_index':'dark', 'width':4, 'opacity': 255, 'radius': 0})
-        rows += MetaData(rows  , 'artist')
-        rows += MetaData(rows  , 'track')
-        rows += PlayProgressFrame(rows  , scalers=(1.0, 0.5))
-        # self += MetaDataFrame(self  , scalers=(0.33, 0.3), align=('right','bottom'), show=ALBUM)
-        # self += MetaDataFrame(self  , scalers=(0.33, 0.3), align=('left','bottom'), show=TRACK)
-
-        # self += SpectrumFrame(self,  'mono', scalers=(0.68, 0.7), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
-
-        # VUFrame API (self, parent, channel, scalers=None, align=None, barsize_pc=0.7, theme=None, flip=False, \
-        #             led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert'):
-        vusubframe   = Frame(cols,scalers=(0.18, 1.0), align=('right','middle') )
-        vusubframe += VUFrame(vusubframe, 'left',  align=('centre','bottom'), scalers=(0.9, 0.5), orient='vert',flip=True, barsize_pc=0.7,led_h=5, led_gap=1, peak_h=3, radius=3, barw_min=10 )
-        vusubframe += VUFrame(vusubframe, 'right', align=('centre','top'), scalers=(0.9, 0.5), orient='vert',flip=False, barsize_pc=0.7,led_h=5, led_gap=1, peak_h=3, radius=3, barw_min=10 )
-        cols += vusubframe
+        cols += AlbumArtFrame(cols, scalers=(0.9,1.0),align=('left','middle'), outline={'colour_index':'dark', 'width':7, 'opacity': 255, 'radius': 0})
+        cols += ArtistMetaDataFrame(cols)
+        cols += VUFlipFrame(cols, scalers=(0.5,1.0))

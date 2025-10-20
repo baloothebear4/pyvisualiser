@@ -12,6 +12,7 @@ from    screens import *
 from    events import Events
 from    framecore import ListNext
 from    pygame.locals import *   # this pulls down all the K_* constants
+import  time
 
 EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )   
 # for an api - this needs to have inbuilt events and additional events with a binder
@@ -64,8 +65,10 @@ class ScreenController:
             self.screens.update( {screen.__name__ : screen(self.platform) })
             if screen.type != 'Control':  #ie create a menu from Test & Base screens
                 menuSequence.append(screen.__name__)
+            print("ScreenController.__init__> intialised screen -->", screen.__name__)
+
         self.screenmenu = ListNext(menuSequence, self.startScreen)
-        print("ScreenController.__init__> menus intialised", self.screenmenu)
+
 
  
 
@@ -141,9 +144,11 @@ class ScreenController:
                     
                     if loop_time > CRITICAL_LOOPTIME: 
                         print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.2f%%" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
-                    else:    
+                    elif self.platform.clock.get_fps() < self.platform.FPS:
                         print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
-
+                    else:
+                        pass
+                        # All good
                     loop_count = 0
                 loop_count += 1
 

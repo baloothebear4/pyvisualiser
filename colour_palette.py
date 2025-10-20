@@ -21,7 +21,7 @@ yellow  = [255,255,0]
 COLOUR_THEMES= {    'white' : {'light':[255,255,175], 'mid':[200,200,125], 'dark':grey, 'foreground':white, 'background':[50, 50, 50], 'alert':red,'range':[[255,255,75], [255,255,175], white] },
                     'std'   : {'light':[175,0,0], 'mid':grey, 'dark':[50,50,50], 'foreground':white, 'background':[10,5,5], 'alert':red,'range':[green, amber, red, purple] },
                     'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':[1, 35, 50], 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 235, 255] ] }, #[[0,10,75], [0,100,250]],
-                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':[25, 5, 1], 'alert':red,'range':[ [241, 100, 75],[164, 46, 4],[206, 100, 75], [132, 46, 2], [144, 46, 1] ]},  #[[75,10,0], [250,100,0]],
+                    'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':[25, 5, 1], 'alert':red,'range':[green, amber, red, purple] },  #[[75,10,0], [250,100,0]],
                     'leds'  : {'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
                     'back'  : {'range':[ blue, black ] },
                     'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
@@ -29,10 +29,11 @@ COLOUR_THEMES= {    'white' : {'light':[255,255,175], 'mid':[200,200,125], 'dark
                     'rainbow': {'white': white, 'grey': grey, 'green': green, 'amber': amber, 'red': red, 'purple': purple, 'blue': blue,  'black': black,  'yellow': yellow, 'range':[grey, red, yellow, green, blue, purple, white]},
                     'black' : { 'light':[240, 240, 240], 'mid': [192, 192, 192], 'dark': [64, 64, 64], 'foreground': white, 'background': [50, 50, 50], 'alert': red, 'range':[[64, 64, 64],[192, 192, 192],[240, 240, 240]]},
                     'ocean' : { 'dark':[0, 54, 74],  'mid':[19, 135, 177], 'light' :[167, 231, 173], 'foreground':[242, 247, 183],'background':[0, 34, 54], 'alert':  [82, 208, 187], 'range':[[0, 54, 74], [17, 96, 128], [19, 135, 177], [0, 173, 209], [82, 208, 187], [167, 231, 173], [242, 247, 183]] },
-                    'salmon': { 'dark':[92, 7, 0], 'mid': [236, 154, 147], 'alert':[131, 43, 27], 'light':[255, 181, 175],'foreground': [255, 181, 175], 'background': [25, 3, 0],  'range':[[92, 7, 0], [131, 43, 27], [164, 73, 59], [191, 102, 89], [215, 128, 118], [236, 154, 147], [255, 181, 175]]},
+                    'salmon': { 'dark':[92, 7, 0], 'mid': [236, 154, 147], 'alert':[131, 43, 27], 'light':[255, 181, 175],'foreground': [255, 181, 175], 'background': [25, 3, 0], 'range':[green, amber, red, purple]},
                     'space' : { 'background': black, 'dark': [39, 70, 144], 'mid': [63, 89, 156], 'light': [54, 143, 139], 'foreground': [243, 223, 193], 'alert': purple, 'range': [[27, 38, 79], [39, 70, 144], [63, 89, 156], [54, 143, 139], [243, 223, 193]]},   #[27, 38, 79]
                     'zomp'  : { 'background': [46, 64, 87], 'dark': [102, 161, 130], 'mid': [202, 255, 185], 'light': [174, 247, 142], 'foreground':[192, 212, 97], 'alert': white, 'range':[[46, 64, 87], [102, 161, 130], [202, 255, 185], [174, 247, 142], [192, 212, 97]] },
-                    'tea'   : { 'background': [29, 47, 111], 'dark': [131, 144, 250], 'mid': [250, 199, 72], 'light': [249, 233, 236], 'foreground': [248, 141, 173], 'alert': white, 'range': [[29, 47, 111], [131, 144, 250], [250, 199, 72], [249, 233, 236], [248, 141, 173]] }
+                    'tea'   : { 'background': [29, 47, 111], 'dark': [131, 144, 250], 'mid': [250, 199, 72], 'light': [249, 233, 236], 'foreground': [248, 141, 173], 'alert': white, 'range': [[29, 47, 111], [131, 144, 250], [250, 199, 72], [249, 233, 236], [248, 141, 173]] },
+                    'hifi'  : { 'background': [5, 15, 30], 'dark': [25, 40, 60],           'mid': [50, 65, 85], 'light': [180, 230, 255],  'foreground': [230, 240, 255], 'alert': [0, 191, 255],   'range': [[30, 45, 65],    [40, 80, 160],    [0, 120, 200],   [0, 191, 255],   [180, 230, 255]  ] }
                 }
 
 #

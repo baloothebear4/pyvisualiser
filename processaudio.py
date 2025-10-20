@@ -47,7 +47,7 @@ RECORDINGS_PATTERN = RECORDPATH + RECORDFILESUFFIX + "-%s.wav"
 
 WINDOW          = 12 #12 # 4 = Hanning
 FIRSTCENTREFREQ = 10 #31.25        # Hz
-LASTCENTREFREQ  = RATE // 4
+LASTCENTREFREQ  = RATE // 3 # ie about 13.5kHz
 OCTAVE          = 3
 NUMPADS         = FRAME
 BINBANDWIDTH    = RATE/(FRAME + NUMPADS) #ie 43.5 Hz for 44.1kHz/1024
@@ -403,6 +403,7 @@ class AudioProcessor(AudioData):
     def reduceSamples(self, channel, reduceby, rms=True ):
         # reduce the sample window to the size available
         normalised_samples = self.samples[channel]/ maxValue  #[:FRAMESIZE//2]
+        if reduceby == 0: reduceby = 1
         end = reduceby * int(len(normalised_samples)/ reduceby)
         # reshaped_samples   = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)
         rms_reshaped_samples   = np.sqrt( np.mean( np.square(normalised_samples[:end].reshape(-1, reduceby)), axis=1))/0.2

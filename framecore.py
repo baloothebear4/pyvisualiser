@@ -73,10 +73,18 @@ class Geometry():
 
     @c.setter
     def c(self, val):
+        # if val >= 0 and val <= self.boundswh[0]:
+        #     self._abcd[2] = int(val)
+        # else:
+        #     raise ValueError('set.c > value exceed bounds ', val, self.boundswh[0], self.geostr())
+        if val < self.a:
+            raise ValueError(f'set.c < set.a: {val} < {self.a}. Cannot invert coordinates.', self.geostr())
+            
         if val >= 0 and val <= self.boundswh[0]:
             self._abcd[2] = int(val)
         else:
             raise ValueError('set.c > value exceed bounds ', val, self.boundswh[0], self.geostr())
+
 
     @property
     def d(self):
@@ -84,6 +92,13 @@ class Geometry():
 
     @d.setter
     def d(self, val):
+        # if val >= 0 and val <= self.boundswh[1]:
+        #     self._abcd[3] = int(val)
+        # else:
+        #     raise ValueError('set.d > value exceed bounds ', val, self.geostr())
+        if val < self.b:
+            raise ValueError(f'set.d < set.b: {val} < {self.b}. Cannot invert coordinates.', self.geostr())
+            
         if val >= 0 and val <= self.boundswh[1]:
             self._abcd[3] = int(val)
         else:
@@ -429,6 +444,7 @@ class Frame(Geometry):
         """
         self.frames     = []         #Holds the stack of containing frames
         self.outline    = outline
+        self._original_scalers = scalers 
         scalers         = FULLSCALE   if scalers  is None else scalers
         alignment       = CENTRED     if align    is None else align      
         # print("Frame.__init__> startup>>>", type(self).__name__, align, scalers, theme, background)
@@ -486,7 +502,8 @@ class Frame(Geometry):
         if hasattr(self, 'create'):
             self.frames=[]
             self.create()
-            
+        else:
+            print("Frame.realign> Cannot call create()", hasattr(self, 'create'), align, offset, self.framestr())
         # Always realign children based on their own *stored* alignment.
         # for f in self.frames:
         #     f.align(f.alignment) # Use the child's stored alignment, relative to its new parent size/position.
@@ -518,7 +535,10 @@ class Frame(Geometry):
 
     def draw_background(self):
         # print("Frame.draw_background", type(self).__name__, self.abs_rect())
-        self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
+        if isinstance(self.background, str): 
+            self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
+        else:
+            self.platform.fill(self.abs_rect(), colour=self.colour, image=self.background)
         self.platform.dirty_mgr.add(tuple(self.abs_rect()))
 
     def draw_outline(self, full):
@@ -551,7 +571,6 @@ class Frame(Geometry):
             return True
         else:
             return False
-
 
     def check(self):
         # print("%s Frame overlap check for...>" % type(self).__name__)
@@ -603,6 +622,10 @@ class ColFramer(Frame):
             # print("ColFrame.__iadd__> sum of frames" , summed_frame_w, f.framestr())
         return self
 
+    # def create(self):
+    #     # super().create()
+    #     for f in self.frames:  f.create()    
+
 class RowFramer(Frame):
     def __init__(self, parent, *args, **kwargs):
         padding=kwargs.pop('padding', 0.0)
@@ -628,6 +651,10 @@ class RowFramer(Frame):
             offset += frame_padding + f.h
             # print("RowFrame.__iadd__> sum of frames", summed_frame_h, f.framestr())
         return self
+
+    # def create(self):
+    #     # super().create()
+    #     for f in self.frames:  f.create()
 
 
 """
