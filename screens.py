@@ -100,11 +100,11 @@ class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the 
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         subframe = RowFramer(self)
         subframe += SamplesFrame(subframe,  scalers=(1.0, 1.0))
-        subframe += MetaData(subframe,  'track', colour='foreground')
-        subframe += MetaData(subframe,  'artist', colour='mid', scalers=(1.0,0.8))
+        subframe += MetaData(subframe,  'track', colour='foreground', scalers=(1.0,0.7))
+        subframe += MetaData(subframe,  'artist', colour='mid', scalers=(1.0,0.5))
         # self += Diamondiser(self  ,  'left', scalers=(0.7, 0.7), align=('right','top'))
 
-        subframe += PlayProgressFrame(subframe,  scalers=(1.0, 1.0))
+        subframe += PlayProgressFrame(subframe,  scalers=(1.0, 0.3))
 
 
         # self += VUFlipFrame(self  , scalers=(0.5, 0.5), align=('left','top'), orient='horz', flip=True)
@@ -399,9 +399,9 @@ class ArtMetaSpectrumScreen(Frame):   # comprises volume on the left, spectrum o
         # colframe += AlbumArtFrame(colframe, scalers=(1.0,1.0))  #, outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
         # colframe += MetaMiniSpectrumFrame(colframe, scalers=(1.0,1.0), justify='left')
         # rowframe    = RowFramer(self, scalers=(0.67,0.8), align=('right','top'), padding =0.00, background='dark' ) # for album art with padding
-        self       += AlbumArtFrame(self, scalers=(0.33,1.0), align=('left','middle'))  #, outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
+        self   += AlbumArtFrame(self, scalers=(0.33,1.0), align=('left','middle'))  #, outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
         self   += MetaDataFrame(self, scalers=(0.67,0.8), align=('right','top'), justify='left')
-        self   += SpectrumFrame(self,'mono', scalers=(0.67, 0.2), align=('right','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )
+        self   += SpectrumFrame(self,'mono', scalers=(0.67, 0.2), align=('right','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=3, col_mode='horz' )
 
 class BigDialsScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property

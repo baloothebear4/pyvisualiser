@@ -179,21 +179,35 @@ def generate_asound_conf(dac_index: Optional[int]) -> str:
         "        type multi",
         "        slaves {",
         "            a { channels 2 pcm \"dac\" }",
-        "            b { channels 2 pcm \"loopout\" }",
-        "            c { channels 2 pcm \"usb\" }",
+        "            b { channels 2 pcm \"loopout\" }",])
+    if dac_index['usb_dac'] is not None:
+        config_lines.extend([
+        "            c { channels 2 pcm \"usb\" }",])
+    config_lines.extend([
         "        }",
         "        bindings {",
         "            0 { slave a channel 0 }",
         "            1 { slave a channel 1 }",
         "            2 { slave b channel 0 }",
-        "            3 { slave b channel 1 }",
+        "            3 { slave b channel 1 }", ])
+    if dac_index['usb_dac'] is not None:
+        config_lines.extend([
         "            4 { slave c channel 0 }",
-        "            5 { slave c channel 1 }",
+        "            5 { slave c channel 1 }",])
+    config_lines.extend([
         "        }",
         "    }",
-        "    ttable [",
+        "    ttable [",])
+    if dac_index['usb_dac'] is not None:
+        config_lines.extend([
         "        [ 1 0 1 0 1 0 ]  # Left channel to both outputs",
-        "        [ 0 1 0 1 0 1 ]  # Right channel to both outputs",
+        "        [ 0 1 0 1 0 1 ]  # Right channel to both outputs",])
+    else:
+        config_lines.extend([
+        "        [ 1 0 1 0 ]  # Left channel to both outputs",
+        "        [ 0 1 0 1 ]  # Right channel to both outputs",])
+
+    config_lines.extend([
         "    ]",
         "}", 
         "",

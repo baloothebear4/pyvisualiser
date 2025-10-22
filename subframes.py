@@ -106,10 +106,8 @@ class MetaDataFrame(Frame):
         for meta, attributes in MetaDataFrame.SHOW.items():
 
             align = attributes['align'] if self.justify is None else (self.justify, attributes['align'][1])
-            # print(meta, attributes, align)
             rows += MetaData(rows, meta, align = align, scalers = attributes['scalers'],colour  = attributes['colour'], theme=self.theme)
 
-        # rows += SpectrumFrame(rows,'mono', scalers=(1.0, 0.5), align=('centre','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )
         rows += PlayProgressFrame(rows  , scalers=(1.0, 0.3), align=('centre','bottom'))
 
 class ArtistMetaDataFrame(Frame):

@@ -114,7 +114,7 @@ class ScreenController:
         while(self.activeScreen != 'exit'):
             self.events.Control('check_keys')
             
-            if self.activeScreen != 'exit' and self.platform.audio_available:  # The code is reentrant, hence multiple test for exit condition  
+            if self.activeScreen != 'exit' and self.platform.is_audio_available():  # The code is reentrant, hence multiple test for exit condition  
 
                 # instument the real-time audio processing to see where the time bottlenecks are
                 start_time = time.perf_counter()

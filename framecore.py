@@ -30,12 +30,13 @@ PI = np.pi
 # from platform   import Platform         # used for Test purposes
 
 class Geometry():
-    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=('centre', 'middle')):
+    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=('centre', 'middle'), square=False):
         self._abcd          = [0,0,0,0]
         self._bounds        = [0,0, screen_wh[0]-1, screen_wh[1]-1] if bounds is None else bounds
         self.screen_wh      = screen_wh
         self.alignment      = align
         self.scalers        = scalers
+        self.square         = square
         self.min_offset     = 0
         self.circle_scale   = 1
         self.centre_offset  = 0  #PC of the height offsets the centre of a circle eg -0.5 moves to the bottom
@@ -162,8 +163,17 @@ class Geometry():
 
     def resize(self, wh):
         # print("Geometry.resize to", wh, self.geostr())
-        self.a = 0 #self._bounds[0]
-        self.b = 0 #self._bounds[1]
+        # Square means that the aspect ration is 1:1, so resize according to the largest of w or h
+        if self.square:
+            self.scalers = (self.scalers[0] * self.xyscale[0], self.scalers[1] * self.xyscale[1])
+            if wh[0]>wh[1]:
+                wh=(wh[1]+1, wh[1])
+            else:
+                wh=(wh[0]+1, wh[0])
+            # print("Geometry.resize> square", wh, self.xyscale, self, self.geostr())
+
+        self.a = 0
+        self.b = 0
         try:
             self.c = wh[0] -1 if wh[0] > 0 else 0
         except ValueError:
@@ -460,11 +470,11 @@ class Frame(Geometry):
             """ Screen (aka top-level Frame), so scale to the boundary """
             bounds          = parent.boundary
             self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
-            scalers         = FULLSCALE              if scalers  is None else scalers
+            # scalers         = FULLSCALE              if scalers  is None else scalers
             self.theme      = 'std'                  if theme    is None else theme
-            alignment       = CENTRED                if align    is None else align         
+            # alignment       = CENTRED                if align    is None else align         
 
-        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment)
+        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment, square)
 
         self.background     = 'background' if background is None else background
         self.colour         = Colour(self.theme, self.w)
@@ -473,14 +483,7 @@ class Frame(Geometry):
             self.outline    = self.platform.create_outline(self.theme, outline, self.w)
             # print("create outline ", type(self).__name__)
 
-        if square:
-            xy = (scalers[0] * self.xyscale[0], scalers[1] * self.xyscale[1])
-            if self.w>self.h:
-                xy=(self.h+1, self.h)
-            else:
-                xy=(self.w+1, self.w)
-            # print("Frame.__init__> square", square, self.xyscale, xy, self, self.geostr())
-            self.resize(xy)
+
 
         # print("Frame.__init__> done", self.geostr())
 

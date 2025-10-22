@@ -24,11 +24,12 @@ import platform
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
 # SCREENS = ( ColAlignedScreen, TrackVUMeterScreen21 )
-SCREENS = ( MetaVUScreen, SpectrumBaseArt, MinSpectrumArt, ArtistScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
-            TrackSpectrumScreen3, TrackSpectrumScreen4, \
-            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
-            ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
-# SCREENS = (ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, TrackVisScreen2, TrackSpectrumScreen3)
+# SCREENS = ( MetaVUScreen, SpectrumBaseArt, MinSpectrumArt, ArtistScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
+#             TrackSpectrumScreen3, TrackSpectrumScreen4, \
+#             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
+#             ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
+SCREENS = (ArtMetaSpectrumScreen, TrackVUMeterScreen2, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, MinSpectrumArt, TrackSpectrumScreen3, TrackVUMeterScreen, TrackSpectrumScreen, TrackSpectrumScreen2)
+# SCREENS = (ColAlignedScreen, TrackVUMeterScreen2) #, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, TrackSpectrumScreen3, TrackVUMeterScreen,MinSpectrumArt)
 
 """ 
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 

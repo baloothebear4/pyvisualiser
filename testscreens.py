@@ -1,5 +1,5 @@
 from framecore import Frame, ColFramer, RowFramer
-from frames import  VUMeterImageFrame, Spectrum2chFrame, SpectrumStereoOffsetFrame, SpectrumStereoFrame, SpectrumStereoSplitFrame, SpectrumFrame, TextFrame
+from frames import  VUMeterImageFrame, Spectrum2chFrame, SpectrumStereoOffsetFrame, SpectrumStereoFrame, SpectrumStereoSplitFrame, SpectrumFrame, TextFrame, MetaData
 import time
 
 
@@ -341,14 +341,15 @@ class ColAlignedScreen(Frame):
         colframe = ColFramer(self, scalers=(1.0,1.0), align=('left','middle'), background='dark', padding=0.0) #, align=('centre','middle'))
         # print("ColAlignedScreen.create> colframe", colframe.framestr())
         colframe += TextFrame(colframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert'})
-        colframe += TextFrame(colframe  , text='mid', background='mid')
+        colframe += TextFrame(colframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid')
+        colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,0.6))
         # colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
 
-        rowframe = RowFramer(colframe  ,  scalers=(0.5,1.0), align=('right','middle'), background='dark', padding=0.0)
-        # print("ColAlignedScreen.create> rowframe", rowframe.framestr())
-        rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid')
-        rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
-        rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
+        # rowframe = RowFramer(colframe  ,  scalers=(0.5,1.0), align=('right','middle'), background='dark', padding=0.0)
+        # # print("ColAlignedScreen.create> rowframe", rowframe.framestr())
+        # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid')
+        # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
+        # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
 
         # self += Frame(self  ,  scalers=(0.3, 0.3), align=('right','top'), background='foreground')
 

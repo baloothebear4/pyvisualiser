@@ -61,7 +61,7 @@ class TextFrame(Frame):
 
     def create(self):
         self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, align=self.alignment, scalers=self.scalers, theme=self.theme, colour_index=self.colour_index, wrap=self.wrap)
-        # print("TextFrame.__init__>", text, self.text.fontwh, scalers, self.alignment, self.geostr())
+        # print("TextFrame.create>", self.text, self.textcomp.fontwh, self.scalers, self.alignment, self.geostr())
 
     def update(self, full, text=None, colour_index=None, fontmax=None):
         # print("TextFrame.draw ", text, colour_index, self.geostr())
@@ -260,7 +260,7 @@ class VUMeter(Frame):
     NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
     VUIMAGEPATH = 'VU Images'
  
-    def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None,\
+    def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None, square=False,\
                 endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC, fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
                 needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, background=None, **kwargs):
         
@@ -287,6 +287,7 @@ class VUMeter(Frame):
             'annotate': annotate,
             'arcs': arcs,
             'background': background,
+            'square': square
         }
         # Add any remaining keyword arguments
         self.config.update(kwargs)
@@ -299,7 +300,8 @@ class VUMeter(Frame):
                          scalers=self.config['scalers'], 
                          align=(align_channel, self.config['align'][1]),
                          theme=self.config['theme'], 
-                         background=self.config['background'])
+                         background=self.config['background'],
+                         square=self.config['square'])
 
         # 4. Initialize the frame layout using the create() method
         self.create()
@@ -935,7 +937,7 @@ class OscilogrammeBar(Frame):
             if  self.bars <= OscilogrammeBar.FRAME: break
 
         self.barw           = barw
-        self.reduce_by      = OscilogrammeBar.FRAME//self.bars
+        self.reduce_by      = 2*OscilogrammeBar.FRAME//self.bars
 
         # Pack out the gaps to make sure the bars + gaps fill the whole width
         oscillograme_width = self.bars * (self.bar_gap+self.barw)
@@ -1057,11 +1059,11 @@ class Diamondiser(Frame, Spectrum):
         self.create()
 
     def create(self):
-        Spectrum.__init__(self, self.w, bar_space=self.bar_space, bandwidth=5000, decay=0.5)
+        Spectrum.__init__(self, self.w, bar_space=self.bar_space, bandwidth=8000, decay=0.5)
         # self.VU          = VU(self.platform, channel, decay=0.2)
         self.max_radius  = self.h/2
         self.ray_angle   = 1/self.bars
-        self.centre_pc   = 0.7
+        self.centre_pc   = 0.8
 
         self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=self.bar_space*2, tick_pc=self.centre_pc, centre_offset=0, \
                             radius=self.max_radius, colour_index='mid') \

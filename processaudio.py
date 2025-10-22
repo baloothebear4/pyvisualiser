@@ -20,6 +20,7 @@ from    scipy.fft import rfft
 from    scipy.signal import butter, lfilter
 import  pyaudio
 import  wave
+from multiprocessing import Queue
 from    events import Events
 
 
@@ -34,6 +35,7 @@ CRITICAL_TIME_MS = (FRAME / RATE) * 1000
 maxValue        = float(2**15)
 SAMPLEPERIOD    = FRAMESIZE/RATE
 SMOOTHFACTOR    = 0
+AUDIO_QUEUE_MAXSIZE = 10  # Max number of audio frames to queue
 
 SILENCESAMPLES  = 7   / SAMPLEPERIOD  #7 seconds worth of samples
 PEAKSAMPLES     = 0.7 / SAMPLEPERIOD  #0.5 seconds worth of VU measurements
@@ -146,6 +148,9 @@ class AudioProcessor(AudioData):
         self.window     = np.kaiser(FRAME + 0, WINDOW)  #Hanning window
         print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_device_info_by_index(self.device)['name'], RECORDSTATE))
 
+        self.audio_queue = Queue(maxsize=AUDIO_QUEUE_MAXSIZE)
+
+
     @property
     def framesize(self):
         return FRAME    
@@ -177,7 +182,8 @@ class AudioProcessor(AudioData):
 
     def start_capture(self):
         try:
-            self.stream   = self.recorder.open(format = INFORMAT,rate = RATE,channels = CHANNELS,input = True, input_device_index=self.device, frames_per_buffer=FRAMESIZE, stream_callback=self.callback)
+            self.stream   = self.recorder.open(format = INFORMAT,rate = RATE,channels = CHANNELS,input = True, \
+                                               input_device_index=self.device, frames_per_buffer=FRAMESIZE, stream_callback=self.callback)
             self.stream.start_stream()
             print("AudioProcessor.start_capture> ADC/DAC ready ", self.recorder.get_device_info_by_index(self.device)['name'], " index>", self.device)
         except Exception as e:
@@ -192,6 +198,45 @@ class AudioProcessor(AudioData):
 
 
 
+    # def callback(self, in_data, frame_count, time_info, status):
+
+    #     # 1. START HIGH-RESOLUTION TIMER
+    #     start_time = time.perf_counter()
+        
+    #     # 2. CHECK FOR AUDIO BUFFER OVERFLOW
+    #     # The 'status' flag tells us if the buffer overflowed BEFORE we even started processing.
+    #     if status & pyaudio.paInputOverflow:
+    #         print(f"AudioProcessor.callback> *** [FRAME DROPPED] ***")
+            
+    #     # --- Existing Audio Capture and Processing ---
+        
+    #     # Convert bytes to numpy array (assuming dtype=np.int16)
+    #     data = np.frombuffer(in_data, dtype=np.int16) 
+        
+    #     # Split/Reshape Samples
+    #     # Note: Using a global/class variable CHANNELS here
+    #     self.samples['left']  = data[0::2]
+    #     self.samples['right'] = data[1::2]
+        
+    #     # Mono conversion (Efficiently handles multiple channels)
+    #     self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1) 
+        
+    #     # Run the expensive audio processing/visual update functions here
+    #     self.record(in_data)
+    #     self.audio_available = True 
+    #     # self.events.Audio('capture')
+        
+    #     processing_time_ms = (time.perf_counter() - start_time) * 1000
+    
+    #     # 3. CHECK AGAINST TIME BUDGET
+    #     # We must ensure this method runs faster than the time it took the audio to arrive.
+    #     if processing_time_ms > CRITICAL_TIME_MS:
+    #         print(f"AudioProcessor.callback> *** [LATENCY WARNING]: {processing_time_ms:.2f} vs {CRITICAL_TIME_MS:.2f} ms ***")
+        
+    #     # Continue stream
+    #     return (in_data, pyaudio.paContinue)
+
+    # ------------switch to running the callback in a queue to prevent blocking --------------
     def callback(self, in_data, frame_count, time_info, status):
 
         # 1. START HIGH-RESOLUTION TIMER
@@ -200,24 +245,19 @@ class AudioProcessor(AudioData):
         # 2. CHECK FOR AUDIO BUFFER OVERFLOW
         # The 'status' flag tells us if the buffer overflowed BEFORE we even started processing.
         if status & pyaudio.paInputOverflow:
-            print(f"AudioProcessor.callback> *** [FRAME DROPPED] ***")
+            print(f"AudioProcessor.callback> *** [FRAME DROPPED] *** queue size ", self.audio_queue.qsize())
             
         # --- Existing Audio Capture and Processing ---
-        
-        # Convert bytes to numpy array (assuming dtype=np.int16)
-        data = np.frombuffer(in_data, dtype=np.int16) 
-        
-        # Split/Reshape Samples
-        # Note: Using a global/class variable CHANNELS here
-        self.samples['left']  = data[0::2]
-        self.samples['right'] = data[1::2]
-        
-        # Mono conversion (Efficiently handles multiple channels)
-        self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1) 
-        
-        # Run the expensive audio processing/visual update functions here
-        self.record(in_data)
-        self.audio_available = True 
+        try:
+            in_data = np.frombuffer(in_data, dtype=np.int16)
+            if not self.audio_queue.full():
+                self.audio_queue.put_nowait(in_data)
+                # print("AudioProcessor.callback> audio frame queued, queue size:", self.audio_queue.qsize())
+        except Exception as e:
+            print("AudioProcessor.callback> exception ", e)
+            pass
+        return (None, pyaudio.paContinue)        
+
         # self.events.Audio('capture')
         
         processing_time_ms = (time.perf_counter() - start_time) * 1000
@@ -228,8 +268,27 @@ class AudioProcessor(AudioData):
             print(f"AudioProcessor.callback> *** [LATENCY WARNING]: {processing_time_ms:.2f} vs {CRITICAL_TIME_MS:.2f} ms ***")
         
         # Continue stream
-        return (in_data, pyaudio.paContinue)
+        return (None, pyaudio.paContinue)
 
+    def is_audio_available(self):
+        # print("AudioProcessor.is_audio_available> audio available check ", self.audio_queue.qsize())
+        if not self.audio_queue.empty():
+            data = self.audio_queue.get_nowait()
+            
+            # Split/Reshape Samples
+            # Note: Using a global/class variable CHANNELS here
+            self.samples['left']  = data[0::2]
+            self.samples['right'] = data[1::2]
+            
+            # Mono conversion (Efficiently handles multiple channels)
+            self.samples['mono']  = np.mean(data.reshape(len(data)//CHANNELS, CHANNELS) ,axis=1) 
+            
+            # Run the expensive audio processing/visual update functions here
+            self.record(data)
+            self.audio_available = True 
+        return self.audio_available
+
+    #----------------------------------------
 
     def start_recording(self):
         self.recordingState = True
