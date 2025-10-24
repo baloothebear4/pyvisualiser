@@ -178,11 +178,17 @@ def generate_asound_conf(dac_index: Optional[int]) -> str:
         "    slave.pcm {",
         "        type multi",
         "        slaves {",
-        "            a { channels 2 pcm \"dac\" }",
-        "            b { channels 2 pcm \"loopout\" }",])
-    if dac_index['usb_dac'] is not None:
+        "            a { channels 2 pcm \"loopout\" }",])
+    if dac_index['usb_dac'] is not None and dac_index['adc_dac'] is None:
         config_lines.extend([
-        "            c { channels 2 pcm \"usb\" }",])
+        "            b { channels 2 pcm \"usb\" }",])
+    elif dac_index['adc_dac'] is not None and dac_index['usb_dac'] is None:
+        config_lines.extend([
+        "            b { channels 2 pcm \"dac\" }",])
+    elif dac_index['usb_dac'] is not None and dac_index['adc_dac'] is not None:
+        config_lines.extend([
+        "            b { channels 2 pcm \"usb\" }",
+        "            c { channels 2 pcm \"dac\" }",])   
     config_lines.extend([
         "        }",
         "        bindings {",
@@ -190,7 +196,7 @@ def generate_asound_conf(dac_index: Optional[int]) -> str:
         "            1 { slave a channel 1 }",
         "            2 { slave b channel 0 }",
         "            3 { slave b channel 1 }", ])
-    if dac_index['usb_dac'] is not None:
+    if dac_index['usb_dac'] is not None and dac_index['adc_dac'] is not None:
         config_lines.extend([
         "            4 { slave c channel 0 }",
         "            5 { slave c channel 1 }",])
@@ -198,7 +204,7 @@ def generate_asound_conf(dac_index: Optional[int]) -> str:
         "        }",
         "    }",
         "    ttable [",])
-    if dac_index['usb_dac'] is not None:
+    if dac_index['usb_dac'] is not None and dac_index['adc_dac'] is not None:
         config_lines.extend([
         "        [ 1 0 1 0 1 0 ]  # Left channel to both outputs",
         "        [ 0 1 0 1 0 1 ]  # Right channel to both outputs",])

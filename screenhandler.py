@@ -146,8 +146,7 @@ class ScreenController:
                         print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.2f%%" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
                     elif self.platform.clock.get_fps() < self.platform.FPS:
                         print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
-                    else:
-                        pass
+
                         # All good
                     loop_count = 0
                 loop_count += 1

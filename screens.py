@@ -231,12 +231,12 @@ class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on t
         Frame.__init__(self, platform, theme= 'blue')
 
         # self += AlbumArtFrame(self  , scalers=(0.25, 0.93),align=('right','middle'))
-        subframe1 = ColFramer(self)
-        subframe2 = RowFramer(subframe1)
-        # subframe3 = Frame(self,scalers=(0.5,0.95), align=('right','top'))
-        subframe2 += ArtistArtFrame(subframe2  , scalers=(1.0,1.0),align=('centre','middle'), outline={'colour_index':'foreground'})
-        subframe2 += MetaDataFrame(subframe2  , scalers=(1.0, 1.0), align=('centre','top'))
-        subframe1 += VUMeterImageFrame(subframe1  , type='blueVU', scalers=(0.95,1.0), align=('centre','middle'),outline={'colour_index':'light'})
+        # subframe1 = ColFramer(self)
+        # subframe2 = RowFramer(subframe1)
+        # # subframe3 = Frame(self,scalers=(0.5,0.95), align=('right','top'))
+        # subframe2 += ArtistArtFrame(subframe2  , scalers=(1.0,1.0),align=('centre','middle'), outline={'colour_index':'foreground'})
+        # subframe2 += MetaDataFrame(subframe2  , scalers=(1.0, 1.0), align=('centre','top'))
+        self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('centre','middle'),outline={'colour_index':'light'})
         # self += PlayProgressFrame(self  , scalers=(0.5, 0.05), align=('right','bottom'))
 
 class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on the right
@@ -262,7 +262,7 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         # self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
         cols = ColFramer(self)
         cols += VUMeter(cols  ,  'left', square=True, scalers=(0.9, 0.9), align=('left','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
-        cols += MetaDataFrame(cols  ,  scalers=(1.0, 1.0), align=('centre','middle'))
+        cols += MetaDataFrame(cols  ,  scalers=(1.0, 1.0), align=('centre','middle'))#,outline=OUTLINE)
         cols += VUMeter(cols  ,  'right', square=True, scalers=(0.9, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
 
 
@@ -297,7 +297,7 @@ class TrackVUMeterScreen21(Frame):   # comprises volume on the left, spectrum on
         # colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
         colframe  += VUMeter(colframe,  'left',  scalers=(1.0, 1.0), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
         colframe  += MetaDataFrame(colframe )
-        colframe  += VUMeter(colframe,  'right', scalers=(1.0, 1.0), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+        self  += VUMeter(self,  'right', scalers=(0.3, 1.0), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
   
         # colframe   += ArtistArtFrame(colframe, opacity=100)
 
@@ -323,7 +323,7 @@ class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the r
         # led_h=5, led_gap=1,barsize_pc=0.7, theme=None
         subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
         subframe += ArtistArtFrame(subframe, scalers=(1.0,1.0), opacity=100)
-        subframe += VU2chFrame(subframe, scalers=(0.1, 1.0), align=('right','middle'), led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour_index':'foreground', 'width':0})
+        subframe += VU2chFrame(subframe, scalers=(0.1, 1.0), align=('right','middle'), led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour_index':'foreground', 'width':1})
         # self += AlbumArtFrame(subframe, (1.0, 1.0),align=('right','middle'))
 
 

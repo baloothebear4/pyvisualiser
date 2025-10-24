@@ -93,9 +93,10 @@ class MetaDataFrame(Frame):
     SHOW = { 'artist': {'colour' : 'foreground', 'align': ('centre','top'),    'scalers': (1.0, 1.0) }, \
              'track' : {'colour' : 'mid',        'align': ('centre','bottom'), 'scalers': (1.0, 0.8)}, \
              'album' : {'colour' : 'mid',        'align': ('centre','middle'), 'scalers': (1.0, 0.8)} }
+    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour_index' : 'dark'}
 
-    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre'):
-        super().__init__(parent, scalers=scalers, align=align, theme=theme)
+    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre', outline=None):
+        super().__init__(parent, scalers=scalers, align=align, theme=theme, outline=outline)
         self.justify = justify
         self.create()
 

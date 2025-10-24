@@ -52,7 +52,7 @@ class TextFrame(Frame):
         - Y is the y scaler
     """
     def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, colour_index='foreground', background=None, outline=None):
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=background)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline)
         self.colour_index   = colour_index 
         self.wrap           = wrap
         self.reset          = reset
@@ -140,13 +140,12 @@ class PlayProgressFrame(Frame):
 class AlbumArtFrame(Frame):
     # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
-        Frame.__init__(self, parent, scalers=scalers, align=align, square=True)
+        Frame.__init__(self, parent, scalers=scalers, align=align, square=True, outline=outline)
         self.opacity=opacity 
-        self.outline=outline
         self.create()
 
     def create(self):    
-        self.image_container = Image(self, opacity=self.opacity, outline=self.outline)  
+        self.image_container = Image(self, opacity=self.opacity)  
 
     def update(self, full):
         # print("AlbumArtFrame.draw> new album art")
@@ -161,16 +160,15 @@ class AlbumArtFrame(Frame):
 
 class ArtistArtFrame(Frame):
     def __init__(self, parent, scalers=None, align=None, opacity=None, outline=None):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align,outline=outline)
         self.opacity=opacity 
-        self.outline=outline
         self.create()
 
         # print("ArtistArtFrame.__init__>", opacity)
 
     # rescale and align the frame
     def create(self):
-        self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=self.opacity, outline=self.outline)  
+        self.image_container = Image(self, align=None, scalers=(1.0,1.0), opacity=self.opacity)  
 
     def update(self, full):
         if full or self.image_container.new_content_available(self.platform.artist_art):
@@ -186,10 +184,10 @@ class MetaData(Frame):
             'track': {'colour':'light', 'align': ('centre','middle'), 'scalers' : (1.0, 0.33) }, \
             'album': {'colour':'mid', 'align': ('centre','bottom'), 'scalers' : (1.0, 0.33) } }
 
-    def __init__(self, parent, metadata_type, colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True):
-        Frame.__init__(self, parent, scalers=scalers, align=align, outline=None, theme = theme)
+    def __init__(self, parent, metadata_type, colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None):
+        Frame.__init__(self, parent, scalers=scalers, align=align, outline=outline, theme = theme)
         self.metadata_type   = metadata_type
-        self.colour     = colour
+        self.colour_index    = colour
         self.same_size  = same_size  # not sure what this does
         self.create()
 
@@ -198,7 +196,7 @@ class MetaData(Frame):
         # align   = attributes['align']   if 'align'   in attributes else MetaData.SHOW[meta]['align']
         # colour  = attributes['colour']  if 'colour'  in attributes else MetaData.SHOW[meta]['colour']
         # print("MetaData.create>", self.metadata_type, self.framestr() )
-        self.metadata = TextFrame(self, scalers=self.scalers, align=self.alignment, colour_index=self.colour, reset=True, theme=self.theme, wrap=True)
+        self.metadata = TextFrame(self, scalers=self.scalers, align=self.alignment, colour_index=self.colour_index, reset=True, theme=self.theme, wrap=True)
         # self.metadata[meta] = TextFrame(self, scalers=self.show[meta]['scalers'], align=self.show[meta]['align'], reset=True, theme=theme, wrap=True)
 
         # print("MetaDataFrame.create>", self.metadata_type, self.wh, self.framestr() )
@@ -301,7 +299,8 @@ class VUMeter(Frame):
                          align=(align_channel, self.config['align'][1]),
                          theme=self.config['theme'], 
                          background=self.config['background'],
-                         square=self.config['square'])
+                         square=self.config['square'],
+                         outline=self.config['outline'])
 
         # 4. Initialize the frame layout using the create() method
         self.create()
@@ -500,8 +499,8 @@ class VUMeterFrame4(Frame):
 
 class VUMeterImageFrame(Frame):
     """ Image background based class - the """
-    def __init__(self, parent, type=None, scalers=None, align=('centre', 'middle'),outline=None):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+    def __init__(self, parent, type=None, scalers=None, align=('centre', 'middle'),outline=None,square=False):
+        Frame.__init__(self, parent, scalers=scalers, align=align, outline =outline,square=square)
 
         NEEDLE      = { 'width':3, 'colour': 'dark', 'length': 0.7, 'radius_pc': 0.7 }
         NEEDLE2     = { 'width':3, 'colour': 'mid', 'length': 0.8, 'radius_pc': 0.55 }
@@ -580,7 +579,7 @@ class VUFrame(Frame):
 
         Creates a bar, centred in a Frame as a % of the Frame width
     """
-    def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, outline=None,\
+    def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, outline=None,square=False,\
                  barsize_pc=0.7, flip=False, \
                  led_h=5, led_gap=1, peak_h=1, radius=0, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert',**kwargs):
 
@@ -592,7 +591,7 @@ class VUFrame(Frame):
         # Add any remaining keyword arguments
         self.config.update(kwargs)
 
-        Frame.__init__(self, parent, scalers=scalers, align=align,theme=theme,background=background, outline=outline)
+        Frame.__init__(self, parent, scalers=scalers, align=align,theme=theme,background=background, outline=outline,square=square)
         self.create()
 
     def create(self):
@@ -734,7 +733,7 @@ class SpectrumFrame(Frame, Spectrum):
     - channel 'left' or 'right' selects the audio channel and screen alignment
     """
 
-    def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, \
+    def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, outline=None, square=False,\
                     led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert', **kwargs):
 
         # 1. Capture all configuration parameters into self.config
@@ -767,7 +766,9 @@ class SpectrumFrame(Frame, Spectrum):
         Frame.__init__(self, parent, 
                          scalers=self.config['scalers'], 
                          align=self.config['align'], 
-                         theme=self.config['theme'])
+                         theme=self.config['theme'],
+                         outline=outline,
+                         square=square)
         
         # 3. Call Spectrum.__init__ (This only needs the initial size and bar settings)
         # Note: Spectrum.__init__ is being called here because it manages the audio processing 
@@ -921,9 +922,9 @@ class OscilogrammeBar(Frame):
     BAR_MAX   = 20    # Max width of a Bar
 
     def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), barsize_pc=1, theme='std', flip=False, \
-                    led_h=5, led_gap=0, col_mode='horz', radius=0, barw_min=4, tip=True, decay=DECAY):
+                    led_h=5, led_gap=0, col_mode='horz', radius=0, barw_min=4, tip=True, decay=DECAY,outline=None, square=False):
 
-        Frame.__init__(self, parent, scalers=scalers, align=align)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, outline=outline,square=square)
         self.bar_space      = barsize_pc     # pc of barwidth
         self.decay          = decay
         self.channel        = channel

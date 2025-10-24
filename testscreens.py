@@ -279,14 +279,14 @@ class TestBacks(Frame):
 
 
 
-class SubFrame(Frame):
-    def __init__(self, parent, scalers, align):
-        Frame.__init__(self, parent, scalers=scalers, align=align)
-        # print("SubFrame> ", self.geostr())
-        self += TestFrame(self  , scalers=(0.5, 0.3), align=('left','bottom'))
-        self += TestFrame(self  , scalers=(0.5, 0.3), align=('centre','middle'))
-        self += TestFrame(self  ,scalers=(0.5, 0.3), align=('right','top'))
-        self += OutlineFrame(self  , scalers=(1.0, 1.0), align=('right','top'))
+# class SubFrame(Frame):
+#     def __init__(self, parent, scalers, align):
+#         Frame.__init__(self, parent, scalers=scalers, align=align)
+#         # print("SubFrame> ", self.geostr())
+#         self += TestFrame(self  , scalers=(0.5, 0.3), align=('left','bottom'))
+#         self += TestFrame(self  , scalers=(0.5, 0.3), align=('centre','middle'))
+#         self += TestFrame(self  ,scalers=(0.5, 0.3), align=('right','top'))
+#         self += OutlineFrame(self  , scalers=(1.0, 1.0), align=('right','top'))
 
 class TestFrame(Frame):
     """ A Frame is a box with coords relative to its enclosing Frame,
@@ -331,31 +331,23 @@ class ColAlignedScreen(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi')
+        super().__init__(platform, theme='hifi', outline={'width':2,'colour_index':'foreground'})
         # print("SubFrame> ", self.geostr())
         self.create()
 
     def create(self):
         
+        # self += TextFrame(self  , scalers=(0.6,0.6), align=('centre','middle'), text='centre', background='dark', outline={'width':10,'colour_index':'alert'})
+        # print(self)
 
-        colframe = ColFramer(self, scalers=(1.0,1.0), align=('left','middle'), background='dark', padding=0.0) #, align=('centre','middle'))
+        colframe = ColFramer(self, scalers=(0.95,0.95), align=('centre','middle'), background='dark', padding=0.0,outline={'colour_index':'alert','width':5}) #, align=('centre','middle'))
         # print("ColAlignedScreen.create> colframe", colframe.framestr())
-        colframe += TextFrame(colframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert'})
+        colframe += TextFrame(colframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert','width':7})
         colframe += TextFrame(colframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid')
-        colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,0.6))
-        # colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
+        colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,1.0))
 
-        # rowframe = RowFramer(colframe  ,  scalers=(0.5,1.0), align=('right','middle'), background='dark', padding=0.0)
-        # # print("ColAlignedScreen.create> rowframe", rowframe.framestr())
-        # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid')
+        # rowframe = RowFramer(colframe  ,  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
+
+        # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour_index':'foreground','width':3})
         # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
         # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
-
-        # self += Frame(self  ,  scalers=(0.3, 0.3), align=('right','top'), background='foreground')
-
-        # print("ColAlignedScreen.create")
-
-        # self += TestFrame(self  , scalers=(0.5, 0.3), align=('left','bottom'))
-        # self += TestFrame(self  , scalers=(0.5, 0.3), align=('centre','middle'))
-        # self += TestFrame(self  ,scalers=(0.5, 0.3), align=('right','top'))
-        # self += OutlineFrame(self  , scalers=(1.0, 1.0), align=('right','top'))            

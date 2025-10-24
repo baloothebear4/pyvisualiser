@@ -25,14 +25,33 @@ def main():
     print("OpenGL version:", version.decode() if version else "None (no context)")
 
     # --- shader sources ---
-    vertex_src = """
-    #version 130
+    # vertex_src = """
+    # #version 130
+    # in vec2 position;
+    # void main() {
+    #     gl_Position = vec4(position, 0.0, 1.0);
+    # }
+    # """
+
+    vertex_src = """#version 130
     in vec2 position;
+    out vec2 v_uv;
+
     void main() {
-        gl_Position = vec4(position, 0.0, 1.0);
+        // 1. Rotation: Apply 90-degree Clockwise rotation: (x, y) -> (y, -x).
+        // This rotates the 1280x400 content so it appears correctly on the 400x1280 screen.
+        vec2 rotated_pos = vec2(position.y, -position.x);
+
+        // Set the final screen position
+        gl_Position = vec4(rotated_pos, 0.0, 1.0);
+
+        // 2. UV Calculation: Pass the *original* unrotated UVs (0-1) to the fragment shader.
+        // v_uv.x is the long dimension (1280), v_uv.y is the short dimension (400).
+        v_uv = position * 0.5 + 0.5;
     }
     """
 
+    # Triangle fragment shader (simple color) - works fine
     frag_src = """
     #version 130
     out vec4 outColor;
@@ -63,6 +82,7 @@ def main():
     vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
     glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
 
     # --- bind attribute ---
     pos_loc = glGetAttribLocation(prog, "position")

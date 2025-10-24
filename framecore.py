@@ -30,13 +30,25 @@ PI = np.pi
 # from platform   import Platform         # used for Test purposes
 
 class Geometry():
-    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=('centre', 'middle'), square=False):
+    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=('centre', 'middle'), square=False, outline_w=0, padding=0):
+        """
+            bounds is list of the bottom left and upper right corners eg (0,0,64,32)
+            screen_wh is the size of the actual display screen - needed for absolute coordinates
+            scalers is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
+            align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
+            square is to force the shape to have w=h
+            outline_w is pixels to reduce the size of the frame to allow for an outline border
+            padding is pixels to the frame size to allow a blank space round the frame
+        """
         self._abcd          = [0,0,0,0]
         self._bounds        = [0,0, screen_wh[0]-1, screen_wh[1]-1] if bounds is None else bounds
         self.screen_wh      = screen_wh
         self.alignment      = align
         self.scalers        = scalers
         self.square         = square
+        self.outline_w      = outline_w
+        self.padding        = padding
+
         self.min_offset     = 0
         self.circle_scale   = 1
         self.centre_offset  = 0  #PC of the height offsets the centre of a circle eg -0.5 moves to the bottom
@@ -172,6 +184,8 @@ class Geometry():
                 wh=(wh[0]+1, wh[0])
             # print("Geometry.resize> square", wh, self.xyscale, self, self.geostr())
 
+        # reduce the sw & h to allow for outline width
+
         self.a = 0
         self.b = 0
         try:
@@ -284,7 +298,7 @@ class Geometry():
     """ return the absolute coordinates for drawing on screen, using TopLeft ordinates """
     def abs_origin(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
-        origin = (int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0-offset[1]+self.h-1)) )
+        origin = (int(self.x0+self.outline_w+self.padding+offset[0]), int(self.screen_wh[1]- (self.y0-self.outline_w-self.padding-offset[1]+self.h-1)) )
         return origin
 
     def abs_centre(self, offset=(0, 0)): # Return (x, y)
@@ -294,10 +308,23 @@ class Geometry():
         return origin
 
     def abs_rect(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
-        wh = [self.wh[0], self.wh[1]] if wh is None else wh
-        rect = [int(self.x0+offset[0]), int(self.screen_wh[1]- (self.y0+self.h-offset[1])) ] + wh
+        shrink  = self.outline_w+self.padding
+        wh      = [self.wh[0]-shrink*2, self.wh[1]-shrink*2] if wh is None else wh
+        rect    = [int(self.x0+offset[0]+shrink), int(self.screen_wh[1]- (self.y0+self.h-shrink-offset[1])) ] + wh
+        # print("Geometry.abs_rect>",self.screen_wh[1], self.y0, self.h, offset[1], shrink, "rect", rect)
+        return rect
+
+    # background is the area inside the outline
+    def abs_background(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
+        shrink = self.outline_w
+        wh     = [self.wh[0]-shrink*2, self.wh[1]-shrink*2] if wh is None else wh
+        rect   = [int(self.x0+offset[0]+shrink), int(self.screen_wh[1]- (self.y0+self.h-shrink-offset[1])) ] + wh
         # print(self.screen_wh[1], self.y0, self.h, offset[1],"rect", rect)
         return rect
+
+    # outline is the area outside the background
+    def abs_outline(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
+        return self.abs_background(offset, wh)
 
     def theta(self, val):    # return an angle in radians from a value range -1 to +1
         return (PI*(val))-PI/2
@@ -376,7 +403,8 @@ class Geometry():
         return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords))
 
     def geostr(self, s=0):
-        return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, abs rect %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect()))
+        return( "name %s, outline_w, %d, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, \n         abs rect %s, abs_outline %s, abs_background %s" \
+            % (type(self).__name__, self.outline_w, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect(),self.abs_outline(), self.abs_background() ))
 
     def align(self, align=None, offset=0):
         """
@@ -422,6 +450,7 @@ class Geometry():
 
 FULLSCALE = (1.0,1.0)
 CENTRED   = ('centre', 'middle')
+OUTLINE   = None #{ 'width' : 1, 'radius' : 0, 'colour_index' : 'foreground'}
 
 class Frame(Geometry):
     """
@@ -442,7 +471,7 @@ class Frame(Geometry):
         padding     is a % additional scaling added to the absolute size is a smaller than the scaled size
         
     """
-    OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
+
 
     def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None):
         """
@@ -452,39 +481,31 @@ class Frame(Geometry):
 
             NB: making outline = '' will draw frame outlines around all frames that do not have their own draw functions - useful for tweaking screen design
         """
-        self.frames     = []         #Holds the stack of containing frames
-        self.outline    = outline
-        self._original_scalers = scalers 
+        # print("Frame.__init__> startup>>>", type(self).__name__, align, scalers, theme, background)
+
         scalers         = FULLSCALE   if scalers  is None else scalers
         alignment       = CENTRED     if align    is None else align      
-        # print("Frame.__init__> startup>>>", type(self).__name__, align, scalers, theme, background)
+        outline         = OUTLINE     if outline  is None else outline
+
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
             bounds          = parent.coords
-            # scalers         = parent.scalers    if scalers  is None else scalers
-            self.theme      = parent.theme      if theme    is None else theme
-            # alignment       = parent.alignment  if align    is None else align            
+            self.theme      = parent.theme      if theme    is None else theme           
             self.platform   = parent.platform
             # print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
         else:
             """ Screen (aka top-level Frame), so scale to the boundary """
             bounds          = parent.boundary
             self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
-            # scalers         = FULLSCALE              if scalers  is None else scalers
-            self.theme      = 'std'                  if theme    is None else theme
-            # alignment       = CENTRED                if align    is None else align         
+            self.theme      = 'std'                  if theme    is None else theme  
 
-        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment, square)
-
+        self.frames         = []         #Holds the stack of containing frames
         self.background     = 'background' if background is None else background
+
+        self.outline_frame  = self.platform.create_outline(self, outline) if outline is not None else None
+
+        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment, square, self.outline_frame.w)<--- what if outline is None?
         self.colour         = Colour(self.theme, self.w)
-
-        if outline is not None: 
-            self.outline    = self.platform.create_outline(self.theme, outline, self.w)
-            # print("create outline ", type(self).__name__)
-
-
-
         # print("Frame.__init__> done", self.geostr())
 
     def scale_scalers(self, scalers, padding):
@@ -514,55 +535,47 @@ class Frame(Geometry):
         # print("Frame.realign> ", hasattr(self, 'create'), align, offset, self.framestr())
 
     def update(self, full=False):
-        drawn = False
         if full: 
             self.draw_background()
-            drawn = True
+            self.platform.dirty_mgr.add( tuple(self.abs_background()) )
+            self.draw_outline(full)
+            self.platform.dirty_mgr.add(tuple(self.abs_outline()))
             # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
         for f in self.frames:
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
-            # if hasattr(f, 'undraw'):  f.undraw()
+            f.update(full)
+            self.platform.dirty_mgr.add(tuple(f.abs_rect())) 
 
-            # print("Frame.draw> full", full, f._need_to_redraw, type(f).__name__, f.abs_rect(), "has draw ", hasattr(f, 'draw') )
-            if f.update(full) or f.draw_outline(full): 
-                self.platform.dirty_mgr.add(tuple(f.abs_rect()))
-                drawn = True
-            
-            # print("Frame.update> rect", full, type(f).__name__, f.abs_rect())
-        if drawn: 
-            self.platform.dirty_mgr.add(tuple(self.abs_rect()))
-            return True
-        else:
-            return False
+            f.draw_outline(full)
+            self.platform.dirty_mgr.add(tuple(f.abs_outline()))
+
 
     def draw_background(self):
-        # print("Frame.draw_background", type(self).__name__, self.abs_rect())
+        print("Frame.draw_background", type(self).__name__, self.abs_rect())
         if isinstance(self.background, str): 
-            self.platform.fill(self.abs_rect(), colour=self.colour, colour_index=self.background)
+            self.platform.fill(self.abs_background(), colour=self.colour, colour_index=self.background)
         else:
-            self.platform.fill(self.abs_rect(), colour=self.colour, image=self.background)
-        self.platform.dirty_mgr.add(tuple(self.abs_rect()))
+            self.platform.fill(self.abs_background(), colour=self.colour, image=self.background)
+
 
     def draw_outline(self, full):
-        if self.outline is not None and full: 
-            self.outline.draw(self.abs_rect())
-            # print("Frame.draw_outline>", self.abs_rect())
-            self.platform.dirty_mgr.add(tuple(self.abs_rect()))
-            return True
-        else:
-            return False
+        if self.outline_frame is not None:  # and full --> need to draw it everytime else the background erases it
+            self.outline_frame.draw(self.abs_outline())
+            # print("Frame.draw_outline> ", full, type(self).__name__, self.abs_rect())
             
     def framestr(self):
         return "%-10s > wh %s, abs %s, parent %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme)
 
     def frametext(self, f):
-        return "%-10s > %s" % (type().__name__, super(Frame, f).__str__())
+        return "%-10s > %s" % (type(f).__name__, f.geostr())
 
     def __str__(self):
-        text = '%s Frame stack>' % type(self).__name__
+        text = '\n%s Frame stack>' % (type(self).__name__)
         for f in self.frames:
-            text += "\n  " + self.frametext( f ) + self.geostr()
+            text += "\n  " + self.geostr( f )
+            text += "\n  " + f.__str__()
+        text += "\n  "
         return text
 
     """ goes through the frames to see if they overlap  """

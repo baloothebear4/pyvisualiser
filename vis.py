@@ -28,7 +28,7 @@ import platform
 #             TrackSpectrumScreen3, TrackSpectrumScreen4, \
 #             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
 #             ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
-SCREENS = (ArtMetaSpectrumScreen, TrackVUMeterScreen2, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, MinSpectrumArt, TrackSpectrumScreen3, TrackVUMeterScreen, TrackSpectrumScreen, TrackSpectrumScreen2)
+SCREENS = (ColAlignedScreen, TrackVUMeterScreen, ArtMetaSpectrumScreen, TrackVUMeterScreen2, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, MinSpectrumArt, TrackSpectrumScreen3, TrackSpectrumScreen, TrackSpectrumScreen2)
 # SCREENS = (ColAlignedScreen, TrackVUMeterScreen2) #, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, TrackSpectrumScreen3, TrackVUMeterScreen,MinSpectrumArt)
 
 """ 

@@ -11,11 +11,12 @@ v1.1 baloothebear4 Feb 2024   refactored as part of pyvisualiseer
 """
 
 import pygame, time
+import collections
 from   pygame.locals import *
 import numpy as np
 from   framecore import Frame, Cache, Colour
 from   textwrap import shorten, wrap
-from    io import BytesIO
+from   io import BytesIO
 import requests
 import warnings
 import os
@@ -197,7 +198,7 @@ class Image(Frame):
 
         original_width, original_height = imagesurface.get_size()
         aspect_ratio = original_width / original_height
-        frame_width  = 0 if self.outline is None else self.outline.width 
+        frame_width  = 0 #if self.outline is None else self.outline.width 
         new_width = int((tgt_height) * aspect_ratio)
         if new_width > self.boundswh[0]:
             new_width  = self.boundswh[0]
@@ -230,13 +231,10 @@ class Image(Frame):
 
         if image is not None:
             image.set_alpha(self.opacity)
-            frame_width  = 0 if self.outline is None else self.outline.width 
-            self.platform.screen.blit(image, self.abs_origin(offset=(frame_width,frame_width)))
-            self.draw_outline(True)
-
-            # print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
+            # frame_width  = 0 if self.outline is None else self.outline.width 
+            self.platform.screen.blit(image, self.abs_origin())
             self.old_image_data = image_data
-
+            # print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
         else:
             pass
             # print("Image.draw> attempt to draw an None image", image, image_data)
@@ -684,33 +682,39 @@ class Dots(Frame):
         opacity         - 255 is fully opaque, 0 is transparent.  Good for blending
 """
 class Outline:
-    OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground', 'opacity': 255}
-    def __init__(self, theme, w, screen, outline):
-        self.outline_colour = Colour(theme, w)
-        self.outline        = outline
-        self.screen         = screen
+    #Default outline
+    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour_index' : 'foreground', 'opacity': 255}
 
+    def __init__(self, frame, outline):
+        self.frame         = frame
+        self.outline       = outline
+        # print("Outline.init>", self.frame.framestr(), self.frame.outline)
+        #only one parameter is needed, else the default is set
+        if 'colour_index' not in self.outline:   self.outline['colour_index'] = Outline.OUTLINE['colour_index'] 
+        if 'opacity'      not in self.outline:   self.outline['opacity']      = Outline.OUTLINE['opacity']      
+        if 'radius'       not in self.outline:   self.outline['radius']       = Outline.OUTLINE['radius']       
+        if 'width'        not in self.outline:   self.outline['width']        = Outline.OUTLINE['width']        
 
     def draw(self, coords):
-        colour_index = self.outline['colour_index']  if 'colour_index' in self.outline else Outline.OUTLINE['colour_index']
-        opacity      = self.outline['opacity']       if 'opacity' in self.outline else Outline.OUTLINE['opacity']
-        radius       = self.outline['radius']        if 'radius' in self.outline else Outline.OUTLINE['radius']
-        width        = self.outline['width']         if 'width' in self.outline else Outline.OUTLINE['width']
-        colour  = self.outline_colour.get(colour_index, opacity=opacity)
-        surface = pygame.Surface( (self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
-        #adjust the outline to the outside of the coords ie add the width
-        # coords = (coords[0]-width, coords[1]-width, coords[2]+width*2, coords[3]+width*2) if radius>0 else coords
+        colour_index = self.outline['colour_index'] 
+        opacity      = self.outline['opacity'] 
+        radius       = self.outline['radius'] 
+        width        = self.outline['width'] 
+ 
+        # print("Outline.draw>", self.frame.framestr(), self.frame.colour)    
+        colour       = self.frame.colour.get(colour_index, opacity=opacity)
+        surface      = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
+
         pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
-        self.screen.blit(surface, (0,0) )
+        self.frame.platform.screen.blit(surface, (0,0) )
         # print("Outline.draw>", coords, ncoords, colour, opacity )        
 
     @property
-    def width(self):
-        width        = self.outline['width'] if 'width' in self.outline else Outline.OUTLINE['width']
+    def w(self):
+        width        = self.outline['width'] if 'width' in self.outline else 0
         return width
 
-import pygame
-import collections
+
 
 class DirtyAreaTracker:
     def __init__(self, screen_surface, alpha=0.1):
@@ -816,18 +820,21 @@ class DirtyRectManager:
         # The list to store all dirty pygame.Rect objects
         self.dirty_rects = []
 
-    def add(self, rect: pygame.Rect | tuple):
+    def add(self, rect):
         """
         Adds a single dirty rectangle to the list.
         If a tuple (x, y, w, h) is passed, it is converted to a pygame.Rect.
         """
         # print("DirtyRectManager.add", rect)
+
         if isinstance(rect, tuple):
             self.dirty_rects.append(pygame.Rect(rect))
         elif isinstance(rect, pygame.Rect):
             self.dirty_rects.append(rect)
+        elif rect is None or True or False:
+            return
         else:
-            raise TypeError("Expected pygame.Rect or (x, y, w, h) tuple")
+            raise TypeError("DirtyRectManager.add> Expected pygame.Rect or (x, y, w, h) tuple")
 
     def add_list(self, rect_list: list[pygame.Rect | tuple]):
         """
@@ -1010,7 +1017,7 @@ class GraphicsDriverPi:
         if not dirty_rects:
             # If nothing is dirty, don't update anything
             self.ave_area_pc = self.area_tracker.update_average([])
-            # print("GraphicsDriverPi.draw_end> NO dirty rects")
+            print("GraphicsDriverPi.draw_end> NO dirty rects")
             return
             
         transformed_rects = []
@@ -1191,9 +1198,10 @@ class GraphicsDriver:
         pygame.display.set_caption('Visualiser')
 
         self.screen         = self.gfx_driver.screen
-        self.colour         = Colour('std', self.w)
-        self.background     = Frame(self)
-        self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
+
+        # self.colour         = Colour('std', self.w)
+        # self.background     = Frame(self)
+        # self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
 
 
     def __getattr__(self, item):
@@ -1204,8 +1212,8 @@ class GraphicsDriver:
         # if rect is None: rect = [0,0]+self.wh
         pygame.display.update(pygame.Rect(rect))    
 
-    def create_outline(self, theme, outline, w):
-        return Outline(theme, w, self.screen, outline)    
+    def create_outline(self, frame, outline):
+        return Outline(frame, outline)    
     
     def regulate_fps(self):
         self.gfx_driver.clock.tick(self.gfx_driver.FPS)
