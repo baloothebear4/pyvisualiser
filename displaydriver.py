@@ -685,9 +685,10 @@ class Outline:
     #Default outline
     OUTLINE = { 'width' : 1, 'radius' : 0, 'colour_index' : 'foreground', 'opacity': 255}
 
-    def __init__(self, frame, outline):
+    def __init__(self, frame, outline=None):
         self.frame         = frame
         self.outline       = outline
+        if self.outline is None: return
         # print("Outline.init>", self.frame.framestr(), self.frame.outline)
         #only one parameter is needed, else the default is set
         if 'colour_index' not in self.outline:   self.outline['colour_index'] = Outline.OUTLINE['colour_index'] 
@@ -696,6 +697,7 @@ class Outline:
         if 'width'        not in self.outline:   self.outline['width']        = Outline.OUTLINE['width']        
 
     def draw(self, coords):
+        if self.outline is None: return
         colour_index = self.outline['colour_index'] 
         opacity      = self.outline['opacity'] 
         radius       = self.outline['radius'] 
@@ -707,12 +709,14 @@ class Outline:
 
         pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
         self.frame.platform.screen.blit(surface, (0,0) )
-        # print("Outline.draw>", coords, ncoords, colour, opacity )        
+        print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )        
 
     @property
     def w(self):
-        width        = self.outline['width'] if 'width' in self.outline else 0
-        return width
+        if self.outline is None or 'width' not in self.outline:
+            return 0
+        else: 
+            return self.outline['width'] 
 
 
 

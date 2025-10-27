@@ -331,7 +331,7 @@ class ColAlignedScreen(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi', outline={'width':2,'colour_index':'foreground'})
+        super().__init__(platform, theme='hifi', outline={'width':20,'colour_index':'alert'}, padding=0)
         # print("SubFrame> ", self.geostr())
         self.create()
 
@@ -340,14 +340,48 @@ class ColAlignedScreen(Frame):
         # self += TextFrame(self  , scalers=(0.6,0.6), align=('centre','middle'), text='centre', background='dark', outline={'width':10,'colour_index':'alert'})
         # print(self)
 
-        colframe = ColFramer(self, scalers=(0.95,0.95), align=('centre','middle'), background='dark', padding=0.0,outline={'colour_index':'alert','width':5}) #, align=('centre','middle'))
+        # colframe = ColFramer(self, scalers=(1.0,1.0), align=('centre','middle'), background='mid', padpc=0, padding=0, outline={'colour_index':'alert','width':5}) #, align=('centre','middle'))
         # print("ColAlignedScreen.create> colframe", colframe.framestr())
-        colframe += TextFrame(colframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert','width':7})
-        colframe += TextFrame(colframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid')
-        colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,1.0))
+        self += Frame(self, scalers=(0.5,0.5), align=('left','middle'), background='light', outline={'colour_index':'alert','width':5})
+        self += Frame(self, scalers=(0.5,0.5), align=('right','bottom'), background='mid', outline={'colour_index':'alert','width':5})
+        # self += TextFrame(self  , text='one', scalers=(1.0, 1.0), background='light') #, outline={'colour_index':'alert','width':20})
+        # self += TextFrame(self  , text='two', scalers=(0.3, 1.0), background='mid', outline={'colour_index':'foreground','width':15})
+        # colframe += TextFrame(colframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid', outline={'colour_index':'alert','width':1})
+        # colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,1.0), outline={'colour_index':'alert','width':1})
 
         # rowframe = RowFramer(colframe  ,  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
 
         # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour_index':'foreground','width':3})
         # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
         # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
+        print(self)
+
+class RowAlignedScreen(Frame):
+    @property
+    def title(self): return 'ColAlignedScreen> Creates 3 box frames and aligns them horizontally, evenly'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', outline={'width':1,'colour_index':'foreground'})
+        # print("SubFrame> ", self.geostr())
+        self.create()
+
+    def create(self):
+        
+        # self += TextFrame(self  , scalers=(0.6,0.6), align=('centre','middle'), text='centre', background='dark', outline={'width':10,'colour_index':'alert'})
+        # print(self)
+
+        rowframe = RowFramer(self, scalers=(1.0,1.0), align=('centre','middle'), background='dark', padpc=0,outline={'colour_index':'alert','width':1}) #, align=('centre','middle'))
+        # print("ColAlignedScreen.create> colframe", colframe.framestr())
+        rowframe += TextFrame(rowframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert','width':1})
+        rowframe += TextFrame(rowframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid', outline={'colour_index':'alert','width':1})
+        rowframe += MetaData(rowframe,  'track', colour='foreground', scalers=(1.0,1.0), outline={'colour_index':'alert','width':1})
+
+        # rowframe = RowFramer(colframe  ,  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
+
+        # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour_index':'foreground','width':3})
+        # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
+        # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')        
+        print(self)

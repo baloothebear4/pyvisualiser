@@ -64,10 +64,10 @@ class Geometry():
 
     @a.setter
     def a(self, val):
-        if val >= 0 and val <= self.boundswh[0]:
+        if val >= 0 and val <= self.bounds[2]+1:
             self._abcd[0] = int(val)
         else:
-            raise ValueError('set.a > value exceed bounds ', val, self.geostr())
+            raise ValueError('set.a > value exceed bounds ', val, self.boundswh[0], self.geostr())
 
     @property
     def b(self):
@@ -75,7 +75,7 @@ class Geometry():
 
     @b.setter
     def b(self, val):
-        if val >= 0 and val <= self.boundswh[1]:
+        if val >= 0 and val <= self.bounds[3]+1:
             self._abcd[1] = int(val)
         else:
             raise ValueError('set.b > value exceed bounds ', val, self.geostr())
@@ -86,17 +86,13 @@ class Geometry():
 
     @c.setter
     def c(self, val):
-        # if val >= 0 and val <= self.boundswh[0]:
-        #     self._abcd[2] = int(val)
-        # else:
-        #     raise ValueError('set.c > value exceed bounds ', val, self.boundswh[0], self.geostr())
         if val < self.a:
             raise ValueError(f'set.c < set.a: {val} < {self.a}. Cannot invert coordinates.', self.geostr())
             
-        if val >= 0 and val <= self.boundswh[0]:
+        if val >= 0 and val <= self.bounds[2]+1:
             self._abcd[2] = int(val)
         else:
-            raise ValueError('set.c > value exceed bounds ', val, self.boundswh[0], self.geostr())
+            raise ValueError('set.c > value exceed bounds ', val, self.bounds[2], self.geostr())
 
 
     @property
@@ -112,10 +108,10 @@ class Geometry():
         if val < self.b:
             raise ValueError(f'set.d < set.b: {val} < {self.b}. Cannot invert coordinates.', self.geostr())
             
-        if val >= 0 and val <= self.boundswh[1]:
+        if val >= 0 and val <= self.bounds[3]+1:
             self._abcd[3] = int(val)
         else:
-            raise ValueError('set.d > value exceed bounds ', val, self.geostr())
+            raise ValueError('set.d > value exceed bounds ', val, self.boundswh[1], self.geostr())
 
     @property
     def w(self):
@@ -298,26 +294,26 @@ class Geometry():
     """ return the absolute coordinates for drawing on screen, using TopLeft ordinates """
     def abs_origin(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
-        origin = (int(self.x0+self.outline_w+self.padding+offset[0]), int(self.screen_wh[1]- (self.y0-self.outline_w-self.padding-offset[1]+self.h-1)) )
+        origin = (int(self.x0+self.outline_w+self.padding+offset[0]), int(self.screen_wh[1]- (self.y0-self.outline_w-self.padding-offset[1]+self.h)) ) # -1????
         return origin
 
     def abs_centre(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
-        origin = [self.centre[0]+offset[0], self.screen_wh[1]- (self.centre[1]+self.h*(self.centre_offset)-offset[1]-1) ]  
+        origin = [self.centre[0]+offset[0], self.screen_wh[1]- (self.centre[1]+self.h*(self.centre_offset)-offset[1]) ]  # -1????
         # print("Geometry.abs_centre>", self.centre, origin)
         return origin
 
     def abs_rect(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
-        shrink  = self.outline_w+self.padding
-        wh      = [self.wh[0]-shrink*2, self.wh[1]-shrink*2] if wh is None else wh
-        rect    = [int(self.x0+offset[0]+shrink), int(self.screen_wh[1]- (self.y0+self.h-shrink-offset[1])) ] + wh
-        # print("Geometry.abs_rect>",self.screen_wh[1], self.y0, self.h, offset[1], shrink, "rect", rect)
+        shrink  = self.outline_w+self.padding-1
+        wh      = [int(self.wh[0]-shrink), int(self.wh[1]-shrink)] if wh is None else wh
+        rect    = [int(self.x0+shrink+offset[0]), int(self.screen_wh[1]- (self.y0+self.h-shrink-offset[1])) ] + wh
+        # print("Geometry.abs_rect>",type(self).__name__, self.norm(), self.x0, self.y0, self.screen_wh[1], self.wh, self.h, offset[1], shrink, "rect", rect)
         return rect
 
     # background is the area inside the outline
     def abs_background(self, offset=(0, 0), wh=None):  # Return (x, y, w, h)
         shrink = self.outline_w
-        wh     = [self.wh[0]-shrink*2, self.wh[1]-shrink*2] if wh is None else wh
+        wh     = [int(self.wh[0]-shrink-1), int(self.wh[1]-shrink-1)] if wh is None else wh
         rect   = [int(self.x0+offset[0]+shrink), int(self.screen_wh[1]- (self.y0+self.h-shrink-offset[1])) ] + wh
         # print(self.screen_wh[1], self.y0, self.h, offset[1],"rect", rect)
         return rect
@@ -403,8 +399,8 @@ class Geometry():
         return( "name %s, abcd %s, bounds %s, boundswh %s, size %s, coords %s" % (type(self).__name__, self.abcd, self._bounds, self.boundswh, self.wh, self.coords))
 
     def geostr(self, s=0):
-        return( "name %s, outline_w, %d, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, \n         abs rect %s, abs_outline %s, abs_background %s" \
-            % (type(self).__name__, self.outline_w, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect(),self.abs_outline(), self.abs_background() ))
+        return( "name %s, outline_w %d, abcd %s, bounds %s, boundswh %s, size %s, coords %s, abs org %s, \n         abs rect %s, abs_outline %s, abs_background %s, abs_centre %s, wh %s, padding %s" \
+            % (type(self).__name__, self.outline_w, self.abcd, self._bounds, self.boundswh, self.wh, self.coords, self.abs_origin(), self.abs_rect(),self.abs_outline(), self.abs_background(), self.abs_centre(), self.wh, self.padding))
 
     def align(self, align=None, offset=0):
         """
@@ -473,7 +469,7 @@ class Frame(Geometry):
     """
 
 
-    def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None):
+    def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None, padding=0):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
@@ -489,10 +485,10 @@ class Frame(Geometry):
 
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
-            bounds          = parent.coords
+            bounds          = parent.bounds #abs_rect()
             self.theme      = parent.theme      if theme    is None else theme           
             self.platform   = parent.platform
-            # print("Frame.__init__>", type(self).__name__, scalers, alignment, theme, self.theme, "parent", parent.scalers, parent.alignment, parent.theme)
+            # print("Frame.__init__ subframe>", type(self).__name__, scalers, alignment, theme, bounds, "parent", type(parent).__name__, parent.geostr())
         else:
             """ Screen (aka top-level Frame), so scale to the boundary """
             bounds          = parent.boundary
@@ -502,9 +498,9 @@ class Frame(Geometry):
         self.frames         = []         #Holds the stack of containing frames
         self.background     = 'background' if background is None else background
 
-        self.outline_frame  = self.platform.create_outline(self, outline) if outline is not None else None
+        self.outline_frame  = self.platform.create_outline(self, outline)
 
-        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment, square, self.outline_frame.w)<--- what if outline is None?
+        Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment, square, self.outline_frame.w, padding)
         self.colour         = Colour(self.theme, self.w)
         # print("Frame.__init__> done", self.geostr())
 
@@ -538,6 +534,7 @@ class Frame(Geometry):
         if full: 
             self.draw_background()
             self.platform.dirty_mgr.add( tuple(self.abs_background()) )
+
             self.draw_outline(full)
             self.platform.dirty_mgr.add(tuple(self.abs_outline()))
             # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
@@ -552,7 +549,7 @@ class Frame(Geometry):
 
 
     def draw_background(self):
-        print("Frame.draw_background", type(self).__name__, self.abs_rect())
+        print("Frame.draw_background", type(self).__name__, self.abs_background())
         if isinstance(self.background, str): 
             self.platform.fill(self.abs_background(), colour=self.colour, colour_index=self.background)
         else:
@@ -560,9 +557,9 @@ class Frame(Geometry):
 
 
     def draw_outline(self, full):
-        if self.outline_frame is not None:  # and full --> need to draw it everytime else the background erases it
+        if self.outline_frame is not None and full: # --> need to draw it everytime else the background erases it
             self.outline_frame.draw(self.abs_outline())
-            # print("Frame.draw_outline> ", full, type(self).__name__, self.abs_rect())
+            print("Frame.draw_outline> ", full, type(self).__name__, self.abs_outline())
             
     def framestr(self):
         return "%-10s > wh %s, abs %s, parent %s, %s, %s, %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme)
@@ -571,10 +568,12 @@ class Frame(Geometry):
         return "%-10s > %s" % (type(f).__name__, f.geostr())
 
     def __str__(self):
-        text = '\n%s Frame stack>' % (type(self).__name__)
+        text = '%s Frame stack>' % (type(self).__name__)
+        text += "\n  " + self.geostr( self )
+        # text += "\n  " + self.__str__()
         for f in self.frames:
-            text += "\n  " + self.geostr( f )
-            text += "\n  " + f.__str__()
+            # text += "\n  " + f.geostr( f )
+            text += "\n  >>" + f.__str__()
         text += "\n  "
         return text
 
@@ -610,9 +609,9 @@ These Framer classes will override the positional alignments for their axis
 """
 class ColFramer(Frame):
     def __init__(self, parent, *args, **kwargs):
-        padding=kwargs.pop('padding', 0.0)
+        padpc=kwargs.pop('padpc', 0.0)
         super().__init__(parent, *args, **kwargs)
-        self.padding =  1-padding
+        self.padpc =  1-padpc
         parent += self #make sure this frame is in the update() stack
         # print("ColFramer.__init__>", self.framestr())
 
@@ -622,7 +621,7 @@ class ColFramer(Frame):
         columns = len(self.frames)
         summed_frame_w = 0
         for f in self.frames:
-            f.scale((f.scalers[0]*self.padding*1/columns,f.scalers[1]*self.padding))
+            f.scale((f.scalers[0]*self.padpc*1/columns,f.scalers[1]*self.padpc))
             summed_frame_w += f.w
 
         # Now work out how much space there is evenly between the frames, and align them
@@ -644,9 +643,9 @@ class ColFramer(Frame):
 
 class RowFramer(Frame):
     def __init__(self, parent, *args, **kwargs):
-        padding=kwargs.pop('padding', 0.0)
+        padpc=kwargs.pop('padpc', 0.0)
         super().__init__(parent, *args, **kwargs)
-        self.padding =  1-padding
+        self.padpc =  1-padpc
         parent += self #make sure this frame is in the update() stack
         # print("RowFramer.__init__>", self.framestr())
 
@@ -656,7 +655,7 @@ class RowFramer(Frame):
         rows = len(self.frames)
         summed_frame_h = 0
         for f in self.frames:
-            f.scale((f.scalers[0]*self.padding,f.scalers[1]*self.padding*1/rows))
+            f.scale((f.scalers[0]*self.padpc,f.scalers[1]*self.padpc*1/rows))
             summed_frame_h += f.h
 
         # Now work out how much space there is evenly between the frames, and align them
