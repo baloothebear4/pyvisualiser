@@ -51,8 +51,8 @@ class TextFrame(Frame):
         - V is the vertical alignment
         - Y is the y scaler
     """
-    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, colour_index='foreground', background=None, outline=None):
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline)
+    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, colour_index='foreground', background=None, outline=None, padding=0):
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline,padding=padding)
         self.colour_index   = colour_index 
         self.wrap           = wrap
         self.reset          = reset
@@ -60,22 +60,22 @@ class TextFrame(Frame):
         self.create()
 
     def create(self):
+        print("TextFrame.create>", self.text, self.geostr())
+
         self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, align=self.alignment, scalers=self.scalers, theme=self.theme, colour_index=self.colour_index, wrap=self.wrap)
-        # print("TextFrame.create>", self.text, self.textcomp.fontwh, self.scalers, self.alignment, self.geostr())
+        # self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour_index=self.colour_index, wrap=self.wrap)
 
     def update(self, full, text=None, colour_index=None, fontmax=None):
         # print("TextFrame.draw ", text, colour_index, self.geostr())
         # if text is None: text = self.text
         if full or self.textcomp.new_content_available(text):
-            # print("TextFrame.draw ", full, text, colour_index, self.geostr())
+            print("TextFrame.draw ", full, text, colour_index, self.geostr())
             self.draw_background() # clear whats there -- not needed for
             self.textcomp.draw(text=text, colour_index=colour_index, fontmax=fontmax)
-            return True
+            return self.textcomp.abs_rect()
         else:
             # print("TextFrame.draw > NO DRAW", text, colour_index, self.geostr())
             return False # no need to redraw
-        
-
         
 
     @property

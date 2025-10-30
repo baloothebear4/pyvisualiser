@@ -144,15 +144,17 @@ class Bar(Frame):
 class Image(Frame):
     DEFAULT_OPACITY = 255
     DEFAULT_CACHE   = 300
-    def __init__(self, parent, wh=None, path=None, align=None, scalers=None, opacity=None, outline=None):
+    def __init__(self, parent, wh=None, path=None, align=None, scalers=None, opacity=None, outline=None, target_wh=None):
 
         self.image_cache = Cache(Image.DEFAULT_CACHE)
         self.path        = path
-        Frame.__init__(self, parent, align=align, scalers=scalers, outline=outline)
+        self.parent      = parent
         self.opacity     = Image.DEFAULT_OPACITY if opacity is None else opacity
         self.old_image_data = None
+        self.target_wh   = parent.abs_rect()[-2:] if target_wh is None else target_wh 
+
         if path is not None:
-            self.scaleInProportion(path, self.boundswh[1])
+            self.scaleInProportion(path)
 
         # print("Image.__init__>", self.framestr())
 
@@ -167,9 +169,54 @@ class Image(Frame):
         except requests.exceptions.RequestException as e:
             print(f"Image.download_image ERROR: Failed to fetch image from URL {url}: {e}")
             return None
+        
+    def scaleInProportion_and_crop(self, imagesurface, target_wh):
+        # target_wh is the final frame dimensions (W_target, H_target)
+        W_target, H_target = target_wh
+        W_orig, H_orig = imagesurface.get_size()
 
-    def scaleInProportion(self, image_ref, tgt_height):
+        # 1. Calculate the scale factor to ensure the image COVERS the frame
+        # We want max(W_scaled / W_target, H_scaled / H_target) >= 1
+        # To cover, the scale factor must be MAX(W_target/W_orig, H_target/H_orig)
+        scale_w = W_target / W_orig
+        scale_h = H_target / H_orig
+        
+        scale_factor = max(scale_w, scale_h)
+
+        # 2. Calculate the dimensions of the oversized, scaled image
+        W_scaled = int(W_orig * scale_factor)
+        H_scaled = int(H_orig * scale_factor)
+        
+        # 3. Perform the scaling
+        scaled_image = pygame.transform.scale(imagesurface, (W_scaled, H_scaled))
+
+        # 4. Determine the offset for centering the scaled image
+        # We want to crop from the middle. Calculate how much to shift.
+        # The oversized amount is W_scaled - W_target and H_scaled - H_target.
+        # We shift half of that amount to center it.
+        crop_x_offset = (W_scaled - W_target) // 2
+        crop_y_offset = (H_scaled - H_target) // 2
+        
+        # 5. Crop the scaled image by blitting the centered portion
+        
+        # Create a new Surface of the final target size
+        cropped_surface = pygame.Surface((W_target, H_target), pygame.SRCALPHA)
+        
+        # Blit the scaled image onto the new surface, starting the blit 
+        # at a negative offset to grab the center portion.
+        # A negative (x, y) argument to blit is what performs the "crop" effect.
+        cropped_surface.blit(scaled_image, (-crop_x_offset, -crop_y_offset))
+        
+        # print for debug (use your existing logging)
+        print("Image.scaleinproportion> from", W_orig, H_orig, 
+            "scaled to", (W_scaled, H_scaled), 
+            "cropped to target", target_wh)
+          
+        return cropped_surface
+
+    def scaleInProportion(self, image_ref, target_wh=None):
         if image_ref is None: return
+        if target_wh is None: target_wh = self.target_wh
 
         # path = self.download_image(image_ref) if 'http' in image_ref else image_ref
         # imagesurface = pygame.image.load(path).convert_alpha()
@@ -182,7 +229,6 @@ class Image(Frame):
             else:
                 path = image_ref
 
-            # CRITICAL POINT: Load the image into a Pygame surface
             imagesurface = pygame.image.load(path).convert_alpha()
             
         except pygame.error as e:
@@ -196,22 +242,25 @@ class Image(Frame):
             return None
 
 
-        original_width, original_height = imagesurface.get_size()
-        aspect_ratio = original_width / original_height
-        frame_width  = 0 #if self.outline is None else self.outline.width 
-        new_width = int((tgt_height) * aspect_ratio)
-        if new_width > self.boundswh[0]:
-            new_width  = self.boundswh[0]
-            new_height = int(new_width / aspect_ratio)
-        else:
-            new_height = tgt_height
+        # original_width, original_height = imagesurface.get_size()
+        # aspect_ratio = original_width / original_height
 
-        wh=(new_width, new_height)
-        image = pygame.transform.scale(imagesurface, (new_width-(frame_width*2), new_height-(frame_width*2)))
-        self.image_cache.add(image_ref, image)
-        self.resize( wh )
+        # # scale up so the image covers the whole space
 
-        # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", tgt_height, frame_width, self.framestr())
+        # new_width = int((target_wh[0]) * aspect_ratio)
+        # if new_width < target_wh[0]:
+        #     new_width  = target_wh[0]
+        #     new_height = int(new_width / aspect_ratio)
+        # else:
+        #     new_height = target_wh[1]
+
+        # wh=(new_width, new_height)
+        # image = pygame.transform.scale(imagesurface, (new_width, new_height))
+        # self.image_cache.add(image_ref, image)
+        # self.resize( wh )
+
+        image = self.scaleInProportion_and_crop(imagesurface, target_wh)
+        # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", self.target_wh, self.parent.geostr())
         return image
 
     # Drawing is possibly a two step process
@@ -220,19 +269,22 @@ class Image(Frame):
 
     def new_content_available(self, image_data=None):
         # print("Image.draw>", self.boundswh[1], self.framestr(), self.geostr())
+
         if image_data is None:  image_data = self.path  
         return image_data != self.old_image_data
 
-    def draw(self, image_data=None):   
+    def draw(self, image_data=None, coords=None):   
+        if coords is None: coords = self.parent.abs_origin()
         if image_data is None:  image_data = self.path   
+
         image = self.image_cache.find(image_data)
         if image is None:   
-            image = self.scaleInProportion(image_data, self.boundswh[1])
+            image = self.scaleInProportion(image_data)
 
         if image is not None:
             image.set_alpha(self.opacity)
             # frame_width  = 0 if self.outline is None else self.outline.width 
-            self.platform.screen.blit(image, self.abs_origin())
+            self.parent.platform.screen.blit(image, coords)
             self.old_image_data = image_data
             # print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
         else:
@@ -696,20 +748,26 @@ class Outline:
         if 'radius'       not in self.outline:   self.outline['radius']       = Outline.OUTLINE['radius']       
         if 'width'        not in self.outline:   self.outline['width']        = Outline.OUTLINE['width']        
 
-    def draw(self, coords):
-        if self.outline is None: return
+    def draw(self, coords=None):
+        if self.outline is None: return [0,0,0,0]
+        width = 0 if  'width' not in self.outline else self.outline['width'] 
+        if  width == 0: return [0,0,0,0]
+        if coords       is None: coords = self.frame.abs_outline() 
+
         colour_index = self.outline['colour_index'] 
         opacity      = self.outline['opacity'] 
         radius       = self.outline['radius'] 
-        width        = self.outline['width'] 
- 
         # print("Outline.draw>", self.frame.framestr(), self.frame.colour)    
         colour       = self.frame.colour.get(colour_index, opacity=opacity)
         surface      = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
 
-        pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
-        self.frame.platform.screen.blit(surface, (0,0) )
-        print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )        
+        # pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
+        # self.frame.platform.screen.blit(surface, (0,0) )
+        pygame.draw.rect(self.frame.platform.screen, colour, coords, border_radius=radius, width=width)
+
+        self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_perimeter()))
+        print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
+        return coords     
 
     @property
     def w(self):
@@ -718,6 +776,46 @@ class Outline:
         else: 
             return self.outline['width'] 
 
+class Background:
+
+    BACKGROUND_DEFAULT    = {'colour_index':'background', 'file': 'metal.jpg', 'opacity': 255} 
+    BACKGROUND_IMAGE_PATH = 'backgrounds'
+
+    # background is a Str with a colour index eg 'background' or a Dict with the {path, opacity} for an image
+    def __init__(self, frame, background=BACKGROUND_DEFAULT['colour_index']):
+        self.frame         = frame
+        self.background    = background
+        self.background_image = None
+        # print("Background.__init__>", background, self.frame.colour.is_colour(self.background))
+
+        if background is None:
+            self.background       = Background.BACKGROUND_DEFAULT['colour_index']
+
+        elif isinstance(background, dict):
+            if 'opacity'      not in self.background:   self.background['opacity']      = Background.BACKGROUND_DEFAULT['opacity']      
+            if 'file'         not in self.background:   self.background['file']         = Background.BACKGROUND_DEFAULT['file']           
+            path = Background.BACKGROUND_IMAGE_PATH + '/' + self.background['file']
+            self.background_image = Image(self.frame, path=path, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])
+            print("Background.__init__> background image created")
+
+        elif not self.frame.colour.is_colour(self.background):
+            self.background       = Background.BACKGROUND_DEFAULT['colour_index']
+
+        else:
+            print("Background.__init__> background is colour", self.background)
+
+
+    def draw(self):
+        if self.background_image is None:
+            colour = self.frame.colour.get(self.background)
+            self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
+            print("Background.draw> colour ", self.frame.abs_background() )  
+
+        else:
+            self.background_image.draw(coords=self.frame.abs_background()[:2]) 
+            print("Background.draw> image ", self.frame.abs_background() )  
+
+        self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_background()))
 
 
 class DirtyAreaTracker:
@@ -739,50 +837,14 @@ class DirtyAreaTracker:
         """
         if not dirty_rects:
             return 0
-        
-        # 1. Union all the Rects into a minimal list of non-overlapping Rects.
-        #    pygame.Rect.unionall() is helpful but still leaves overlaps,
-        #    so we use the slower, but more accurate, process of summing 
-        #    the area of the minimal bounding box of all rectangles. 
-        
-        # A simple, practical approach:
-        # Instead of a complex merging algorithm, we use Rect.unionall()
-        # which is *good enough* for an estimate and is fast.
-        
-        # If the list is a list of Rects, use unionall() to get a single bounding Rect
+
         union_rect = dirty_rects[0]
         for rect in dirty_rects[1:]:
             union_rect = union_rect.union(rect)
 
-        # The union rect's area is the *maximum possible* area that needs update.
-        # For a more precise measure of *actual* updated pixels (not just the bounding box), 
-        # a dedicated merger function (like pygame.Rect.unionall) followed by 
-        # summing the areas is ideal, but complicated. For monitoring, a simple union
-        # of the outer bounding box is a decent, fast estimate.
-        
-        # However, to be more accurate, we need to sum the individual areas 
-        # after merging overlapping regions. Pygame doesn't have a simple function for this.
-        
-        # A reasonable compromise: sum the areas of the merged rects.
-        # For true non-overlapping area, you need a geometry library, but for a
-        # quick metric, let's use the simplest: summing the area of the unioned rect.
-        # A more advanced but still simple-to-implement approach is to union them all
-        # into one large bounding box.
-
-        # We'll use the bounding box area as a simple metric (it's slightly an overestimate)
-        # Correct Way 1: Use width * height
+ 
         total_dirty_area = union_rect.width * union_rect.height
-        
-        # For a simple, non-overlapping sum, we rely on pygame.display.update() to 
-        # have already done the difficult work of minimizing the areas before calling it.
-        # But since we get the raw list, we must estimate.
 
-        # Let's use a simpler total sum for demonstration, assuming rects are reasonably separated:
-        # NOTE: This method below will OVERCOUNT areas if rectangles overlap.
-        # area_sum = sum(rect.area for rect in dirty_rects)
-        # return area_sum 
-        
-        # For simplicity and speed (and it provides a useful upper bound metric):
         return total_dirty_area
 
 
@@ -977,41 +1039,6 @@ class GraphicsDriverPi:
         # self.virtual_surface.fill(GraphicsDriverPi.BACKGROUND_COLOR)       # erase the virtual screen
         if text is not None: pygame.display.set_caption(text)
  
-    """ Stable and works well - but has a flip so least efficient """
-    # def draw_end(self):
-    #     # NOTE: When rotating the entire virtual surface, you effectively
-    #     # must update the entire physical screen. Dirty rect optimization 
-    #     # is incompatible with this approach.
-
-        
-    #     # 1. Clear the physical screen (Necessary if physical screen size != virtual size)
-    #     self._physical_screen.fill((0, 0, 0))
-        
-    #     # 2. Rotate the virtual surface by the required angle (e.g., -90 degrees)
-    #     # This returns a NEW surface with its own dimensions
-    #     rotated_surface = pygame.transform.rotate(self.virtual_surface, -90)
-        
-    #     # 3. Get the rect for the physical screen, NOT the rotated surface.
-    #     # This keeps the image centered correctly.
-    #     screen_rect = self._physical_screen.get_rect()
-        
-    #     # 4. Get the rect of the rotated surface and center it on the physical screen's center
-    #     # This ensures the rotated image stays centered on the physical display.
-    #     rotated_rect = rotated_surface.get_rect(center=screen_rect.center)
-        
-    #     # 5. Blit the rotated surface onto the physical screen
-    #     self._physical_screen.blit(rotated_surface, rotated_rect)
-        
-    #     # 6. Update the ENTIRE display.
-    #     # If any part of the screen is updated via a full-surface rotation,
-    #     # you need to update the whole physical screen for correctness.
-    #     pygame.display.flip() 
-        
-    #     # 7. IMPORTANT: Disable Dirty Rect Tracking!
-    #     # Because we updated the whole screen, the efficiency is 100% (or 1.0)
-    #     # You are intentionally sacrificing Dirty Rect optimization for screen rotation.
-    #     self.ave_area_pc = 100.0 
-    #     # Note: You should not call self.dirty_mgr.get_and_clear() or update area_tracker here.
   
 
     """ Draw on the transformed parts -optimised algorithm"""
@@ -1124,18 +1151,6 @@ class GraphicsDriverPi:
         
 
 
-    def fill(self, rect=None, colour=None, colour_index='background', image=None):
-        if rect is None: rect = self.boundary
-        if colour_index is None: colour_index = 'background'
-        if colour is None: colour=self.colour
-        colour = colour.get(colour_index)
-        #self.screen.fill(colour, pygame.Rect(rect))
-        self.virtual_surface.fill(colour, pygame.Rect(rect))
-        if image is not None:
-            self.image_container.draw(image)
-        # print("GraphicsDriverPI.fill>. clear screen >", rect)
-
-
 
 
 class GraphicsDriverMac:
@@ -1180,16 +1195,7 @@ class GraphicsDriverMac:
          # 7. Update the area tracker
         self.ave_area_pc = self.area_tracker.update_average(dirty_rects)               
 
-
-    """ No evidence this is evver called """
-    def fill(self, rect=None, colour=None, colour_index='background', image=None):
-        if rect is None: rect = self.boundary
-        if colour_index is None: colour_index = 'background'
-        if colour is None: colour=self.colour
-        colour = colour.get(colour_index)
-        self.screen.fill(colour, pygame.Rect(rect))
-        if image is not None:
-            self.image_container.draw(image)
+            
 
 
 class GraphicsDriver:
@@ -1203,11 +1209,6 @@ class GraphicsDriver:
 
         self.screen         = self.gfx_driver.screen
 
-        # self.colour         = Colour('std', self.w)
-        # self.background     = Frame(self)
-        # self.image_container= Image(self.background, align=('centre','middle'), scalers=(1.0,1.0))  # make square
-
-
     def __getattr__(self, item):
         """Delegate calls to the implementation"""
         return getattr(self.gfx_driver, item)
@@ -1215,6 +1216,9 @@ class GraphicsDriver:
     def refresh(self, rect=None):
         # if rect is None: rect = [0,0]+self.wh
         pygame.display.update(pygame.Rect(rect))    
+
+    def create_background(self, frame, background):
+        return Background(frame, background)          
 
     def create_outline(self, frame, outline):
         return Outline(frame, outline)    
@@ -1241,7 +1245,7 @@ class GraphicsDriver:
         return self.gfx_driver.W
 
     @property
-    def w(self):
+    def fps(self):
         return self.gfx_driver.FPS    
 
     @property

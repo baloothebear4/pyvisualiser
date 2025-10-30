@@ -385,3 +385,160 @@ class RowAlignedScreen(Frame):
         # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour_index':'alert'})
         # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')        
         print(self)
+
+
+# Test harness to get outline, background and frame geo correct:
+class F1(Frame):
+    @property
+    def title(self): return 'F1> Creates 3 box frames and aligns them horizontally, evenly'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', outline={'width':10,'colour_index':'alert'}, padding=10, background='background')
+        # print("SubFrame> ", self.geostr())
+        self.create()
+
+    def create(self):
+        self += Frame(self, scalers=(0.5,0.5), align=('left','bottom'), background='mid', outline={'colour_index':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('right','bottom'), background='mid', outline={'colour_index':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('left','top'), background='light', outline={'colour_index':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('right','top'), background='mid', outline={'colour_index':'foreground','width':10})
+        # self += Frame(self, scalers=(0.3,0.3), align=('left','middle'), background='light', outline={'colour_index':'foreground','width':5})
+        # self += Frame(self, scalers=(0.3,0.3), align=('right','middle'), background='mid', outline={'colour_index':'foreground','width':5})
+        # self += Frame(self, scalers=(0.3,0.3), align=('centre','top'), background='mid', outline={'colour_index':'foreground','width':5})
+        # self += Frame(self, scalers=(0.3,0.3), align=('centre','middle'), background='light', outline={'colour_index':'foreground','width':5})
+        # self += Frame(self, scalers=(0.3,0.3), align=('centre','bottom'), background='mid', outline={'colour_index':'foreground','width':5})
+
+        print(self)
+
+class F2(Frame):
+    @property
+    def title(self): return 'F2> Creates 3 box frames and aligns them horizontally, evenly'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', outline={'width':20,'colour_index':'alert'}, padding=20)
+        # print("SubFrame> ", self.geostr())
+        self.create()
+
+    def create(self):
+        self += Frame(self, scalers=(0.3,0.3), align=('centre','bottom'), background='light', outline={'colour_index':'foreground','width':5})
+        self += Frame(self, scalers=(0.3,0.3), align=('right','bottom'), background='mid', outline={'colour_index':'foreground','width':5})
+        self += Frame(self, scalers=(0.3,0.3), align=('left','top'), background='light', outline={'colour_index':'foreground','width':5})
+        self += Frame(self, scalers=(0.3,0.3), align=('right','top'), background='mid', outline={'colour_index':'foreground','width':5})
+        self += Frame(self, scalers=(0.3,0.3), align=('left','middle'), background='light', outline={'colour_index':'foreground','width':5})
+        self += Frame(self, scalers=(0.3,0.3), align=('right','middle'), background='mid', outline={'colour_index':'foreground','width':5})
+
+
+        print(self)
+
+class F3(Frame):
+    @property
+    def title(self): return 'F3> Checks out Text Frames'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', outline={'width':20,'colour_index':'foreground'}, padding=30)
+        # print("SubFrame> ", self.geostr())
+        self.create()
+
+    def create(self):
+        # self += Frame(self, scalers=(0.5,0.333), align=('centre','middle'), background='light', outline={'colour_index':'alert','width':5}, padding =20)
+        # self += Frame(self, scalers=(0.5,0.333), align=('centre','bottom'), background='mid', outline={'colour_index':'alert','width':5},padding = 10)
+        self += TextFrame(self  , text='one', scalers=(0.33,1.0 ), background='mid', align=('left','middle'), outline={'colour_index':'alert','width':10}, padding =10)
+        self += TextFrame(self  , text='two', scalers=(0.33, 1.0), background='mid', align=('centre','middle'), outline={'colour_index':'alert','width':10}, padding =10)
+        self += TextFrame(self  , text='three', scalers=(0.33, 1.0), background='mid', align=('right','middle'), outline={'colour_index':'alert','width':10}, padding =10)
+                # self += f
+
+
+        print(self)
+
+class F4(Frame):
+    @property
+    def title(self): return 'F4> Checks out Col Framer'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', outline={'width':20,'colour_index':'alert'}, padding=0)
+        # print("SubFrame> ", self.geostr())
+        self.create()
+
+    def create(self):
+        
+        # self += TextFrame(self  , scalers=(0.6,0.6), align=('centre','middle'), text='centre', background='dark', outline={'width':10,'colour_index':'alert'})
+        # print(self)
+
+        colframe = ColFramer(self, scalers=(1.0,1.0), align=('centre','middle'), background='mid', padpc=0.1, padding=0, outline={'colour_index':'alert','width':2}) #, align=('centre','middle'))
+        # # print("ColAlignedScreen.create> colframe", colframe.framestr())
+        # # colframe += Frame(colframe, scalers=(1.0,1.0), background='light', outline={'colour_index':'alert','width':0},padding=0)
+        # # colframe += Frame(colframe, scalers=(1.0,1.0), background='foreground', outline={'colour_index':'alert','width':0})
+        colframe += TextFrame(colframe  , text='one', scalers=(0.5, 1.0), background='mid', align=('centre','middle'), outline={'colour_index':'foreground','width':10}, padding =0)
+
+        colframe += TextFrame(colframe  , text='wide', scalers=(1.0, 1.0), background='light', outline={'colour_index':'alert','width':20})
+        colframe += TextFrame(colframe  , text='three', scalers=(0.5, 1.0), background='dark', outline={'colour_index':'mid','width':30})
+        # colframe += TextFrame(colframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid', outline={'colour_index':'alert','width':1})
+        # colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,1.0), outline={'colour_index':'alert','width':1})
+
+
+        # rowframe = RowFramer(colframe  ,  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
+        # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour_index':'foreground','width':3})
+
+        # rowframe += TextFrame(rowframe  , text='rhs', background='dark', outline={'colour_index':'mid', 'width':4})
+        # rowframe += TextFrame(rowframe  , text='next', background='dark', outline={'colour_index':'mid', 'width':4})
+        # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
+        print(self)
+
+class F5(Frame):
+    @property
+    def title(self): return 'F5 Checks background images'
+
+    @property
+    def type(self): return 'Test'
+
+# , background={'path': 'blue.jpg', 'opacity': 255}
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', outline={'width':0,'colour_index':'alert'}, padding=10, background={'file': 'blue.jpg', 'opacity': 255} )
+        # print("SubFrame> ", self.geostr())
+        self.create()
+
+    def create(self):
+        
+        # self += TextFrame(self  , scalers=(0.6,0.6), align=('centre','middle'), text='centre', background='dark', outline={'width':10,'colour_index':'alert'})
+        # print(self)
+        back={'file': 'metal.jpg', 'opacity': 255}
+        # back = 'background'
+        # colframe = ColFramer(self, scalers=(1.0,1.0), align=('centre','middle'), background='mid', padpc=0, padding=0, outline={'colour_index':'alert','width':0}) #, align=('centre','middle'))
+        # # print("ColAlignedScreen.create> colframe", colframe.framestr())
+
+
+        nest1 = Frame(self, scalers=(0.8,0.8), background=back, outline={'colour_index':'foreground','width':1},padding=50)
+        nest1 += Frame(nest1, scalers=(1.0,1.0), background='light', outline={'colour_index':'alert','width':5},padding=30)
+        # nest1 += TextFrame(nest1  , text='one', scalers=(0.5,0.5), align=('left','top'), background='mid', outline={'colour_index':'foreground','width':10}, padding =0)
+        self += nest1
+
+        # # nest2 = Frame(nest1, scalers=(0.5,0.5), background='light', outline={'colour_index':'alert','width':5},padding=30)
+        # self += TextFrame(self  , text='two', scalers=(0.5,0.5), align=('right','top'), background='light') #, outline={'colour_index':'alert','width':20})
+        # # self += nest2
+
+        # # colframe += Frame(colframe, scalers=(1.0,1.0), background='foreground', outline={'colour_index':'alert','width':0})
+        # colframe += TextFrame(colframe  , text='one', scalers=(1.0, 1.0), background='mid', align=('centre','middle'), outline={'colour_index':'foreground','width':10}, padding =0)
+        # # colframe += TextFrame(colframe  , text='one', scalers=(1.0, 1.0), background='light') #, outline={'colour_index':'alert','width':20})
+        # colframe += TextFrame(colframe  , text='two', scalers=(1.0, 1.0), background='dark', outline={'colour_index':'mid','width':30})
+        # # colframe += TextFrame(colframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid', outline={'colour_index':'alert','width':1})
+        # # colframe += MetaData(colframe,  'track', colour='foreground', scalers=(1.0,1.0), outline={'colour_index':'alert','width':1})
+
+        # rowframe = RowFramer(self  ,  scalers=(1.0,0.5), align=('right','middle'), background='dark', padding=0.0)
+        # rowframe += TextFrame(rowframe  , text='top', scalers=(1.0,1.0), background='light', outline={'colour_index':'alert'})
+        # rowframe += TextFrame(rowframe  , text='mid', scalers=(1.0,1.0), background='light', outline={'colour_index':'alert'})
+        # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour_index':'mid','width':3})
+
+        # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
+        print(self)        
