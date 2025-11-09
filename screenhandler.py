@@ -63,9 +63,10 @@ class ScreenController:
         menuSequence  = []
         for screen in screens:
             self.screens.update( {screen.__name__ : screen(self.platform) })
-            if screen.type != 'Control':  #ie create a menu from Test & Base screens
-                menuSequence.append(screen.__name__)
-            print("ScreenController.__init__> intialised screen -->", screen.__name__)
+            is_not_control_screen = hasattr(screen, 'type') and screen.type != 'Control' 
+            # if is_not_control_screen:  #ie create a menu from Test & Base screens
+            menuSequence.append(screen.__name__)
+            print("ScreenController.__init__> intialised screen --> FIX TO EXCLUDE TEST & CONTROL SCREENS", screen.__name__)
 
         self.screenmenu = ListNext(menuSequence, self.startScreen)
 
@@ -127,9 +128,10 @@ class ScreenController:
 
                 # build and update the display
                 screen    = self.screens[self.activeScreen]
-                self.events.Control('loop_start', text=screen.title + " > " + type(screen).__name__)
+                title = screen.title + " > " + type(screen).__name__ if hasattr(screen, 'title') else type(screen).__name__
+                self.events.Control('loop_start', text=title)
 
-                screen.update(self.full_update)
+                screen.update_screen(full=self.full_update)
                 drawing_time_ms = ((time.perf_counter() - start_time) * 1000) - processing_time_ms
 
                 self.events.Control('loop_end')
@@ -145,8 +147,8 @@ class ScreenController:
                     if loop_time > CRITICAL_LOOPTIME: 
                         print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.2f%%" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
                     elif self.platform.clock.get_fps() < self.platform.FPS:
-                        print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
-
+                        # print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
+                        pass
                         # All good
                     loop_count = 0
                 loop_count += 1

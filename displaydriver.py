@@ -47,6 +47,7 @@ class Bar(Frame):
 
         Frame.__init__(self, parent, align=align,theme=theme, scalers=scalers)
         self.resize( box_size )
+        # parent += self
 
         self.led_h      = led_h
         self.led_gap    = led_gap
@@ -58,7 +59,8 @@ class Bar(Frame):
         self.flip       = flip
         self.tip        = tip       # creates a rounded tip to the bar
         self.orient     = orient
-        # print("Bar.__init__", self.geostr())
+        # parent += self
+        print("Bar.__init__", self.geostr())
 
     def draw_peak(self, peak_h, flip, peak_coords):
         if peak_h> 0.0:
@@ -75,7 +77,7 @@ class Bar(Frame):
     def drawV(self, offset, ypc, w, peak=0, colour_index=None):
         """ Draw Vertical Bar """
         if self.flip:
-            coords = self.abs_rect( offset=(offset, 0),  wh=[w, self.h*ypc] )
+            coords = self.abs_rect( offset=(offset, 0),  wh=[w, self.abs_h*ypc] )
 
             for led_y in range( int(coords[1]), int(coords[1]+coords[3]) ,(self.led_h+self.led_gap)):
                 colour = self.colours.get(led_y-coords[1], False) if colour_index is None else self.colours.get(colour_index) # height based
@@ -85,14 +87,14 @@ class Bar(Frame):
                     colour = self.colours.get(coords[3], not self.flip) if colour_index is None else self.colours.get(colour_index)
                     pygame.draw.rect(self.platform.screen, colour, (coords[0], coords[1]+coords[3], coords[2], self.led_h), border_bottom_left_radius=self.tip_radius, border_bottom_right_radius=self.tip_radius )
 
-            pcoords = self.abs_rect( offset=(offset, peak*self.h),  wh=[w, self.peak_h] )
+            pcoords = self.abs_rect( offset=(offset, peak*self.abs_h),  wh=[w, self.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw (flip)> coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak)
         else:
-            coords = self.abs_rect( offset=(offset, self.h*(1-ypc)),  wh=[w, self.h*ypc] )
+            coords = self.abs_rect( offset=(offset, self.abs_h*(1-ypc)),  wh=[w, self.abs_h*ypc] )
             # print("Bar.draw V> coords", coords)
-            for led_y in range( int(coords[1]+coords[3]), int(coords[1]) ,-(self.led_h+self.led_gap)):
+            for led_y in range( int(coords[1]+coords[3])-self.led_h, int(coords[1]) ,-(self.led_h+self.led_gap)):
                 col    = coords[1] + coords[3]-led_y
                 colour = self.colours.get(col, False) if colour_index is None else self.colours.get(colour_index) # height based
 
@@ -103,18 +105,19 @@ class Bar(Frame):
                     colour = self.colours.get(col, self.flip) if colour_index is None else self.colours.get(colour_index) # height based
                     pygame.draw.rect(self.platform.screen, colour, (coords[0], coords[1], coords[2], self.led_h), border_top_left_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
 
-            pcoords = self.abs_rect( offset=(offset, self.h*(1-peak)),  wh=[w, self.peak_h] )
+            pcoords = self.abs_rect( offset=(offset, self.abs_h*(1-peak)),  wh=[w, self.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw > coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak, "col", col)
 
     """ Draw a horizontal bar """
     def drawH(self, offset, ypc, w, peak=0, colour_index=None):
-
+        width  = self.abs_w
         if self.flip:
-            coords = self.abs_rect( offset=(self.w*(1-ypc), offset),  wh=[self.w*ypc, w] )
+
+            coords = self.abs_rect( offset=(width*(1-ypc), offset),  wh=[width*ypc, w] )
             # print("Bar.drawH - flip> coords", coords)
-            for led_l in range( int(coords[0]+ coords[2]), int(coords[0]) ,-(self.led_h+self.led_gap)):
+            for led_l in range( int(coords[0]+ coords[2])-self.led_h, int(coords[0]) ,-(self.led_h+self.led_gap)):
                 colour = self.colours.get(coords[0]+ coords[2]-led_l, False) if colour_index is None else self.colours.get(colour_index)
                 pygame.draw.rect(self.platform.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
             else:
@@ -122,12 +125,12 @@ class Bar(Frame):
                     colour = self.colours.get(coords[2], True) if colour_index is None else self.colours.get(colour_index)
                     pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_left_radius=self.tip_radius, border_top_left_radius=self.tip_radius )
 
-            peak_w  = self.w*(peak)
-            pcoords = self.abs_rect( offset=(self.w*(1-peak), offset),  wh=[self.peak_h, w] )
+            peak_w  = width*(peak)
+            pcoords = self.abs_rect( offset=(width*(1-peak), offset),  wh=[self.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
         else:
-            coords = self.abs_rect( offset=(0, offset),  wh=[self.w*ypc, w] )
+            coords = self.abs_rect( offset=(0, offset),  wh=[width*ypc, w] )
             # print("Bar.drawH> coords", coords)
             for led_l in range( int(coords[0]), int(coords[0]+ coords[2]) ,(self.led_h+self.led_gap)):
                 colour = self.colours.get(led_l-coords[0], self.flip) if colour_index is None else self.colours.get(colour_index)
@@ -137,17 +140,17 @@ class Bar(Frame):
                     colour = self.colours.get(coords[2], False) if colour_index is None else self.colours.get(colour_index)
                     pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_right_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
 
-            peak_w  = peak * self.w
+            peak_w  = peak * width
             pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
-class Image(Frame):
+class Image:
     DEFAULT_OPACITY = 255
     DEFAULT_CACHE   = 300
     def __init__(self, parent, wh=None, path=None, align=None, scalers=None, opacity=None, outline=None, target_wh=None):
 
         self.image_cache = Cache(Image.DEFAULT_CACHE)
-        self.path        = path
+        self.path        = path #This is the tag for the image ie str of filename or URL - used as the key for the cache
         self.parent      = parent
         self.opacity     = Image.DEFAULT_OPACITY if opacity is None else opacity
         self.old_image_data = None
@@ -156,7 +159,7 @@ class Image(Frame):
         if path is not None:
             self.scaleInProportion(path)
 
-        # print("Image.__init__>", self.framestr())
+        print("Image.__init__>", self.opacity, parent.framestr())
 
     def download_image(self, url):
         # response = requests.get(url)
@@ -208,7 +211,7 @@ class Image(Frame):
         cropped_surface.blit(scaled_image, (-crop_x_offset, -crop_y_offset))
         
         # print for debug (use your existing logging)
-        print("Image.scaleinproportion> from", W_orig, H_orig, 
+        print("Image.scaleinproportion and Crop> from", W_orig, H_orig, 
             "scaled to", (W_scaled, H_scaled), 
             "cropped to target", target_wh)
           
@@ -241,25 +244,8 @@ class Image(Frame):
         if imagesurface is None:
             return None
 
-
-        # original_width, original_height = imagesurface.get_size()
-        # aspect_ratio = original_width / original_height
-
-        # # scale up so the image covers the whole space
-
-        # new_width = int((target_wh[0]) * aspect_ratio)
-        # if new_width < target_wh[0]:
-        #     new_width  = target_wh[0]
-        #     new_height = int(new_width / aspect_ratio)
-        # else:
-        #     new_height = target_wh[1]
-
-        # wh=(new_width, new_height)
-        # image = pygame.transform.scale(imagesurface, (new_width, new_height))
-        # self.image_cache.add(image_ref, image)
-        # self.resize( wh )
-
         image = self.scaleInProportion_and_crop(imagesurface, target_wh)
+        self.image_cache.add(image_ref, image)
         # print("Image.scaleinproportion> from", original_width, original_height, "to", wh, "target", self.target_wh, self.parent.geostr())
         return image
 
@@ -281,49 +267,17 @@ class Image(Frame):
         if image is None:   
             image = self.scaleInProportion(image_data)
 
+
         if image is not None:
             image.set_alpha(self.opacity)
             # frame_width  = 0 if self.outline is None else self.outline.width 
             self.parent.platform.screen.blit(image, coords)
             self.old_image_data = image_data
-            # print("Image.draw> New image", image_data, ">>>>>", self.old_image_data)
+            # print("Image.draw> New image", self.opacity, coords, image_data)
         else:
             pass
             # print("Image.draw> attempt to draw an None image", image, image_data)
         
-
-
-class Lightback(Frame):
-    # Draw the colorful arc background for the full frame
-    def __init__(self, parent, scalers=None, align=None, theme=None, colour_index='light', flip=False):
-
-        Frame.__init__(self, parent, align=align, scalers=scalers, theme=theme)
-        self.colour = Colour(self.theme, self.h)
-        self.colour_index = colour_index
-        self.flip   = flip
-
-        # Create a surface for the glow
-        self.glow_surface = pygame.Surface(self.boundswh, pygame.SRCALPHA)
-        
-
-        # Draw the light illumination in the center on the glow surface
-        self.max_radius = self.h//2
-        for radius in range(self.max_radius, 0, -1):
-            alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
-            opacity = alpha if flip else 255-alpha
-            col = self.colour.get(colour_index, opacity=opacity)
-            pygame.draw.circle(self.glow_surface, col, self.abs_centre(), radius)
-
-        # print("Lightback.__init__>", self.wh, self.h, self.abs_origin(), self.centre, self.geostr())
-
-    def draw(self):
-        # Blit the glow surface onto the screen
-
-        # col = self.colour.get(self.colour_index)
-        # for radius in range(self.max_radius, 0, -1):
-        #     alpha = int(255 * (radius / self.max_radius)**3)  # Adjust alpha based on radius
-        #     pygame.draw.circle(self.glow_surface, col + (255-alpha,), self.abs_centre(), radius)
-        self.platform.screen.blit(self.glow_surface, (0,0) )
 
 class ArcsOctaves(Frame):
     """ Lines are for drawing meter needles, oscilogrammes etc """
@@ -334,7 +288,7 @@ class ArcsOctaves(Frame):
         self.resize( wh )
 
         self.scalar  = self.h/(NumOcts)/2
-        self.colour  = Colour(self.theme,12)
+        self.colours = Colour(self.theme,12)
 
         # print("Arcs.init> ", self.geostr())
 
@@ -353,7 +307,7 @@ class ArcsOctaves(Frame):
 
             if np.isinf(notes[i]): break
             amp = int(self.bounds( (notes[i]*self.scalar),0,100))
-            colour = self.colour.get(i) #need to work out how many colours there needs to be
+            colour = self.colours.get(i) #need to work out how many colours there needs to be
             pygame.draw.arc(self.platform.screen, colour, [self.centre[0]-box//2,self.centre[1]-box//2, box, box], arc*i+top, arc*i+(0.9*arc)+top, amp)
             # print("ArcsOctaves.draw> a", a, "note", i, "octave", octave)
 
@@ -400,7 +354,7 @@ class Box(Frame):
 Lines are for drawing meter needles, oscilogrammes etc
 """
 class Line(Frame):
-    def __init__( self, parent, colour_index=None, width=1, align=None, theme=None, scalers=(1.0,1.0),\
+    def __init__( self, parent, colour=None, width=1, align=None, theme=None, scalers=(1.0,1.0), background=None,\
                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, tick_pc=1.0, amp_scale=0.9):
 
         self.width     = width
@@ -410,37 +364,37 @@ class Line(Frame):
         self.linespace = []   # array of line circles
         self.amp_scale = amp_scale
 
-        Frame.__init__(self, parent, align=align, theme=theme, scalers=scalers)
+        Frame.__init__(self, parent, align=align, theme=theme, scalers=scalers, background=background)
         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
-        self.colour_index = colour_index
-        self.colours      = Colour(self.theme, self.radius)
+        self.colour    = colour
+        self.colours   = Colour(self.theme, self.radius)
         # print("Line.init> ", bounds, self.geostr(), self.anglestr())
 
-    def draw(self, offset, colour_index=0):   #(x,y) offset
-        if colour_index is None: colour_index = self.colour_index
+    def draw(self, offset, colour=None):   #(x,y) offset
+        if colour is None: colour = self.colour
         coords = self.abs_rect()
-        colour = self.colours.get(colour_index)
-        pygame.draw.line(self.platform.screen, colour, coords, self.width)
+        colour_index = self.colours.get(colour)
+        pygame.draw.line(self.platform.screen, colour_index, coords, self.width)
         # print("Line.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
 
-    def drawFrameCentredVector(self, val, colour_index=None, width=0, amplitude=1.0, gain=0, tick_pc=None):
+    def drawFrameCentredVector(self, val, colour=None, width=0, amplitude=1.0, gain=0, tick_pc=None):
         """ tick_pc is the percent of the line to draw from outside in, useful if the pivot is below the line
             val is the angle to draw the line
         """
-        if colour_index is None: colour_index = self.colour_index
+        if colour is None: colour = self.colour
         if width == 0: width = self.width
         if tick_pc is None: tick_pc = self.tick_pc
         xy         = self.anglexy(val, self.radius,  amp_scale=amplitude, gain=gain)#, xyscale=self.xyscale)
         ab         = self.anglexy(val, self.radius*(1-tick_pc))#, xyscale=self.xyscale)
 
-        colour = self.colours.get(colour_index)  # Add a get col
+        colour_index = self.colours.get(colour)  # Add a get col
         # print("Line.drawFrameCentredVector: val %f, ab %s, xy %s, yoff %f, len %d" % (val, ab, xy, self.centre_offset, self.radius))
-        pygame.draw.line(self.platform.screen, colour, ab, xy, width)
+        pygame.draw.line(self.platform.screen, colour_index, ab, xy, width)
 
 
-    def draw_mod_line(self, points, colour_index=None, amplitude=1.0, gain=1.0):
+    def draw_mod_line(self, points, colour=None, amplitude=1.0, gain=1.0):
         size   = len(points)
         # Linear scalars
         yscale = self.h       # scalar for the height amplitude of the line modulation
@@ -456,9 +410,9 @@ class Line(Frame):
                 line.append(self.abs_origin(  offset=(xscale*i, 0.5*yscale*(1+v*amplitude*self.amp_scale)) ))
 
 
-        colour_index = self.radius*(self.amp_scale*amplitude) if colour_index is None else 'alert' # Add a get col
-        colour = self.colours.get(colour_index)
-        pygame.draw.lines(self.platform.screen, colour, self.circle, line)
+        colour = self.radius*(self.amp_scale*amplitude) if colour is None else 'alert' # Add a get col
+        colour_index = self.colours.get(colour)
+        pygame.draw.lines(self.platform.screen, colour_index, self.circle, line)
 
 
     def make_ripple(self, size):
@@ -466,7 +420,7 @@ class Line(Frame):
         xy     = self.abs_origin( offset=(self.centre[0]-wh[0]//2, self.centre[1]-wh[1]//2))
         return pygame.Rect(xy, wh)
 
-    def draw_mod_ripples(self, points, trigger={}, colour_index=None, amplitude=1.0):
+    def draw_mod_ripples(self, points, trigger={}, colour=None, amplitude=1.0):
         xc, yc       = self.centre[0], self.centre[1]
         aspect_ratio = self.w/self.h
         xyscale      = (aspect_ratio, 1.0) if self.w > self.h else (1.0, aspect_ratio)
@@ -491,23 +445,23 @@ class Line(Frame):
 
         if amplitude>0.8 and len(self.linespace)<1:
             ripple = self.make_ripple(self.radius*(self.amp_scale*amplitude)*2)
-            colour = self.colours.get(col)
-            self.linespace.append((ripple,colour))
+            colour_index = self.colours.get(col)
+            self.linespace.append((ripple,colour_index))
 
         for ripple in self.linespace:
             pygame.draw.ellipse(self.platform.screen, ripple[1], ripple[0], width=1)
 
-    def drawFrameCentredArc(self, val, colour_index=None):
-        if colour_index is None: colour_index = self.colour_index
+    def drawFrameCentredArc(self, val, colour=None):
+        if colour is None: colour = self.colour
         xy     = self.anglexy(val, self.radius)
-        colour = self.colours.get(colour_index)  # Add a get col
+        colour_index = self.colours.get(colour)  # Add a get col
         arcwh  = [self.radius*2, self.radius*2]
         coords = self.abs_centre( offset=(-arcwh[0]/2, -arcwh[1]/2) )+arcwh
         # print("Line.drawFrameCentredArc>", coords, self.h*(self.centre_offset), self.geostr())
-        pygame.draw.arc(self.platform.screen, colour, coords, 3*PI/2+self.endstops[0], 3*PI/2+self.endstops[1], self.width)
+        pygame.draw.arc(self.platform.screen, colour_index, coords, 3*PI/2+self.endstops[0], 3*PI/2+self.endstops[1], self.width)
 
 
-class Text(Frame):
+class Text:
     """
     Text is all about creating words & numbers that are scaled to fit within
     rectangles
@@ -519,30 +473,30 @@ class Text(Frame):
     READABLE = 18   # smallest readable font size
     MAX_LINES= 1
 
-    def __init__(self, parent, text='Default text', fontmax=None, reset=True, wrap=False, align=None, scalers=None,\
-                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, theme=None, colour_index=None):  #Create a font to fit a rectangle
+    def __init__(self, parent, text='Default text', fontmax=None, reset=True, wrap=False, justify=('centre','middle'),\
+                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, colour=None):  #Create a font to fit a rectangle
 
         self.text     = text
         self.wrap     = wrap
-        self.reset    = reset
+        self.reset    = reset   # need to assume that justifying is done differently
         self.radius   = radius
-        self.theme    = theme
+        self.justify  = justify if len(justify) == 2 else (justify, 'middle') # 'left', 'centre', right' --> text is always aligned into the middle of the screen (could use an align attribute)
+        self.parent   = parent
 
         self.cache    = Cache()
-        self.colour_index = colour_index
-        Frame.__init__(self, parent, align=align, scalers=scalers, theme=theme)
-        self.colours  = Colour(self.theme, self.w)
-        self.fontmax  = self.boundswh[1] if fontmax is None else fontmax 
+        self.colour   = colour
+        self.colours  = parent.colours
+        self.fontmax  = parent.abs_h if fontmax is None else fontmax 
 
-        self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
+        # self.parent.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
-        # print("Text.__init__> ", self.fontwh, self.text, self.scalers, self.alignment,self.geostr())
+        # print("Text.__init__> ", self.colours, self.fontwh, self.text,self.parent.geostr())
 
     def update(self, text=None, fontmax=None):
         try:
             if text is None: text=self.text
             self.drawtext = self.cache.find(text)
-            self.font, self.fontwh = self.scalefont(self.boundswh, text, fontmax)  # You can specify a font
+            self.font, self.fontwh = self.scalefont(self.parent.abs_wh, text, fontmax)  # You can specify a font
 
             if self.drawtext is None:
                 # self.font, self.fontwh = self.scalefont(self.boundswh, text, fontmax)  # You can specify a font
@@ -552,11 +506,13 @@ class Text(Frame):
                 # print("Text.update> text found", text, self.fontwh, self.geostr())
                 pass
             if self.reset: 
-                self.resize( self.fontwh )
+                # self.resize( self.fontwh )
+                # print("Text.update> reset disabled")
+                pass
   
 
         except Exception as e:
-            print("Text.update> ERROR > %s > wh %s, fontwh %s, text<%s>, %s " % (e,self.wh, self.fontwh, self.text, self.alignment ))
+            print("Text.update> ERROR > %s > wh %s, fontwh %s, text<%s>, %s " % (e, self.parent.geostr() ))
 
     def new_content_available(self, text=None):
         if text is None: text = self.text
@@ -607,7 +563,7 @@ class Text(Frame):
         # print("Text.scalefont> max %s, target wh %s, fontwh %s, text<%s>, %s" % (self.whmax, wh, fontwh, text, self.drawtext))
         return font, fontwh
 
-    def draw(self, text=None, offset=(0,0), coords=None, colour_index=None, fontmax=None):  #Draw the text in the corner of the frame
+    def draw(self, text=None, offset=(0,0), coords=None, colour=None, fontmax=None):  #Draw the text in the corner of the frame
         if text   is None:
             text = self.text 
         else:
@@ -617,28 +573,58 @@ class Text(Frame):
 
         if self.reset: self.update(text, fontmax)
 
-        if coords is None : coords = self.abs_origin()    
-        if colour_index is None : colour_index = self.colour_index
-        colour = self.colours.get(colour_index)
+        if coords is None : coords = self.parent.abs_origin()    
+        if colour is None : colour = self.colour
+        colour_index = self.colours.get(colour)
 
         if hasattr(self, 'font') and self.font is not None:
-            for line_number, line in enumerate(self.drawtext):
-                try:
-                    info = self.font.render(line, True, colour)
-                    size = info.get_rect()
-                    self.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
-                    # print("Text.draw> drawn text>", line, "<at", (coords[0], coords[1]+ line_number*size[Text.MAX_LINES]), line_number, size, size[Text.MAX_LINES])
-                except pygame.error as e:
-                    print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
-                    # Skip drawing this line but continue the loop
+            # for line_number, line in enumerate(self.drawtext):
+            line = self.drawtext[0]
+            line_number = 1
+            try:
+                info   = self.font.render(line, True, colour_index)
+                size   = info.get_rect()
+                coords = self.parent.align_coords(coords, size[-2:], self.justify)
+                self.parent.platform.screen.blit( info, coords  )  # position the text upper left
+                # self.parent.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
+                # print(" Text.draw> drawn text>", line, "<at", (coords), line_number, size, size[Text.MAX_LINES])
+                #self.parent.platform.dirty
+            except pygame.error as e:
+              print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
+              # Skip drawing this line but continue the loop
 
 
-    def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour_index=None):
-        if text is None : text   = self.text
-        xy   = self.anglexy(val, self.radius)
-        size = self.textsize(text)
-        text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
-        self.draw(text=text, coords=text_offset, colour_index=colour_index)
+    # def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour=None):
+    #     if text is None : text   = self.text
+    #     xy   = self.parent.anglexy(val, self.radius)
+    #     size = self.textsize(text)
+    #     text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
+    #     self.draw(text=text, coords=text_offset, colour=colour)
+        # print(f"Text.drawVectoredText> radius {self.radius} val {val} text_offset {text_offset} text{text} text_size {size}")
+    def drawVectoredText(self, val, text=None, colour=None):
+        if text is None:
+            text = self.text
+
+        # 1) Absolute position from dial transform
+        xy = self.parent.anglexy(val, self.radius)
+
+        # 2) Get text size
+        w, h = self.textsize(text)
+
+        # 3) Centre text at absolute position
+        x = int(xy[0] - w/2)
+        y = int(xy[1] - h/2)
+        if colour is None : colour = self.colour
+        colour_index = self.colours.get(colour)
+
+        # 4) **** DRAW DIRECT TO SCREEN, NOT VIA self.draw() ****
+        # This bypasses align_coords and frame offsets entirely.
+        self.parent.platform.screen.blit(
+            self.font.render(text, True, colour_index),
+            (x, y))
+
+
+
 
     def textsize(self, text=None, font=None):  #return w, h
         if text == None: text=self.text
@@ -675,10 +661,10 @@ class Dots(Frame):
         pygame.draw.ellipse(self.platform.screen, colour, coords, self.width)
         # print("Dots.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
-    def draw_mod_dots(self, points, trigger={}, colour_index=None, amplitude=1.0, gain=0.8):
+    def draw_mod_dots(self, points, trigger={}, colour=None, amplitude=1.0, gain=0.8):
         size         = len(points)
         xc, yc       = self.centre[0], self.centre[1]
-        col          = self.radius*(self.amp_scale*amplitude) if colour_index is None else colour_index # Add a get col
+        col          = self.radius*(self.amp_scale*amplitude) if colour is None else colour # Add a get col
         accelerator  = 1.01
 
         if 'bass' in trigger:
@@ -754,19 +740,19 @@ class Outline:
         if  width == 0: return [0,0,0,0]
         if coords       is None: coords = self.frame.abs_outline() 
 
-        colour_index = self.outline['colour_index'] 
+        colour       = self.outline['colour_index'] 
         opacity      = self.outline['opacity'] 
         radius       = self.outline['radius'] 
         # print("Outline.draw>", self.frame.framestr(), self.frame.colour)    
-        colour       = self.frame.colour.get(colour_index, opacity=opacity)
+        colour_index = self.frame.colours.get(colour, opacity=opacity)
         surface      = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
 
         # pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
         # self.frame.platform.screen.blit(surface, (0,0) )
-        pygame.draw.rect(self.frame.platform.screen, colour, coords, border_radius=radius, width=width)
+        pygame.draw.rect(self.frame.platform.screen, colour_index, coords, border_radius=radius, width=width)
 
         self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_perimeter()))
-        print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
+        # print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
         return coords     
 
     @property
@@ -778,44 +764,96 @@ class Outline:
 
 class Background:
 
-    BACKGROUND_DEFAULT    = {'colour_index':'background', 'file': 'metal.jpg', 'opacity': 255} 
+    BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 100, 'per_frame_update':False} 
     BACKGROUND_IMAGE_PATH = 'backgrounds'
 
+
     # background is a Str with a colour index eg 'background' or a Dict with the {path, opacity} for an image
-    def __init__(self, frame, background=BACKGROUND_DEFAULT['colour_index']):
-        self.frame         = frame
-        self.background    = background
+    def __init__(self, frame, background=None):
+        self.frame            = frame
         self.background_image = None
-        # print("Background.__init__>", background, self.frame.colour.is_colour(self.background))
+        self.background       = {'colour':None}
+        self.BACKGROUND_ART   = {  'album':  { 'update_fn': frame.platform.album_art,  'square' : False},
+                                   'artist': { 'update_fn': frame.platform.artist_art, 'square' : False} }
+
+
+
+        # print("Background.__init__>", background, self.frame.colours.is_colour(self.background))
 
         if background is None:
-            self.background       = Background.BACKGROUND_DEFAULT['colour_index']
+            self.background       = None #Background.BACKGROUND_DEFAULT['colour_index']
 
-        elif isinstance(background, dict):
-            if 'opacity'      not in self.background:   self.background['opacity']      = Background.BACKGROUND_DEFAULT['opacity']      
-            if 'file'         not in self.background:   self.background['file']         = Background.BACKGROUND_DEFAULT['file']           
-            path = Background.BACKGROUND_IMAGE_PATH + '/' + self.background['file']
+        elif isinstance(background, dict) and 'image' in background:
+            self.background.update(background)
+            self.make_image()
+            
+        elif isinstance(background, dict) and 'colour' in background:
+            self.background.update(background)
+            if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
+
+        # its a filename with no parameters ie a shortcut
+        elif background.lower().endswith(('.jpg', '.png')):
+            self.background.update({'image': background}) 
+            self.make_image()
+
+        # its a colour
+        else:
+            self.background.update({'colour':background, 'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']})
+
+        print("Background.__init__> background is", self.background, self.frame.framestr())
+
+
+    def make_image(self):
+        if 'opacity'           not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})    
+        if 'per_frame_update'  not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']})    
+
+        # use artist or album art as the background
+        if self.background['image'] in ('artist', 'album'):
+            self.background_image = Image(self.frame, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])  
+            self.update_fn = self.BACKGROUND_ART[self.background['image']]['update_fn']  
+        else:
+            path = Background.BACKGROUND_IMAGE_PATH + '/' + self.background['image']
             self.background_image = Image(self.frame, path=path, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])
-            print("Background.__init__> background image created")
+        print("Background.__init__> background image created", self.background)    
 
-        elif not self.frame.colour.is_colour(self.background):
-            self.background       = Background.BACKGROUND_DEFAULT['colour_index']
-
+    def per_frame_update(self, condition=True):
+        if self.background is not None: 
+            self.background['per_frame_update']=condition
         else:
-            print("Background.__init__> background is colour", self.background)
+            print("Background.per_frame_update> None background", self.background, self.frame.framestr() )  
 
-
-    def draw(self):
-        if self.background_image is None:
-            colour = self.frame.colour.get(self.background)
-            self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
-            print("Background.draw> colour ", self.frame.abs_background() )  
-
+    def is_per_frame_update(self):
+        if self.background is None:
+            return True
         else:
-            self.background_image.draw(coords=self.frame.abs_background()[:2]) 
-            print("Background.draw> image ", self.frame.abs_background() )  
+            return self.background['per_frame_update']
 
-        self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_background()))
+    def draw(self, perform_update=True):
+        if self.background is None: return
+
+        # print("Background.draw> background is", self.background, self.frame.framestr())
+        if perform_update or self.background['per_frame_update']:
+            if self.background_image is None:
+                if self.background['colour'] is None: return
+                colour = self.frame.colours.get(self.background['colour'])
+                surface = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
+                self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
+                # self.frame.platform.screen.blit((0,0) )
+                # print("Background.draw> colour ", self.frame.abs_background() )  
+ 
+            else:
+                if self.background['image'] in ('artist', 'album'):
+                    image_ref = self.update_fn()
+                else:
+                    image_ref =None
+
+                self.background_image.draw(image_data=image_ref, coords=self.frame.abs_background()[:2]) 
+
+            self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_background()))
+            # print("Background.draw> ", self.background )  
+
+        # print("Background.draw> draw ", perform_update, self.background['per_frame_update'], self.background, self.frame.framestr() )  
+  
 
 
 class DirtyAreaTracker:

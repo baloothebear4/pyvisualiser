@@ -41,7 +41,7 @@ class RoonMetaData:
         self._target_zone          =  'pre3'
 
 
-    @property
+    # @property
     def album_art(self):
         try:
             self._album_art_url        = self.roon.get_image(self._metadata['now_playing']['image_key'], width=self.maxwh[1], height=self.maxwh[1]) if self._metadata['now_playing']['image_key'] !='' else RoonMetaData.DEFAULT_URL
@@ -49,7 +49,7 @@ class RoonMetaData:
         except:
             return RoonMetaData.DEFAULT_URL
 
-    @property
+    # @property
     def artist_art(self):  #Just take the first one
         try:
             self._artist_art_url       =  self.roon.get_image(self._metadata['now_playing']['artist_image_keys'][0], width=self.maxwh[0], height=self.maxwh[1]) if 'artist_image_keys' in self._metadata['now_playing'] else RoonMetaData.DEFAULT_URL
@@ -57,15 +57,15 @@ class RoonMetaData:
         except:
             return RoonMetaData.DEFAULT_URL
 
-    @property
+    # @property
     def artist(self):
         return self._metadata['now_playing']['three_line']['line2']
 
-    @property
+    # @property
     def album(self):
         return self._metadata['now_playing']['three_line']['line3']
 
-    @property
+    # @property
     def track(self):
         # print(self._metadata['now_playing'])
         if 'three_line' in self._metadata['now_playing']:

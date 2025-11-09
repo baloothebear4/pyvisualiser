@@ -24,12 +24,53 @@ import platform
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
 # SCREENS = ( ColAlignedScreen, TrackVUMeterScreen21 )
-# SCREENS = ( MetaVUScreen, SpectrumBaseArt, MinSpectrumArt, ArtistScreen, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
-#             TrackSpectrumScreen3, TrackSpectrumScreen4, \
-#             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
-#             ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
-SCREENS = (F5, F1)#F4, F3, F1, F2)#F5, F3)ColAlignedScreen, ColAlignedScreen) #TrackVUMeterScreen, ArtMetaSpectrumScreen, TrackVUMeterScreen2, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, MinSpectrumArt, TrackSpectrumScreen3, TrackSpectrumScreen, TrackSpectrumScreen2)
+SCREENS = ( MetaVUScreen, SpectrumBaseArt, MinSpectrumArt, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
+            TrackSpectrumScreen3, TrackSpectrumScreen4, \
+            TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
+            ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
+# SCREENS = (F7,F6,F5, F8)#, F4, F5, F7)# F5)#F4, F3, F1, F2)#F5, F3)ColAlignedScreen, ColAlignedScreen) #TrackVUMeterScreen, ArtMetaSpectrumScreen, TrackVUMeterScreen2, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, MinSpectrumArt, TrackSpectrumScreen3, TrackSpectrumScreen, TrackSpectrumScreen2)
 # SCREENS = (ColAlignedScreen, TrackVUMeterScreen2) #, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, TrackSpectrumScreen3, TrackVUMeterScreen,MinSpectrumArt)
+
+ART_SCREENS= (ArtistScreen, ImageTestScreen)
+
+SPECTRUM_TEST_SCREENS= (StereoSpectrumLRScreen, FullSpectrumOffsetScreen, StereoSpectrumScreen, StereoSpectrumSplitScreen, \
+                        MonoSpectrumScreen, MonoSpectrumLEDScreen, MixedLEDScreen)
+
+VU_TEST_SCREENS= (TrackVUMeterScreen2, VUImageScreen, VUScreen, VUVScreen, TestVUImageScreen1, TestVUImageScreen2, \
+                  TestVUMetersScreen, TestVisualiserScreen, TestSpectrumScreen, TestVUScreen)
+
+GEO_TEST_SCREENS= (ColAlignedScreen, RowAlignedScreen, \
+                   F1, F2,  F3, F4, F5, F6, F7, F8 )
+
+MAIN_SCREENS= (TrackScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackSpectrumScreen, \
+               TrackSpectrumScreen2, MetaArtFrame, TrackSpectrumScreen3, TrackSpectrumScreen4,\
+               TrackVUMeterScreen, TrackVUMeterScreen2, TrackVUMeterScreen21, TrackOscScreen,\
+               SpectrumBaseArt, MinSpectrumArt, ArtMetaSpectrumScreen, BigDialsScreen2, MetaVUScreen, ArtistScreen)  
+
+#subframes.py
+#
+SUBFRAMES = (TrackScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackSpectrumScreen, \
+             TrackSpectrumScreen2, MetaArtFrame, TrackSpectrumScreen3, TrackSpectrumScreen4, TrackVUMeterScreen, \
+             TrackVUMeterScreen2, TrackVUMeterScreen21, TrackOscScreen, SpectrumBaseArt, MinSpectrumArt, \
+             ArtMetaSpectrumScreen, BigDialsScreen2, MetaVUScreen, ArtistScreen, VU2chFrame, VUFlipFrame, \
+             VUHorzFrame, VU2chHorzFrame, MetaDataFrame, ArtistMetaDataFrame, \
+             StereoSpectrumFrame, MetaMiniSpectrumFrame, SamplesFrame)
+
+#frames.py
+#
+BASE_FRAMES = (TextFrame, PlayProgressFrame, ArtFrame, MetaImages, MetaData,\
+               VUMeter, VUFrame, SpectrumFrame, OscilogrammeBar, Oscilogramme,\
+               Octaviser, CircleModulator, Diamondiser)
+
+SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  SpectrumStereoSplitFrame,\
+              SpectrumStereoOffsetFrame, VUMeterFrame1, VUMeterFrame2, VUMeterFrame3, VUMeterFrame4, VUMeterImageFrame)   
+
+SCREENS = MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
+# # SCREENS = (ArtistScreen,F4)
+# SCREENS = (TrackVUMeterScreen2, VUImageScreen, VUScreen, VUVScreen, \
+#                    TestVUScreen)+ART_SCREENS
+# SCREENS = GEO_TEST_SCREENS
+
 
 """ 
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 

@@ -22,7 +22,7 @@ COLOUR_THEMES= {    'white' : {'light':[255,255,175], 'mid':[200,200,125], 'dark
                     'std'   : {'light':[175,0,0], 'mid':grey, 'dark':[50,50,50], 'foreground':white, 'background':[10,5,5], 'alert':red,'range':[green, amber, red, purple] },
                     'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':[1, 35, 50], 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 235, 255] ] }, #[[0,10,75], [0,100,250]],
                     'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':[25, 5, 1], 'alert':red,'range':[green, amber, red, purple] },  #[[75,10,0], [250,100,0]],
-                    'leds'  : {'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
+                    'leds'  : {'background': [5, 15, 30], 'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
                     'back'  : {'range':[ blue, black ] },
                     'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
                     'meter1': {'light':[200,200,200], 'mid':grey, 'dark':[50,50,50], 'foreground':white, 'background':[10, 10, 10], 'alert':red, 'range':[ white, red, grey]},
