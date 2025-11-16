@@ -52,7 +52,7 @@ class TextFrame(Frame):
         - Y is the y scaler
     """
     def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, \
-                 colour='foreground', justify='centre', background=None, outline=None, padding=0, update_fn=None):
+                 colour='foreground', justify='centre', background='background', outline=None, padding=0, update_fn=None):
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline,padding=padding)
         self.colour         = colour
         self.wrap           = wrap
@@ -63,7 +63,7 @@ class TextFrame(Frame):
         self.configure()
 
     def configure(self):
-        print("TextFrame.configure>", self.text, self.background_frame.background, self.geostr())
+        # print("TextFrame.configure>", self.text, self.background_frame.background, self.geostr())
         self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour=self.colour, wrap=self.wrap, justify=self.justify)
         # self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour_index=self.colour_index, wrap=self.wrap)
 
@@ -96,14 +96,14 @@ MetaData Frames
 
 class PlayProgressFrame(Frame):
     """ This creates a propgress bar that moves according to play progress with time elapsd and time to go calc """
-    def __init__(self, parent, scalers=None, align=None, barsize_pc=0.5, theme=None, flip=False, \
-                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz'):
+    def __init__(self, parent, scalers=None, align=None, barsize_pc=0.5, theme=None, flip=False, outline=None,\
+                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background='background'):
 
         self.barsize_pc     = barsize_pc      # min widths
         self.barw_max       = barw_max      # max width
         self.orient         = orient   # Horz or vert bars
         self.theme          = theme
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline)
         self.configure()
 
 
@@ -111,8 +111,8 @@ class PlayProgressFrame(Frame):
         self.barw           = self.w * self.barsize_pc if self.orient == 'vert' else self.h * self.barsize_pc   # width of the bar
 
         text = " 22:22 "
-        self.elapsed     = Text(self, fontmax=self.barw, text=text, reset=True, justify=('left', 'middle'), colour='mid')
-        self.remaining   = Text(self, fontmax=self.barw, text=text, reset=True, justify=('right', 'middle'), colour='mid')
+        self.elapsed     = Text(self, fontmax=self.barw, text=text, justify=('left', 'middle'), colour='mid')
+        self.remaining   = Text(self, fontmax=self.barw, text=text, justify=('right', 'middle'), colour='mid')
         self.text_width  = self.elapsed.fontwh[0] + self.remaining.fontwh[0]
 
         box = (self.barw, self.h) if self.orient == 'vert' else (self.w-self.text_width, self.barw)
@@ -176,7 +176,7 @@ class ArtFrame(Frame):
 class MetaImages(ArtFrame):
     def __init__(self, parent, art_type='album', opacity=None, **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
 
-        METAART_UPDATE = {  'album':  { 'update_fn': parent.platform.album_art,  'square' : False},
+        METAART_UPDATE = {  'album':  { 'update_fn': parent.platform.album_art,  'square' : True},
                             'artist': { 'update_fn': parent.platform.artist_art, 'square' : False} }
 
         if  art_type  in METAART_UPDATE: 
@@ -481,7 +481,7 @@ class VUFrame(Frame):
                         radius=self.config['radius'], tip=self.config['tip'], orient=self.config['orient'])
         # self += self.bar
         self.VU     = VU(self.platform, self.config['channel'], self.config['decay'])
-        print("VUFrame._configure> box=%s, flip=%d, orient %s, frame> %s" % (box, self.config['flip'], self.config['orient'], self.geostr()))
+        # print("VUFrame._configure> box=%s, flip=%d, orient %s, frame> %s" % (box, self.config['flip'], self.config['orient'], self.geostr()))
 
     def update_screen(self, full):
         # barw   = self.w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.h * self.config['barsize_pc']  
@@ -559,7 +559,7 @@ class Spectrum:
                 else:
                     self.octaves.append(freq_bin)
                     continue
-        print("Spectrum.__init__> Selected spectrum: octave spacing=1/%d, num octaves %d" % (self.spacing, len(self.octaves)))
+        # print("Spectrum.__init__> Selected spectrum: octave spacing=1/%d, num octaves %d" % (self.spacing, len(self.octaves)))
 
 
 
@@ -587,31 +587,6 @@ class Spectrum:
 
             self.peaks[i] *= (1- self.peak_decay)
 
-
-# class SpectrumFrame(Frame, Spectrum):
-#     """
-#     Creates a spectrum analyser of the width and octave interval specified
-#     intervals are 1, 3 or 6
-#     widths    are really half or whole screen
-#     - scale is used to determine how wide the frame is as a % of the parent frame
-#     - channel 'left' or 'right' selects the audio channel and screen alignment
-#     """
-
-    # def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, \
-    #                 led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert'):
-
-    #     self.channel        = channel
-    #     self.right_offset   = right_offset
-    #     self.parent         = parent
-    #     self.col_mode       = col_mode
-
-    #     Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
-
-    #     Spectrum.__init__(self, self.w, bar_space, barw_min, barw_max, decay=decay)
-    #     self.bar = Bar(self, box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, radius=radius, tip=tip, col_mode=col_mode)
-
-    #     # print("SpectrumFrame.__init__> Selected spectrum: max bars=%d, octave spacing=1/%d, num bars=%d, width=%d, gap=%d, flip=%d" % (self.max_bars, self.spacing, self.bars, self.barw, self.bar_gap, flip))
-
 class SpectrumFrame(Frame, Spectrum):
     """
     Creates a spectrum analyser of the width and octave interval specified.
@@ -620,7 +595,7 @@ class SpectrumFrame(Frame, Spectrum):
     """
 
     def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, outline=None, square=False, \
-                background=None,\
+                background='background', padding=0,\
                 led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=1, barw_max=20, tip=False, decay=Spectrum.DECAY, col_mode='vert', **kwargs):
 
         # 1. Capture all configuration parameters into self.config
@@ -656,7 +631,8 @@ class SpectrumFrame(Frame, Spectrum):
                          theme=self.config['theme'],
                          outline=outline,
                          background=background,
-                         square=square)
+                         square=square,
+                         padding=padding)
         
         # 3. Call Spectrum.__init__ (This only needs the initial size and bar settings)
         # Note: Spectrum.__init__ is being called here because it manages the audio processing 
@@ -695,7 +671,7 @@ class SpectrumFrame(Frame, Spectrum):
                        tip=cfg['tip'], 
                        col_mode=cfg['col_mode'])
 
-        print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
+        # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
         # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
 
     def update_screen(self, full=True):
@@ -757,7 +733,7 @@ class OscilogrammeBar(Frame):
     FRAME     = 1024  # Samples
     BAR_MAX   = 20    # Max width of a Bar
 
-    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), barsize_pc=1, theme='std', flip=False, background=None,\
+    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), barsize_pc=1, theme='std', flip=False, background='background',\
                     led_h=5, led_gap=0, col_mode='horz', radius=0, barw_min=4, tip=True, decay=DECAY,outline=None, square=False):
 
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, outline=outline,square=square,background=background)
@@ -817,9 +793,9 @@ class Oscilogramme(Frame):
     """
     Draw a frame of samples - scaling the number of samples is the trick to align the frame rate and the sample rate
     """
-    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None):
+    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None, background='background'):
         self.channel = channel
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme)
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background)
         self.configure()
 
     def configure(self):
@@ -828,7 +804,7 @@ class Oscilogramme(Frame):
 
     def update_screen(self, full):
         samples =  self.platform.reduceSamples( self.channel, self.platform.framesize//self.w, rms=False )
-        self.draw_background()
+        self.draw_background(True)
         self.lines.draw_mod_line(samples, colour='foreground')
         return True
         
@@ -846,7 +822,7 @@ class Octaviser(Frame, Spectrum):
         self.arcs = ArcsOctaves(self.parent, theme='rainbow', NumOcts=self.num_octaves)
 
     def update_screen(self, full):
-        self.draw_background()
+        self.draw_background(True)
         fft = self.read(self.channel)
 
         for octave in range(1, self.num_octaves):
@@ -873,7 +849,7 @@ class CircleModulator(Frame):
     def update_screen(self, full):
         hpf_freq = 1000
         lpf_freq = 1500
-        self.draw_background()
+        self.draw_background(True)
 
         height, peaks = self.VU.read()
         samples = self.platform.reduceSamples( self.channel, self.platform.framesize//(self.w//2), rms=False )  # reduce the dataset quite a bit
@@ -889,8 +865,8 @@ class CircleModulator(Frame):
 """ A visualiser based on a circle display of spectrum lines """
 class Diamondiser(Frame, Spectrum):
     BARSPACE = 1
-    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None, bar_space=BARSPACE):
-        Frame.__init__(self, parent, scalers=scalers, align=align, square=True, theme=theme)
+    def __init__(self, parent, channel, scalers=None, theme=None, align=None, bar_space=BARSPACE,background='background'):
+        Frame.__init__(self, parent, scalers=scalers, align=align, square=True, theme=theme,background=background)
         self.channel     = channel
         self.bar_space   = bar_space
         self.configure()

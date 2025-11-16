@@ -19,7 +19,7 @@ black   = [0, 0, 0]
 yellow  = [255,255,0]
 
 COLOUR_THEMES= {    'white' : {'light':[255,255,175], 'mid':[200,200,125], 'dark':grey, 'foreground':white, 'background':[50, 50, 50], 'alert':red,'range':[[255,255,75], [255,255,175], white] },
-                    'std'   : {'light':[175,0,0], 'mid':grey, 'dark':[50,50,50], 'foreground':white, 'background':[10,5,5], 'alert':red,'range':[green, amber, red, purple] },
+                    'std'   : {'light':[120,0,0], 'mid':grey, 'dark':[50,50,50], 'foreground':white, 'background':[10,5,5], 'alert':red,'range':[green, amber, red, purple] },
                     'blue'  : {'light':[75, 195, 242,], 'mid':[4, 138, 191], 'dark':[1, 40, 64], 'foreground':white, 'background':[1, 35, 50], 'alert':[75, 226, 242],'range':[ [1, 40, 64],[2, 94, 115],[4, 138, 191],[75, 195, 242,],[75, 235, 255] ] }, #[[0,10,75], [0,100,250]],
                     'red'   : {'light':[241, 100, 75], 'mid':[164, 46, 4], 'dark':[144, 46, 1], 'foreground':white, 'background':[25, 5, 1], 'alert':red,'range':[green, amber, red, purple] },  #[[75,10,0], [250,100,0]],
                     'leds'  : {'background': [5, 15, 30], 'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
@@ -33,7 +33,7 @@ COLOUR_THEMES= {    'white' : {'light':[255,255,175], 'mid':[200,200,125], 'dark
                     'space' : { 'background': black, 'dark': [39, 70, 144], 'mid': [63, 89, 156], 'light': [54, 143, 139], 'foreground': [243, 223, 193], 'alert': purple, 'range': [[27, 38, 79], [39, 70, 144], [63, 89, 156], [54, 143, 139], [243, 223, 193]]},   #[27, 38, 79]
                     'zomp'  : { 'background': [46, 64, 87], 'dark': [102, 161, 130], 'mid': [202, 255, 185], 'light': [174, 247, 142], 'foreground':[192, 212, 97], 'alert': white, 'range':[[46, 64, 87], [102, 161, 130], [202, 255, 185], [174, 247, 142], [192, 212, 97]] },
                     'tea'   : { 'background': [29, 47, 111], 'dark': [131, 144, 250], 'mid': [250, 199, 72], 'light': [249, 233, 236], 'foreground': [248, 141, 173], 'alert': white, 'range': [[29, 47, 111], [131, 144, 250], [250, 199, 72], [249, 233, 236], [248, 141, 173]] },
-                    'hifi'  : { 'background': [5, 15, 30], 'dark': [25, 40, 60],           'mid': [50, 65, 85], 'light': [180, 230, 255],  'foreground': [230, 240, 255], 'alert': [0, 191, 255],   'range': [[30, 45, 65],    [40, 80, 160],    [0, 120, 200],   [0, 191, 255],   [180, 230, 255]  ] }
+                    'hifi'  : { 'background': [5, 15, 30], 'dark': [25, 40, 60],           'mid': [50, 65, 85], 'light': [180, 230, 255],  'foreground': [230, 240, 255], 'alert': [0, 191, 255],   'range': [[30, 45, 65],    [40, 80, 160],    [0, 120, 200],   [0, 191, 255],   [240, 255, 255]  ] }
                 }
 
 #

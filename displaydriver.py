@@ -11,7 +11,7 @@ v1.1 baloothebear4 Feb 2024   refactored as part of pyvisualiseer
 """
 
 import pygame, time
-import collections
+# import collections
 from   pygame.locals import *
 import numpy as np
 from   framecore import Frame, Cache, Colour
@@ -60,7 +60,7 @@ class Bar(Frame):
         self.tip        = tip       # creates a rounded tip to the bar
         self.orient     = orient
         # parent += self
-        print("Bar.__init__", self.geostr())
+        # print("Bar.__init__", self.geostr())
 
     def draw_peak(self, peak_h, flip, peak_coords):
         if peak_h> 0.0:
@@ -159,7 +159,7 @@ class Image:
         if path is not None:
             self.scaleInProportion(path)
 
-        print("Image.__init__>", self.opacity, parent.framestr())
+        # print("Image.__init__>", self.opacity, parent.framestr())
 
     def download_image(self, url):
         # response = requests.get(url)
@@ -211,9 +211,9 @@ class Image:
         cropped_surface.blit(scaled_image, (-crop_x_offset, -crop_y_offset))
         
         # print for debug (use your existing logging)
-        print("Image.scaleinproportion and Crop> from", W_orig, H_orig, 
-            "scaled to", (W_scaled, H_scaled), 
-            "cropped to target", target_wh)
+        # print("Image.scaleinproportion and Crop> from", W_orig, H_orig, 
+        #     "scaled to", (W_scaled, H_scaled), 
+        #     "cropped to target", target_wh)
           
         return cropped_surface
 
@@ -269,6 +269,7 @@ class Image:
 
 
         if image is not None:
+            image = image.copy()
             image.set_alpha(self.opacity)
             # frame_width  = 0 if self.outline is None else self.outline.width 
             self.parent.platform.screen.blit(image, coords)
@@ -594,13 +595,13 @@ class Text:
               # Skip drawing this line but continue the loop
 
 
-    # def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour=None):
-    #     if text is None : text   = self.text
-    #     xy   = self.parent.anglexy(val, self.radius)
-    #     size = self.textsize(text)
-    #     text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
-    #     self.draw(text=text, coords=text_offset, colour=colour)
-        # print(f"Text.drawVectoredText> radius {self.radius} val {val} text_offset {text_offset} text{text} text_size {size}")
+    def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour=None):
+        if text is None : text   = self.text
+        xy   = self.parent.anglexy(val, self.radius)
+        size = self.textsize(text)
+        text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
+        self.draw(text=text, coords=text_offset, colour=colour)
+        print(f"Text.drawVectoredText> radius {self.radius} val {val} text_offset {text_offset} text{text} text_size {size}")
     def drawVectoredText(self, val, text=None, colour=None):
         if text is None:
             text = self.text
@@ -622,6 +623,51 @@ class Text:
         self.parent.platform.screen.blit(
             self.font.render(text, True, colour_index),
             (x, y))
+
+
+    #Glowing text version -- does not work well
+    # def drawVectoredText(self, val, text=None, colour=None):
+    #     if text is None:
+    #         text = self.text
+
+    #     if colour is None : colour = self.colour
+    #     colour_index = self.colours.get(colour)
+    #     screen = self.parent.platform.screen
+
+    #     # 1) Get absolute dial position
+    #     x, y = self.parent.anglexy(val, self.radius)
+
+    #     # 2) Render high-quality text surface
+    #     # (True enables font-level antialiasing)
+    #     txt = self.font.render(text, True, colour_index)
+
+    #     # 3) Optional soft glow layer (bigger blurred text behind)
+    #     glow = self.font.render(text, True, colour_index)
+    #     glow = pygame.transform.smoothscale(
+    #         glow,
+    #         (int(glow.get_width() * 1.25), int(glow.get_height() * 1.25))
+    #     )
+    #     glow.set_alpha(80)  # strength of glow
+
+    #     # 4) Sub-pixel perfect centring math (NOT integer truncated)
+    #     w, h = txt.get_size()
+    #     gx, gy = glow.get_size()
+
+    #     px = x - w / 2.0
+    #     py = y - h / 2.0
+
+    #     # 5) Shadow offset (half-pixel crispness)
+    #     sx = px + 1.0
+    #     sy = py + 1.0
+
+    #     # 6) Glow centred behind text
+    #     gx_pos = x - gx / 2.0
+    #     gy_pos = y - gy / 2.0
+
+    #     # 7) Draw stack (glow → shadow → text)
+    #     screen.blit(glow, (gx_pos, gy_pos))
+    #     screen.blit(self.font.render(text, True, (0,0,0)), (sx, sy))  # shadow
+    #     screen.blit(txt, (px, py))
 
 
 
@@ -721,7 +767,7 @@ class Dots(Frame):
 """
 class Outline:
     #Default outline
-    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour_index' : 'foreground', 'opacity': 255}
+    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour' : 'foreground', 'opacity': 255}
 
     def __init__(self, frame, outline=None):
         self.frame         = frame
@@ -729,7 +775,7 @@ class Outline:
         if self.outline is None: return
         # print("Outline.init>", self.frame.framestr(), self.frame.outline)
         #only one parameter is needed, else the default is set
-        if 'colour_index' not in self.outline:   self.outline['colour_index'] = Outline.OUTLINE['colour_index'] 
+        if 'colour'       not in self.outline:   self.outline['colour']       = Outline.OUTLINE['colour'] 
         if 'opacity'      not in self.outline:   self.outline['opacity']      = Outline.OUTLINE['opacity']      
         if 'radius'       not in self.outline:   self.outline['radius']       = Outline.OUTLINE['radius']       
         if 'width'        not in self.outline:   self.outline['width']        = Outline.OUTLINE['width']        
@@ -740,7 +786,7 @@ class Outline:
         if  width == 0: return [0,0,0,0]
         if coords       is None: coords = self.frame.abs_outline() 
 
-        colour       = self.outline['colour_index'] 
+        colour       = self.outline['colour'] 
         opacity      = self.outline['opacity'] 
         radius       = self.outline['radius'] 
         # print("Outline.draw>", self.frame.framestr(), self.frame.colour)    
@@ -751,7 +797,7 @@ class Outline:
         # self.frame.platform.screen.blit(surface, (0,0) )
         pygame.draw.rect(self.frame.platform.screen, colour_index, coords, border_radius=radius, width=width)
 
-        self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_perimeter()))
+        self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_outline()))
         # print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
         return coords     
 
@@ -764,7 +810,8 @@ class Outline:
 
 class Background:
 
-    BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 100, 'per_frame_update':False} 
+    BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 255, \
+                             'per_frame_update':False, 'glow': False} 
     BACKGROUND_IMAGE_PATH = 'backgrounds'
 
 
@@ -776,20 +823,24 @@ class Background:
         self.BACKGROUND_ART   = {  'album':  { 'update_fn': frame.platform.album_art,  'square' : False},
                                    'artist': { 'update_fn': frame.platform.artist_art, 'square' : False} }
 
-
-
         # print("Background.__init__>", background, self.frame.colours.is_colour(self.background))
 
         if background is None:
-            self.background       = None #Background.BACKGROUND_DEFAULT['colour_index']
+            self.background       = None #Background.BACKGROUND_DEFAULT['colour']
 
         elif isinstance(background, dict) and 'image' in background:
             self.background.update(background)
             self.make_image()
             
-        elif isinstance(background, dict) and 'colour' in background:
+        elif isinstance(background, dict) and any(key in background for key in ('colour','opacity','glow')):
             self.background.update(background)
             if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
+            if 'opacity'          not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})   
+            if 'glow'             not in self.background:   self.background.update({'glow': Background.BACKGROUND_DEFAULT['glow']})
+
+            if self.background.get('glow'):
+                self._create_blurred_glow(self.background['colour'], self.background['opacity'])
+
 
         # its a filename with no parameters ie a shortcut
         elif background.lower().endswith(('.jpg', '.png')):
@@ -798,9 +849,9 @@ class Background:
 
         # its a colour
         else:
-            self.background.update({'colour':background, 'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']})
+            self.background.update({'colour':background, 'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update'], 'opacity': Background.BACKGROUND_DEFAULT['opacity']})
 
-        print("Background.__init__> background is", self.background, self.frame.framestr())
+        # print("Background.__init__> background is", self.background, self.frame.framestr())
 
 
     def make_image(self):
@@ -816,11 +867,13 @@ class Background:
             self.background_image = Image(self.frame, path=path, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])
         print("Background.__init__> background image created", self.background)    
 
+
     def per_frame_update(self, condition=True):
         if self.background is not None: 
             self.background['per_frame_update']=condition
         else:
             print("Background.per_frame_update> None background", self.background, self.frame.framestr() )  
+
 
     def is_per_frame_update(self):
         if self.background is None:
@@ -828,16 +881,49 @@ class Background:
         else:
             return self.background['per_frame_update']
 
+    def is_opaque(self):
+        if self.background is None:
+            return True  #if there is no background this is opaque!
+        else:
+            return self.background['opacity']<255
+
     def draw(self, perform_update=True):
         if self.background is None: return
+        BLACK = (0,0,0)
 
-        # print("Background.draw> background is", self.background, self.frame.framestr())
+        # print("Background.draw> Test background", self.background, self.frame.framestr())
         if perform_update or self.background['per_frame_update']:
+            # print("Background.draw> Drawing background", self.background, self.frame.framestr())
+            # if self.is_opaque():
+            #     self.frame.platform.screen.fill(BLACK, pygame.Rect(self.frame.abs_background() ))
+
+            if self.background.get('glow'):
+                # Calculate the absolute position for the glow surface
+                glow_x, glow_y = self.frame.abs_perimeter()[2:]
+                
+                # Blit the pre-rendered glow surface
+                # self.frame.platform.screen.blit(self.glow_surface, (glow_x, glow_y))
+                # print("\ndrawing glow back")
+
             if self.background_image is None:
                 if self.background['colour'] is None: return
+
+                # 1. Get the coordinates and dimensions of the area to fill
+                rect_coords = self.frame.abs_background()  # Should be (x, y, w, h)
+                rect_w, rect_h = rect_coords[2:]
+
+                # 2. Create a temporary Surface for the semi-transparent drawing
+                alpha_surface = pygame.Surface((rect_w, rect_h), pygame.SRCALPHA)
+                alpha_surface.set_alpha(self.background['opacity']) 
+
+                # Fill the *entire* temporary surface with the color
                 colour = self.frame.colours.get(self.background['colour'])
-                surface = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
-                self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
+                alpha_surface.fill(colour)
+                # Blit the temporary, transparent surface onto the main screen
+                self.frame.platform.screen.blit(alpha_surface, rect_coords[:2]) # Use (x, y) coordinates
+
+                # surface = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
+                # self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
                 # self.frame.platform.screen.blit((0,0) )
                 # print("Background.draw> colour ", self.frame.abs_background() )  
  
@@ -855,6 +941,64 @@ class Background:
         # print("Background.draw> draw ", perform_update, self.background['per_frame_update'], self.background, self.frame.framestr() )  
   
 
+
+    GLOW_RADIUS_PERCENT = 0.05  # 5% of the frame's smallest dimension
+    def _create_blurred_glow(self, colour_name='background', opacity=255, radius_pc=None):
+        """
+        Creates a pre-rendered surface for a smooth, blurred-edge background 
+        using a fast Box Blur approximation via smooth scaling.
+        """
+        # Define constants/defaults
+        if radius_pc is None:
+            radius_pc = self.GLOW_RADIUS_PERCENT 
+        
+        # 1. Calculate Dimensions
+        rect_coords = self.frame.abs_background()
+        rect_w, rect_h = rect_coords[2:]
+        
+        min_dim = min(rect_w, rect_h)
+        glow_padding = int(min_dim * radius_pc)
+        
+        # Define the final target size (frame + padding on all sides)
+        target_w = rect_w + 2 * glow_padding
+        target_h = rect_h + 2 * glow_padding
+        
+        # 2. Create the Initial Small Surface (The Core)
+        # The smaller the initial surface, the blurrier the result when scaled up.
+        # We use a very small factor (e.g., 1/10th of the target size).
+        SCALE_FACTOR = 10 
+        
+        initial_w = max(1, target_w // SCALE_FACTOR)
+        initial_h = max(1, target_h // SCALE_FACTOR)
+        
+        # Create the core surface with full alpha (will be blurred later)
+        core_surface = pygame.Surface((initial_w, initial_h), pygame.SRCALPHA)
+        
+        # Get the color components
+        base_rgb = self.frame.colours.get(colour_name)[:3]
+        
+        # Fill the core surface with the color (at max opacity 255)
+        core_surface.fill(base_rgb + [255,])
+        
+        # 3. Apply the Blur (Smooth Scaling)
+        # This scales the small, solid block up to the final size using a smoothing
+        # algorithm, which results in a soft, blurred effect.
+        self.glow_surface = pygame.transform.smoothscale(core_surface, (target_w, target_h))
+        
+        # 4. Apply Overall Transparency
+        # The blur effect alone often results in a solid shape. We apply transparency
+        # to the whole surface to make it act like a soft glow.
+        GLOW_OPACITY = int(opacity * 0.4) # Use only 40% of the requested opacity for the outer glow
+        self.glow_surface.set_alpha(GLOW_OPACITY)
+        
+        # 5. Store Offsets
+        self.glow_offset_xy = (-glow_padding, -glow_padding)
+        self.glow_size_wh = (target_w, target_h)
+        
+        print(f"Background._create_blurred_glow> Smoothscale glow pre-rendered: {self.glow_surface.get_size()}")
+
+
+#---- End Background -------        
 
 class DirtyAreaTracker:
     def __init__(self, screen_surface, alpha=0.1):

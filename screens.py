@@ -43,11 +43,13 @@ class TrackScreen(Frame):   # comprises volume on the left, spectrum on the righ
     def __init__(self, platform):
 
         Frame.__init__(self, platform, theme='ocean', background='background')
+        cols = ColFramer(self, padpc=0.05, col_ratios=(1,2,1))
+        cols += VU2chHorzFrame(cols)
+        cols += MetaDataFrame(cols)
+        cols += MetaImages(cols,outline={'colour':'dark', 'width':2})
 
-        self += MetaImages(self  , scalers=(0.31, 1.0),align=('right','middle'), outline={'colour_index':'dark'})
-        self += MetaDataFrame(self  , scalers=(0.38, 1.0), align=('centre','middle'))
         # self += PlayProgressFrame(self  , scalers=(0.38, 0.05), align=('centre','bottom'))
-        self += VU2chHorzFrame(self  , scalers=(0.3, 1.0), align=('left','top'))
+
 
 class TrackVisScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -147,7 +149,7 @@ class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on
         # spectrum += SpectrumFrame(spectrum  ,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=0, peak_h=1, radius=0, tip=True, barw_min=3, bar_space=2)
         # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, barw_min=3, bar_space=2 )
         cols += StereoSpectrumFrame(cols)
-        artoutline = {'colour_index':'background', 'width':5}
+        artoutline = {'colour':'background', 'width':5}
         cols += MetaImages(cols  , scalers=(0.8,1.0),align=('left','middle'), opacity=100, outline=artoutline)
         cols += MetaDataFrame(cols  ,  scalers=(1.0, 1.0),align=('right','middle'))
         # self += PlayProgressFrame(self  ,  scalers=(0.5, 0.05), align=('left','bottom'))
@@ -165,7 +167,7 @@ class MetaArtFrame(Frame):
         ALBUM  = {'album' : {'colour':'mid',   'align': ('right','middle'), 'scalers': (1.0, 1.0)} }
 
         self += MetaDataFrame(self  , scalers=(1.0, 0.2))
-        self += MetaImages(self  ,  scalers=(0.4, 1.0),align=('left','middle'), outline={'colour_index':'light'})
+        self += MetaImages(self  ,  scalers=(0.4, 1.0),align=('left','middle'), outline={'colour':'light'})
 
         # print("MetaArtFrame.__init__")
 
@@ -211,7 +213,7 @@ class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on
         subframe = Frame(self, scalers=(0.8,0.5), align=('centre', 'top'))
 
         # self += MetaImages(self, scalers=(0.6, 0.6),align=('centre','middle'), opacity=120)
-        self += MetaImages(self,  scalers=(1.0, 0.7),align=('right','middle'), opacity=255, outline={'colour_index':'light'})
+        self += MetaImages(self,  scalers=(1.0, 0.7),align=('right','middle'), opacity=255, outline={'colour':'light'})
         self += PlayProgressFrame(self,  scalers=(0.9, 0.05), align=('centre','bottom'))
 
         spectrumframe = Frame(self, scalers=(0.7,0.8), align=('left', 'middle'))
@@ -234,9 +236,9 @@ class TrackVUMeterScreen(Frame):   # comprises volume on the left, spectrum on t
         # subframe1 = ColFramer(self)
         # subframe2 = RowFramer(subframe1)
         # # subframe3 = Frame(self,scalers=(0.5,0.95), align=('right','top'))
-        # subframe2 += MetaImages(subframe2  , scalers=(1.0,1.0),align=('centre','middle'), outline={'colour_index':'foreground'})
+        # subframe2 += MetaImages(subframe2  , scalers=(1.0,1.0),align=('centre','middle'), outline={'colour':'foreground'})
         # subframe2 += MetaDataFrame(subframe2  , scalers=(1.0, 1.0), align=('centre','top'))
-        self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('centre','middle'),outline={'colour_index':'light'})
+        self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('centre','middle'),outline={'colour':'light'})
         # self += PlayProgressFrame(self  , scalers=(0.5, 0.05), align=('right','bottom'))
 
 
@@ -254,7 +256,7 @@ class TrackVUMeterScreen21(Frame):   # comprises volume on the left, spectrum on
         NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
         ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
         PIVOT     = -0.5
-        OUTLINE={'colour_index':'light', 'width':2, 'opacity': 200, 'radius': 20}
+        OUTLINE={'colour':'light', 'width':2, 'opacity': 200, 'radius': 20}
         # self += MetaImages(self  , (0.25, 0.93),align=('right','middle'))
         # self += MetaImages(self  , (0.3, 0.3),align=('centre','top'))
 
@@ -267,7 +269,7 @@ class TrackVUMeterScreen21(Frame):   # comprises volume on the left, spectrum on
         # self += PlayProgressFrame(self  , scalers=(1.0, 0.1), align=('centre','bottom'))
  
         # colframes += VUMeter(colframes  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
-        # colframe += Frame(colframe  , scalers=(0.5, 1.0), background='light', outline={'colour_index':'alert'})
+        # colframe += Frame(colframe  , scalers=(0.5, 1.0), background='light', outline={'colour':'alert'})
         # colframe += Frame(colframe  , background='mid')
         # colframe += Frame(colframe  ,  scalers=(1.0, 0.3), align=('left','top'), background='foreground')
         colframe  += VUMeter(colframe,  'left',  scalers=(1.0, 1.0), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
@@ -298,7 +300,7 @@ class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the r
         # led_h=5, led_gap=1,barsize_pc=0.7, theme=None
         subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
         subframe += MetaImages(subframe, scalers=(1.0,1.0), opacity=100)
-        subframe += VU2chFrame(subframe, scalers=(0.1, 1.0), align=('right','middle'), led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour_index':'foreground', 'width':1})
+        subframe += VU2chFrame(subframe, scalers=(0.1, 1.0), align=('right','middle'), led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour':'foreground', 'width':1})
         # self += MetaImages(subframe, (1.0, 1.0),align=('right','middle'))
 
 
@@ -306,36 +308,7 @@ class TrackOscScreen(Frame):   # comprises volume on the left, spectrum on the r
 
         self += Oscilogramme(self, 'mono', scalers=(1.0, 0.3), align=('left','bottom'))
 
-class SpectrumBaseArt(Frame):   # comprises volume on the left, spectrum on the right
-    @property
-    def title(self): return 'Base spectrum screen with al'
 
-    @property
-    def type(self): return 'Visualiser and metadata'
-
-    def __init__(self, platform):
-        Frame.__init__(self, platform, theme= 'space')
-
-        # colframe  = ColFramer(self, scalers=(1.0,1.0), align=('right','middle'), padding=0.1)
-        rowframe   = RowFramer(self, scalers=(0.67,1.0), align=('left','middle'), padding=0.0)
-        rowframe += MetaData(rowframe, 'track', align=('centre','top'))
-        rowframe += SpectrumFrame(rowframe,  'mono', scalers=(1.0,1.0), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
-        # subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
-
-        outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20}
-        self += MetaImages(self, scalers=(0.33, 1.0),align=('right','middle'))
-
-        # self += Lightback(self, scalers=(0.64,0.64), align=('centre','middle'), colour_index='dark', flip=True)
-
-        # self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
-        #                 pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
-
- 
-        # subframe  = RowFramer(self, scalers=(0.7, 0.2), align=('left','top'), padding=0.1)
-
- 
-
-        # self += PlayProgressFrame(self  , scalers=(0.68, 0.05), align=('left','bottom'))
 
 class MinSpectrumArt(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -350,7 +323,7 @@ class MinSpectrumArt(Frame):   # comprises volume on the left, spectrum on the r
         colframe = ColFramer(self ) # for album art with padding
         colframe += StereoSpectrumFrame(colframe)
         colframe += MetaDataFrame(colframe)  #, scalers=(1.0,1.0), align=('centre','top'))
-        colframe += MetaImages(colframe, art_type='artist')  #, outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
+        colframe += MetaImages(colframe, art_type='artist')  #, outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 20})
 
         # subframe2= Frame(self, scalers=(0.7, 0.8), align=('right','top'))     # for playprogress and Meta data 
 
@@ -371,10 +344,10 @@ class ArtMetaSpectrumScreen(Frame):   # comprises volume on the left, spectrum o
         Frame.__init__(self, platform, theme= 'std')
 
         # colframe = ColFramer(self, padding =0.00, background='dark' ) # for album art with padding
-        # colframe += MetaImages(colframe, scalers=(1.0,1.0))  #, outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
+        # colframe += MetaImages(colframe, scalers=(1.0,1.0))  #, outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 20})
         # colframe += MetaMiniSpectrumFrame(colframe, scalers=(1.0,1.0), justify='left')
         # rowframe    = RowFramer(self, scalers=(0.67,0.8), align=('right','top'), padding =0.00, background='dark' ) # for album art with padding
-        self   += MetaImages(self, scalers=(0.33,1.0), align=('left','middle'))  #, outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
+        self   += MetaImages(self, scalers=(0.33,1.0), align=('left','middle'))  #, outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 20})
         self   += MetaDataFrame(self, scalers=(0.67,0.8), align=('right','top'), justify='left')
         self   += SpectrumFrame(self,'mono', scalers=(0.67, 0.2), align=('right','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=3, col_mode='horz' )
 
@@ -387,7 +360,7 @@ class BigDialsScreen2(Frame):   # comprises volume on the left, spectrum on the 
 
     def __init__(self, platform):
         Frame.__init__(self, platform, theme= 'space')
-        # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
+        # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour' : 'foreground'}
         TICK_W    = 4
         ARCLEN    = 0.9
         NEEDLELEN = 0.9
@@ -414,35 +387,11 @@ class BigDialsScreen2(Frame):   # comprises volume on the left, spectrum on the 
         #                 pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
         subframe = Frame(self,scalers=(0.32, 0.95), align=('right','middle') )
         subframe2= Frame(self, scalers=(0.31, 0.55), align=('left','top'))
-        self += MetaImages(subframe, art_type='album',align=('centre','middle'), outline={'colour_index':'light', 'width':5, 'opacity': 200, 'radius': 20})
+        self += MetaImages(subframe, art_type='album',align=('centre','middle'), outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 20})
         self += MetaDataFrame(subframe2  , scalers=(0.9,0.9), align=('centre','middle'))
         self += SpectrumFrame(self,  'mono', scalers=(0.68, 0.7), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
         self += PlayProgressFrame(self  , scalers=(0.68, 0.05), align=('left','bottom'))
 
-class MetaVUScreen(Frame):   # comprises volume on the left, spectrum on the right
-    @property
-    def title(self): return 'Horizontal VUs with full meta data'
 
-    @property
-    def type(self): return 'Visualiser and metadata'
-
-    def __init__(self, platform):
-        Frame.__init__(self, platform, theme= 'hifi')
-        self.create()
-        """
-            Central panel of artist with horz VUs below, progress below
-            Diamondiser top left
-            Album art top right
-            Split out meta data
-        
-        """
-
-    def create(self):
-        colframe = ColFramer(self)
-        # albumframe   = Frame(self, scalers=(0.33, 0.8), align=('right','top'))
- 
-        colframe += Diamondiser(colframe,  'mono')
-        colframe += MetaDataFrame(colframe)
-        colframe += MetaImages(colframe, art_type='album', scalers=(0.95,0.95), outline={'colour_index':'light', 'width':5, 'opacity': 255, 'radius': 20})
 
 

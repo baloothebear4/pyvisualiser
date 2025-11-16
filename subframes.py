@@ -33,28 +33,28 @@ class VU2chFrame(Frame):
             self += VUFrame(self, 'left',  align=('centre','top'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background)
             self += VUFrame(self, 'right', align=('left','bottom'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background)
         else:     # Vertical
-            self += VUFrame(self, 'left', align=('left','middle'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=self.background)
-            self += VUFrame(self, 'right', align=('right','bottom'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=self.background)
-        self.always_draw_background()
+            self += VUFrame(self, 'left', align=('left','middle'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None)
+            self += VUFrame(self, 'right', align=('right','bottom'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None)
+        # self.always_draw_background()
 
 class VUFlipFrame(Frame):
-    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False,theme=None, outline=None,background={'colour':'background', 'per_frame_update':True}):
+    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False,theme=None, outline=None,background={'colour':'background', 'per_frame_update':True},led_h=2):
         Frame.__init__(self, parent, scalers=scalers, align=align, outline=outline,background=background, theme=theme)
         self.orient = orient
 
         # def VUVFrame(self, platform, bounds, channel, scalers=None, align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
-        #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
+        #                 led_h=5, led_h=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
         flip = (False, True) if flip else (True,False)
         if self.orient=='horz':
             cols = ColFramer(self)
-            cols += VUFrame(cols, 'left', orient=self.orient,flip=flip[0], tip=False)
-            cols += VUFrame(cols, 'right', orient=self.orient,flip=flip[1], tip=False)
+            cols += VUFrame(cols, 'left', orient=self.orient,flip=flip[0], tip=False,led_h=led_h)
+            cols += VUFrame(cols, 'right', orient=self.orient,flip=flip[1], tip=False,led_h=led_h)
 
         else:     # Vertical
             rows = RowFramer(self)
-            rows += VUFrame(rows, 'left', orient='vert',flip=flip[0],theme=self.theme )
-            rows += VUFrame(rows, 'right',orient='vert', flip=flip[1],theme=self.theme )
-        self.always_draw_background()
+            rows += VUFrame(rows, 'left', orient='vert',flip=flip[0],theme=self.theme,led_h=led_h )
+            rows += VUFrame(rows, 'right',orient='vert', flip=flip[1],theme=self.theme ,led_h=led_h)
+        # self.always_draw_background()
 
 
 class VUHorzFrame(Frame):
@@ -64,7 +64,7 @@ class VUHorzFrame(Frame):
         self.channel = channel
         self.tip     = tip
 
-        Frame.__init__(self, self.parent, background={'colour':'background', 'per_frame_update':False}, **self.kwargs)
+        Frame.__init__(self, self.parent, **self.kwargs)
         cols = ColFramer(self, col_ratios=(1,3))
         # cols = self
         channel_text = ' L' if self.channel=='left' else ' R'
@@ -80,6 +80,7 @@ class VU2chHorzFrame(Frame):
         # def VUVFrame(self, platform, bounds, channel, scalers=None, align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
         # self += VUHorzFrame(self, 'left',  scalers=(0.5,1.0), V='middle' , align=('left','middle'), flip=True )
+        back = {'colour':'background', 'per_frame_update':True}
         rows = RowFramer(self)
         rows += VUHorzFrame(rows, 'left' ,tip=self.tip)
         rows += VUHorzFrame(rows, 'right',tip=self.tip)
@@ -93,23 +94,19 @@ class MetaDataFrame(Frame):
              
 
     
-    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour_index' : 'dark'}
+    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour' : 'dark'}
 
-    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify=('centre','top'), outline=None, background=None):
-        super().__init__(parent, scalers=scalers, align=align, theme=theme, outline=outline, background=background)
+    def __init__(self, parent, tip=False, justify=('centre','middle'), background='background', **kwargs):
+        super().__init__(parent, **kwargs)
         self.justify = justify
 
-        rows  = RowFramer(self, padding=0.00, background=background) #row_ratios=(1.5,1,1,0.5)
-        print("Metadata Frame RowFramer>", rows.geostr(), rows._scalers)
-        rows += MetaData(rows, 'track', justify=self.justify,  colour  = 'foreground', background=background)
-        rows += MetaData(rows, 'album', justify=self.justify,  colour  = 'mid', background=background)
-        rows += MetaData(rows, 'artist', justify=self.justify, colour  = 'mid', background=background) 
-
-        # for meta, attributes in MetaDataFrame.SHOW.items():
-        #     print("**ad meta**", meta)
-        #     rows += MetaData(rows, meta, justify=self.justify, colour  = attributes['colour'], theme=self.theme)
-
-        # rows += PlayProgressFrame(rows)
+        OUT = None
+        rows  = RowFramer(self, padding=0.00, background=background, row_ratios=(1.5,1,1,0.5),padpc=0.3     )
+        rows += MetaData(rows, 'track', justify=self.justify,  colour  = 'foreground', background=None, outline=OUT)
+        rows += MetaData(rows, 'album', justify=self.justify,  colour  = 'mid',background=None, outline=OUT)
+        rows += MetaData(rows, 'artist', justify=self.justify, colour  = 'mid',background=None, outline=OUT) 
+        rows += PlayProgressFrame(rows,background=None, outline=OUT)
+        # rows.always_draw_background()
 
 class ArtistMetaDataFrame(Frame):
     def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre'):
@@ -126,11 +123,9 @@ class ArtistMetaDataFrame(Frame):
 class StereoSpectrumFrame(Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
-        self.create()
 
-    def create(self):  #reentrant so scaling works properly when sizing columns & rows
-        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','top'), flip=True, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5)
-        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','bottom'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5 )
+        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5, **kwargs)
+        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5, **kwargs )
 
 
 class MetaMiniSpectrumFrame(Frame):
@@ -171,9 +166,9 @@ Spectrum Analyser Frames - variants on
 
 class Spectrum2chFrame(Frame): #""" Vert split - L/R """
     def __init__(self, parent, **kwargs) :
-        Frame.__init__(self, parent, background='dark', outline={'width':4,'colour_index':'light'}, **kwargs)
+        Frame.__init__(self, parent, background='dark', outline={'width':4,'colour':'light'}, **kwargs)
 
-        rows = ColFramer(self, background='background', scalers=(0.7, 0.7), padding=10, outline={'width':4,'colour_index':'light'})
+        rows = ColFramer(self, background='background', scalers=(0.7, 0.7), padding=10, outline={'width':4,'colour':'light'})
         rows += SpectrumFrame(rows, 'left'  )
         rows += SpectrumFrame(rows, 'right' )
         rows.always_draw_background()

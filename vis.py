@@ -13,6 +13,7 @@
 """
 
 from   screens import *
+from   screens2 import *
 from   testscreens import *
 from   screenhandler import ScreenController
 import platform
@@ -24,10 +25,10 @@ import platform
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
 # SCREENS = ( ColAlignedScreen, TrackVUMeterScreen21 )
-SCREENS = ( MetaVUScreen, SpectrumBaseArt, MinSpectrumArt, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
+SCREENS = ( MinSpectrumArt, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
             TrackSpectrumScreen3, TrackSpectrumScreen4, \
             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
-            ArtMetaSpectrumScreen, MinSpectrumArt, SpectrumBaseArt, ColAlignedScreen  )
+            ArtMetaSpectrumScreen, MinSpectrumArt, ColAlignedScreen  )
 # SCREENS = (F7,F6,F5, F8)#, F4, F5, F7)# F5)#F4, F3, F1, F2)#F5, F3)ColAlignedScreen, ColAlignedScreen) #TrackVUMeterScreen, ArtMetaSpectrumScreen, TrackVUMeterScreen2, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, MinSpectrumArt, TrackSpectrumScreen3, TrackSpectrumScreen, TrackSpectrumScreen2)
 # SCREENS = (ColAlignedScreen, TrackVUMeterScreen2) #, ArtistScreen, MetaVUScreen , TrackOscScreen,TrackVisScreen3, TrackSpectrumScreen3, TrackVUMeterScreen,MinSpectrumArt)
 
@@ -45,14 +46,15 @@ GEO_TEST_SCREENS= (ColAlignedScreen, RowAlignedScreen, \
 MAIN_SCREENS= (TrackScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackSpectrumScreen, \
                TrackSpectrumScreen2, MetaArtFrame, TrackSpectrumScreen3, TrackSpectrumScreen4,\
                TrackVUMeterScreen, TrackVUMeterScreen2, TrackVUMeterScreen21, TrackOscScreen,\
-               SpectrumBaseArt, MinSpectrumArt, ArtMetaSpectrumScreen, BigDialsScreen2, MetaVUScreen, ArtistScreen)  
+               )  
 
+FULL_SCREENS = (Screen1, Screen2, Screen3, Screen4, Screen5, Screen6, Screen7)
 #subframes.py
 #
 SUBFRAMES = (TrackScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackSpectrumScreen, \
              TrackSpectrumScreen2, MetaArtFrame, TrackSpectrumScreen3, TrackSpectrumScreen4, TrackVUMeterScreen, \
-             TrackVUMeterScreen2, TrackVUMeterScreen21, TrackOscScreen, SpectrumBaseArt, MinSpectrumArt, \
-             ArtMetaSpectrumScreen, BigDialsScreen2, MetaVUScreen, ArtistScreen, VU2chFrame, VUFlipFrame, \
+             TrackVUMeterScreen2, TrackVUMeterScreen21, TrackOscScreen, MinSpectrumArt, \
+             ArtMetaSpectrumScreen, BigDialsScreen2, ArtistScreen, VU2chFrame, VUFlipFrame, \
              VUHorzFrame, VU2chHorzFrame, MetaDataFrame, ArtistMetaDataFrame, \
              StereoSpectrumFrame, MetaMiniSpectrumFrame, SamplesFrame)
 
@@ -65,11 +67,12 @@ BASE_FRAMES = (TextFrame, PlayProgressFrame, ArtFrame, MetaImages, MetaData,\
 SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  SpectrumStereoSplitFrame,\
               SpectrumStereoOffsetFrame, VUMeterFrame1, VUMeterFrame2, VUMeterFrame3, VUMeterFrame4, VUMeterImageFrame)   
 
-SCREENS = MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
-# # SCREENS = (ArtistScreen,F4)
+SCREENS = FULL_SCREENS+MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
+# SCREENS = (ProgressScreen, ArtistScreen,F4, TrackVUMeterScreen2)
 # SCREENS = (TrackVUMeterScreen2, VUImageScreen, VUScreen, VUVScreen, \
-#                    TestVUScreen)+ART_SCREENS
+#                    TestVUScreen)+ART_SCREENS+GEO_TEST_SCREENS
 # SCREENS = GEO_TEST_SCREENS
+
 
 
 """ 

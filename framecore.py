@@ -195,7 +195,7 @@ class Geometry():
                 wh=(wh[1]+1, wh[1])
             else:
                 wh=(wh[0]+1, wh[0])
-            print("Geometry.resize> square", wh, self.xyscale, self, self.geostr())
+            # print("Geometry.resize> square", wh, self.xyscale, self, self.geostr())
 
         # reduce the sw & h to allow for outline width
 
@@ -343,8 +343,9 @@ class Geometry():
     def abs_background(self, offset=(0, 0), wh=None):
         return self.abs(offset, wh, xy_shrink=int(self.outline_w), wh_shrink=self.outline_w*2)
     
+    # from Pygame 2.1 the outline is drawn inwards, hence abds_outline = abs_perimeter
     def abs_outline(self, offset=(0, 0), wh=None):
-        return self.abs(offset, wh) # pygame >v2.1 Outline width draws within the perimiter of the rect ###xy_shrink=int(self.outline_w/2), wh_shrink=self.outline_w)
+        return self.abs_perimeter(offset, wh) # pygame >v2.1 Outline width draws within the perimiter of the rect ###xy_shrink=int(self.outline_w/2), wh_shrink=self.outline_w)
     
     def abs_perimeter(self, offset=(0, 0), wh=None):
         return self.abs(offset, wh)
@@ -431,7 +432,7 @@ class Geometry():
                 # print("max", xy, minmax, val/100, self.x0, self.x1, self.endstops)
 
         # print("Geometry.anglescale>", minmax, (minmax[1]-minmax[0]))
-        print("Geometry.anglescale> start endstops", endstops, "after", self.endstops, "minmax", minmax, "scale", (minmax[1]-minmax[0]), )
+        # print("Geometry.anglescale> start endstops", endstops, "after", self.endstops, "minmax", minmax, "scale", (minmax[1]-minmax[0]), )
         # scale factor, minimum offset
         self.min_offset   = minmax[0]
         self.circle_scale = minmax[1]-minmax[0]
@@ -581,11 +582,17 @@ class Frame(Geometry):
 
         self.colours                  = Colour(self.theme, self.w)
         self.background_frame         = self.platform.create_background(self, background)
+        # if a frame has an opaque background then the parent background must update everytime the child refresh
 
         # print("Frame.__init__> done", self.background_frame.background, self.framestr())
 
     def __iadd__(self, frame):
         self.frames.append(frame)
+
+        if frame.background_frame.is_opaque():
+            print("Frame.__add__> child %s has opaque background forcing redraw> %s" % (type(frame).__name__, self.__str__()))
+            self.background_frame.per_frame_update()
+
         return self
 
 
@@ -593,22 +600,15 @@ class Frame(Geometry):
     # 1. scale and realign the current frame
     # 2. update the geometry of the children frames recusively (the scaling & alignment remains, its the change in parent bounds that causes the update)
     def update_geometry(self, bounds, scalers=None, align=None, offset=None):
-        print("Frame.update_geometry> ", bounds, scalers, align, offset, self.framestr())
+        # print("Frame.update_geometry> ", bounds, scalers, align, offset, self.framestr())
         self.change_bounds(bounds)
         self.scale(scalers)
         self.align(align, offset)
         if hasattr(self, 'configure'): self.configure()
 
-    # 3. If I am an AxisFramer, I need to tell my children their FINAL bounds.
-        # if isinstance(self, AxisFramer): # <-- Check for the new base class
-        #     self.refactor_bounds()
-        #     #results in a new set of bounds
-        # # else:
         for f in self.frames:
-            print("Frame.update_geometry> child from ", f.bounds, "to new parent", f.abs_coords(), f.scalers, f.align_offset,"has config", hasattr(f, 'configure'), f.framestr())
+            # print("Frame.update_geometry> child from ", f.bounds, "to new parent", f.abs_coords(), f.scalers, f.align_offset,"has config", hasattr(f, 'configure'), f.framestr())
             f.update_geometry(self.canvas_coords())
-
-            # some base classes have complex configurations that need to be updated once the parent geometry changes
             if hasattr(f, 'configure'): f.configure()
 
 
@@ -616,6 +616,7 @@ class Frame(Geometry):
     # whether the background and outline is drawn depends on whether the frame update is per frame or per metadata change
     #
     def update_screen(self, full=False, **kwargs):
+        if self.background_frame.is_per_frame_update(): full = True
         self.draw_background(full)
         self.draw_outline(True)
         # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
@@ -624,7 +625,7 @@ class Frame(Geometry):
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # f.draw_background(full)
             if f.update_screen(full, **kwargs): self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
-            f.draw_outline(full)
+            f.draw_outline(True)
 
 
     def draw_background(self, full=True):
@@ -698,13 +699,13 @@ class AxisFramer(Frame):
     def __init__(self, parent, ratios=None, axis='x', padpc=0, **kwargs):
         super().__init__(parent, **kwargs)
         self.axis = axis  # 'x' for ColFramer, 'y' for RowFramer
-        self.padpc = 1 - padpc
+        self.padpc = 1-padpc
         self.ratios = ratios
         self._scalers = self._normalize(ratios) if ratios is not None else []
         self.dynamic_scalers = []
         self.frames = []
         parent += self  # ensure parent tracks updates
-        print(f"{self.__class__.__name__}.__init__> {self.axis}-axis ratios={self.ratios} {self.framestr()}")
+        # print(f"{self.__class__.__name__}.__init__> {self.axis}-axis ratios={self.ratios} {self.framestr()}")
 
     def _normalize(self, values):
         """Normalize ratios to sum to 1.0"""
@@ -715,12 +716,12 @@ class AxisFramer(Frame):
         if total <= 0:
             raise ValueError("Cannot normalize zero or negative ratios", values)
         normalized = [v / total for v in values]
-        print(f"{self.__class__.__name__}.normalize> {values} → {normalized}")
+        # print(f"{self.__class__.__name__}.normalize> {values} → {normalized}")
         return normalized
 
     def __iadd__(self, frame):
         """Add frame to this framer and assign it proportional geometry."""
-        self.frames.append(frame)
+        super().__iadd__(frame)
 
         # If no predefined ratios, infer dynamically from child scalers
         if self.ratios is None:
@@ -736,12 +737,6 @@ class AxisFramer(Frame):
 
         return self
     
-    #When Framers are nested the children Frames will be aligned first, these need to 
-    #locked in place through updating the parent boundary and offset set back at zero
-    #hence recalu
-    def refactor_bounds(self):
-        print("\nAxisFramer.refactor_bounds> bounds %s, offset %s, scalers %s" %(self.bounds, self.align_offset, self.scalers))
-        print(self)
 
     def _apply_layout(self):
         """Compute frame sizes and positions along this axis."""
@@ -750,95 +745,28 @@ class AxisFramer(Frame):
         if count == 0:
             return
 
-        # Padding calculation
-        frame_padding = (self.w if self.axis == 'x' else self.h) * (1 - self.padpc) / (count + 1)
-        offset = frame_padding
+        #Offset first gap percentage
+        gap_space_pc = (1 - self.padpc) / (count + 1)
+        current_offset_pc = gap_space_pc
 
         for i, f in enumerate(frames):
             # scale width or height depending on axis
+            frame_width_pc = self.padpc * self._scalers[i]
             if self.axis == 'x':
 
-                print("AxisFramer._apply_layout> W offset %3f" % (offset/self.boundswh[0]))
-                allocated_w = int(self.boundswh[0] * self._scalers[i])
                 f.update_geometry(self.canvas_coords(), 
                                   scalers = (self.padpc * self._scalers[i], f.scalers[1]),
                                   align   = ('col', f.alignment[1]), 
-                                  offset  = offset/self.boundswh[0])
-                offset += frame_padding + f.w #<-----a square Frame will not use all its allocated space, which means there is a gap - what shall we do with this?
-                if f.w < allocated_w: 
-                    print("\nAxisFramer._apply_layout> child frame has not used allocated space - w", f.w, allocated_w)
-                    offset += int(allocated_w- f.w) #assume the gap is due to rounding errors so add half the gap back
+                                  offset  = current_offset_pc)
 
             else:
 
-                print("AxisFramer._apply_layout> H offset %3f" % (offset/self.boundswh[1]))
-                allocated_h = int(self.boundswh[1] * self._scalers[i])
                 f.update_geometry(self.canvas_coords(),
                                   scalers= (f.scalers[0], self.padpc * self._scalers[i]),
                                   align  = (f.alignment[0],'row'), 
-                                  offset = offset/self.boundswh[1])
-                offset += frame_padding + f.h
-                if f.h < allocated_h: 
-                    print("\nAxisFramer._apply_layout> child frame has not used allocated space - h", f.h, allocated_h)
-                    offset += int(allocated_h- f.h) #assume the gap is due to rounding errors so add half the gap back
-
-
-
-
-    # def _apply_layout(self):
-    #     """Compute frame sizes and positions along this axis."""
-    #     frames = self.frames
-    #     count = len(frames)
-    #     if count == 0:
-    #         return
-
-    #     # 1. Calculate running variables
-    #     total_axis_length = self.w if self.axis == 'x' else self.h
-    #     frame_padding = int(total_axis_length * (1 - self.padpc) / (count + 1))
-    #     offset = frame_padding # offset is the starting position RELATIVE to parent's X0/Y0
-
-    #     # Parent's absolute origin for convenience
-    #     parent_x0, parent_y0, _, parent_y1 = self.abs_coords()
-        
-    #     for i, f in enumerate(frames):
-            
-    #         # 2. Calculate ALLOCATED size based on parent's size and the child's scaler
-    #         allocated_w = int(self.boundswh[0] * self._scalers[i]) if self.axis == 'x' else self.boundswh[0]
-    #         allocated_h = self.boundswh[1] if self.axis == 'x' else int(self.boundswh[1] * self._scalers[i])
-            
-    #         # 3. Determine the CHILD'S ABSOLUTE BOUNDING BOX (X0, Y0, X1, Y1)
-    #         if self.axis == 'x':
-    #             x0 = parent_x0 + offset                  # Absolute X start = Parent X0 + running relative offset
-    #             y0 = parent_y0                           # Y start is the parent's Y0
-    #             x1 = x0 + allocated_w - 1                # Absolute X end = X0 + Allocated Width - 1
-    #             y1 = parent_y1                           # Y end is the parent's Y1 (full height)
-                
-    #             # Use 1.0 scalers since the bounds are the precise allocated size
-    #             child_scalers = (self.padpc * self._scalers[i], f.scalers[1])
-    #             child_align = ('col', f.alignment[1])
-                
-    #             # Update offset for NEXT frame
-    #             offset += allocated_w + frame_padding
-                
-    #         else: # axis == 'y' (Vertical/RowFramer)
-    #             x0 = parent_x0
-    #             y0 = parent_y0 + offset                  # Absolute Y start = Parent Y0 + running relative offset
-    #             x1 = self.x1 # Parent's absolute right coordinate
-    #             y1 = y0 + allocated_h - 1                # Absolute Y end = Y0 + Allocated Height - 1
-                
-    #             # Use 1.0 scalers since the bounds are the precise allocated size
-    #             child_scalers = (f.scalers[0], self.padpc * self._scalers[i])
-    #             child_align = (f.alignment[0], 'row')
-
-    #             # Update offset for NEXT frame
-    #             offset += allocated_h + frame_padding 
-
-    #         # 4. Final update_geometry call with the precisely calculated bounds
-    #         f.update_geometry(bounds= (x0, y0, x1, y1), 
-    #                           scalers=child_scalers,
-    #                           align=child_align, 
-    #                           offset=0) # Safe now that align_offset is disabled!
-
+                                  offset = current_offset_pc)
+ 
+            current_offset_pc += frame_width_pc + gap_space_pc
 
 class ColFramer(AxisFramer):
     def __init__(self, parent, col_ratios=None, padpc=0, **kwargs):
