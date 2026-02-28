@@ -590,7 +590,7 @@ class Frame(Geometry):
         self.frames.append(frame)
 
         if frame.background_frame.is_opaque():
-            print("Frame.__add__> child %s has opaque background forcing redraw> %s" % (type(frame).__name__, self.__str__()))
+            # print("Frame.__add__> child %s has opaque background forcing redraw> %s" % (type(frame).__name__, self.__str__()))
             self.background_frame.per_frame_update()
 
         return self
