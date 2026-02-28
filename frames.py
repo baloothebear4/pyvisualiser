@@ -14,8 +14,8 @@
 """
 
 # from    displaydriver import make_font, scaleImage, scalefont
-from    framecore import Frame
-from    displaydriver import Bar, Text, Line, Box, Image, ArcsOctaves, Dots
+from    framecore  import Frame
+from    components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots
 
 PI = 3.14152
 
