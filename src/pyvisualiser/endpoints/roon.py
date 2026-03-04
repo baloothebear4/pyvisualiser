@@ -1,9 +1,9 @@
 
 from roonapi import RoonApi, RoonDiscovery
-import pygame
-import requests
-from io import BytesIO
-import os
+# import pygame
+# import requests
+# from io import BytesIO
+# import os
 
 from events       import Events
 import time

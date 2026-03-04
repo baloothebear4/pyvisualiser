@@ -5,14 +5,17 @@
 
     This module manages the events and screen changes
 """
-from    processaudio import AudioProcessor
-from    roon import Roon
-from    displaydriver import GraphicsDriver
-from    screens import *
-from    events import Events
-from    framecore import ListNext
+from    pyvisualiser.core.processaudio import AudioProcessor
+from    pyvisualiser.endpoints.roon import Roon
+from    pyvisualiser.core.displaydriver import GraphicsDriver
+
+from    pyvisualiser.core.framecore import ListNext
 from    pygame.locals import *   # this pulls down all the K_* constants
 import  time
+from    events import Events
+
+# from    screens import *
+
 
 EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )   
 # for an api - this needs to have inbuilt events and additional events with a binder

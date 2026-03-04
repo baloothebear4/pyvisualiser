@@ -13,8 +13,8 @@ Subframes are combinations of base frames that come together for easier formatti
 - Metadata layouts
 
 """
-from framecore  import Frame, RowFramer, ColFramer
-from frames     import VUFrame, TextFrame, MetaData, PlayProgressFrame, SpectrumFrame, OscilogrammeBar, MetaImages, VUMeter
+from pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer
+from pyvisualiser.visualisers.frames     import VUFrame, TextFrame, MetaData, PlayProgressFrame, SpectrumFrame, OscilogrammeBar, MetaImages, VUMeter
 
 PI = 3.14152
 class VU2chFrame(Frame):

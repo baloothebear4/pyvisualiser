@@ -22,7 +22,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-from colour_palette import COLOUR_THEMES, purple
+from pyvisualiser.styles.colour_palette import COLOUR_THEMES, purple
 
 
 PI = np.pi

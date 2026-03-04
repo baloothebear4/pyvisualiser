@@ -10,54 +10,48 @@ v1.1 baloothebear4 Feb 2024     refactored as part of pyvisualiseer
 v2.0 baloothebear4 Feb 2026     Major upgrade to port to OpenGL for speed and visual complexity
 
 """
+from  pyvisualiser.core.framecore import Frame, Cache, Colour
+from  pyvisualiser.styles.styles import *
+
 
 import pygame
 from   pygame.locals import *
 import numpy as np
-from   framecore import Frame, Cache, Colour
+
 from   textwrap import shorten, wrap
 from   io import BytesIO
 import requests
 import warnings
 import os
 import random
+import os
+from pathlib import Path
 """ Prevent image coolour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
 
 PI = np.pi
 
-class Effects:
-    def __init__(self, threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1, power=2.0):
-        self.threshold = threshold
-        self.scale     = scale
-        self.blur      = blur
-        self.alpha     = alpha
-        self.attack    = attack
-        self.decay     = decay
-        self.power     = power
 
-StrongEffect = Effects(threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1)
-DreamEffect = Effects(threshold=0.75, scale=3.0, blur=3.0, alpha=150, attack=0.4, decay=0.1)
-NeonGlow     = Effects(threshold=0.1, scale=2.0, blur=0.5, alpha=220, attack=0.8, decay=0.1, power=1.0)
+def get_asset_path(category, *path_parts):
+    """
+    Usage: get_asset('fonts', 'Inter', 'Inter-Regular.ttf')
+    Usage: get_asset('backgrounds', 'particles.jpg')
+    """
+    # Navigates from core/ up to pyvisualiser/ then into the category
+    # BASE_DIR is src/pyvisualiser/core/
+    BASE_DIR = Path(__file__).resolve().parent 
 
-class BarStyle:
-    def __init__(self, led_h=10, led_gap=4, peak_h=1, right_offset=0, flip=False, radius=0, tip=False, orient='vert', col_mode=None, segment_size=None, segment_gap=None, corner_radius=None, edge_softness=0.0):
-        self.segment_size = segment_size if segment_size is not None else led_h
-        self.segment_gap  = segment_gap  if segment_gap  is not None else led_gap
-        self.corner_radius = corner_radius if corner_radius is not None else radius
-        self.peak_h     = peak_h
-        self.right_offset = right_offset
-        self.flip       = flip
-        self.orient     = orient
-        self.col_mode   = col_mode if col_mode is not None else orient
-        self.tip        = tip
-        self.edge_softness = edge_softness
+    # ASSETS_ROOT is src/pyvisualiser/
+    ASSETS_ROOT = BASE_DIR.parent
+    # Sanitize path_parts to remove leading slashes
+    clean_parts = [part.lstrip('/') for part in path_parts]
+    full_path = ASSETS_ROOT / category / os.path.join(*clean_parts)
+    
+    # print(full_path)
+    if not full_path.exists():
+        print(f"Warning: Asset not found at {full_path}")
+    return str(full_path)
 
-class SpectrumStyle:
-    def __init__(self, bar_space=0.5, barw_min=1, barw_max=20):
-        self.bar_space = bar_space
-        self.barw_min  = barw_min
-        self.barw_max  = barw_max
 
 class Bar(Frame):
     """
@@ -741,7 +735,7 @@ class Text:
     Fonts are scaled to fit
     update triggers a resizing of the text each time its drawn
     """
-    TYPEFACE = 'fonts/Inter/Inter-VariableFont_opsz,wght.ttf'
+    TYPEFACE = '/Inter/Inter-VariableFont_opsz,wght.ttf'
     READABLE = 18   # smallest readable font size
     MAX_LINES= 1
 
@@ -754,6 +748,7 @@ class Text:
         self.radius   = radius
         self.justify  = justify if len(justify) == 2 else (justify, 'middle') # 'left', 'centre', right' --> text is always aligned into the middle of the screen (could use an align attribute)
         self.parent   = parent
+        self.fontfile = get_asset_path('fonts', Text.TYPEFACE)
 
         self.cache    = Cache()
         self.colour   = colour
@@ -801,15 +796,15 @@ class Text:
     def shrink_fontsize(self, wh, text, fontmax=None):  #shrink the font to fit the rect
         # print("Text.shrink_fontsize> attempt", text, wh, self.fontmax, self.boundswh)
         fontsize    = self.fontmax if fontmax is None else fontmax
-        font        = pygame.font.Font(Text.TYPEFACE, int(fontsize))
+        font        = pygame.font.Font(self.fontfile, int(fontsize))
         fontwh      = self.textsize(text, font) 
         if fontwh[0]> wh[0]:  
             fontsize   = fontsize * wh[0]/ fontwh[0]
-            font        = pygame.font.Font(Text.TYPEFACE, int(fontsize))
+            font        = pygame.font.Font(self.fontfile, int(fontsize))
             fontwh      = self.textsize(text, font)
         if fontwh[1]> wh[1]:  
             fontsize    = fontsize *  wh[1]/fontwh[1]
-            font        = pygame.font.Font(Text.TYPEFACE, int(fontsize))
+            font        = pygame.font.Font(self.fontfile, int(fontsize))
             fontwh      = self.textsize(text, font)
 
         # print("Text.shrink_fontsize>", text, wh, fontwh, fontsize, fontmax)
@@ -1134,7 +1129,7 @@ class Background:
 
     BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 255, \
                              'per_frame_update':False, 'glow': False} 
-    BACKGROUND_IMAGE_PATH = 'backgrounds'
+    BACKGROUND_IMAGE_PATH = '../backgrounds'
 
 
     # background is a Str with a colour index eg 'background' or a Dict with the {path, opacity} for an image
@@ -1186,7 +1181,7 @@ class Background:
             self.background_image = Image(self.frame, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])  
             self.update_fn = self.BACKGROUND_ART[self.background['image']]['update_fn']  
         else:
-            path = Background.BACKGROUND_IMAGE_PATH + '/' + self.background['image']
+            path = get_asset_path('backgrounds', self.background['image'])
             self.background_image = Image(self.frame, path=path, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])
         print("Background.__init__> background image created", self.background)    
 

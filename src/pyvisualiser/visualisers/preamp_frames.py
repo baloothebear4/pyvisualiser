@@ -1,5 +1,5 @@
-from framecore  import Frame
-from frames     import SpectrumFrame, TextFrame
+from pyvisualiser.core.framecore  import Frame
+from pyvisualiser.visualisers.frames     import SpectrumFrame, TextFrame
 
 
 """ System Utility screens """

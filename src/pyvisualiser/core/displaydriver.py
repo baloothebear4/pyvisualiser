@@ -20,7 +20,7 @@ import  os
 
 import  moderngl
 from    array import array
-from    components import Outline, Background
+from    .components import Outline, Background
 
 
 """ Prevent image colour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""

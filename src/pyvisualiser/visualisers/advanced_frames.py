@@ -2,9 +2,9 @@
 Advanced Visualiser Frames
 High-fidelity visualization components with 3D effects, particle systems, and dynamic geometry.
 """
-from framecore import Frame
+from   pyvisualiser.core.framecore import Frame
 import math, random, numpy as np
-import pygame
+# import pygame
 
 class EchoWaveFrame(Frame):
     """
