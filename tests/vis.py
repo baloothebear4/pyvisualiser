@@ -17,8 +17,10 @@ from   screens2 import *
 from   testscreens import *
 from   test_api_coverage import *
 from   test_advanced_visuals import AdvancedVisualsScreen
-from   screenhandler import ScreenController
+from   pyvisualiser import ScreenController, Platform
+# from   pyvisualiser.platform import Platform
 import platform
+
 
 
 """ Screen types are:   Control for utility messages like vol change,  Test to exercise functionality, Base for mixed visual displays """

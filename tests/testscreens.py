@@ -1,6 +1,4 @@
-from framecore import Frame, ColFramer, RowFramer
-from frames import  *
-from subframes import  *
+from pyvisualiser import *
 import time
 
 

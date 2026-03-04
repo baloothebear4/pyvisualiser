@@ -9,11 +9,9 @@
 
 """
 
-from    frames    import *
-from    subframes import *
-from    framecore import Frame, ColFramer, RowFramer
-from    components   import DreamEffect
 
+from pyvisualiser import *
+PI = 3.14159265358979323846
 
 """
 Screen classes - these are top level frames comprising frames of frames at full display size

@@ -4,9 +4,10 @@ Advanced Visualiser Test Script
 Tests the instantiation and layout of advanced 3D and particle-based frames.
 """
 
-from framecore import Frame, ColFramer, RowFramer
-from frames import TextFrame
-from advanced_frames import EchoWaveFrame, PulseOrbFrame, SpectrumWaveFrame, FreqWaveFrame
+from pyvisualiser import *
+# from framecore import Frame, ColFramer, RowFramer
+# from frames import TextFrame
+# from advanced_frames import EchoWaveFrame, PulseOrbFrame, SpectrumWaveFrame, FreqWaveFrame
 
 class AdvancedVisualsScreen(Frame):
     @property
