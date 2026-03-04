@@ -1,0 +1,30 @@
+
+mkdir -p src/pyvisualiser/styles
+mkdir -p src/pyvisualiser/visualisers
+mkdir -p src/pyvisualiser/core
+mkdir -p src/pyvisualiser/endpoints
+
+git mv colour_palette.py src/pyvisualiser/styles
+
+git mv screenhandler.py src/pyvisualiser/core
+git mv framecore.py src/pyvisualiser/core
+
+<!-- git mv components.py src/pyvisualiser/core
+git mv displaydriver.py src/pyvisualiser/core
+git mv processaudio.py src/pyvisualiser/core -->
+
+git mv preamp_frames.py src/pyvisualiser/visualisers
+git mv frames.py src/pyvisualiser/visualisers
+git mv advanced_frames.py src/pyvisualiser/visualisers
+git mv subframes.py src/pyvisualiser/visualisers
+
+
+git mv roon.py src/pyvisualiser/endpoints
+
+<!-- git mv screens.py tests
+git mv screens2.py tests
+git mv test_advanced_visuals.py 
+git mv test_api_coverage.py tests
+git mv testscreens.py tests
+git mv visualiser.py tests -->
+<!-- git mv audio_config.py src/pyvisualiser/scripts -->
