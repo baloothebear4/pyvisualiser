@@ -9,15 +9,15 @@ A Python library for real-time audio visualization with support for:
 - Audio processing pipelines
 """
 
-__version__ = "0.1.0"
-__author__ = "Your Name"
+__version__ = "2.0.0" # GPU accelerated version
+__author__ = "Baloothebear4"
 
 # Import main classes so they can be used as: from pyvisualiser import SpectrumAnalyzer
-from .visualiser import *
-from .processaudio import *
-from .displaydriver import *
-from .screens import *
-from .frames import *
+# from .visualiser import *
+# from .processaudio import *
+# from .displaydriver import *
+# from .screens import *
+# from .frames import *
 
 # Optional: Define what gets imported with "from pyvisualiser import *"
 __all__ = [

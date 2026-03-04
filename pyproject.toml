@@ -1,0 +1,16 @@
+[project]
+name = "pyvisualiser"
+version = "2.0.0"
+description = "GPU-accelerated audio visualisation engine"
+authors = [{ name = "Baloo the bear" }]
+dependencies = []
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
