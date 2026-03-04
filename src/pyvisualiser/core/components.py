@@ -10,7 +10,7 @@ v1.1 baloothebear4 Feb 2024     refactored as part of pyvisualiseer
 v2.0 baloothebear4 Feb 2026     Major upgrade to port to OpenGL for speed and visual complexity
 
 """
-from  pyvisualiser.core.framecore import Frame, Cache, Colour
+from  pyvisualiser.core.framecore import Frame, Cache, Colour, get_asset_path
 from  pyvisualiser.styles.styles import *
 
 
@@ -21,36 +21,17 @@ import numpy as np
 from   textwrap import shorten, wrap
 from   io import BytesIO
 import requests
-import warnings
-import os
 import random
-import os
-from pathlib import Path
+import warnings
+
+
+# import os
+
 """ Prevent image coolour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
 
 PI = np.pi
 
-
-def get_asset_path(category, *path_parts):
-    """
-    Usage: get_asset('fonts', 'Inter', 'Inter-Regular.ttf')
-    Usage: get_asset('backgrounds', 'particles.jpg')
-    """
-    # Navigates from core/ up to pyvisualiser/ then into the category
-    # BASE_DIR is src/pyvisualiser/core/
-    BASE_DIR = Path(__file__).resolve().parent 
-
-    # ASSETS_ROOT is src/pyvisualiser/
-    ASSETS_ROOT = BASE_DIR.parent
-    # Sanitize path_parts to remove leading slashes
-    clean_parts = [part.lstrip('/') for part in path_parts]
-    full_path = ASSETS_ROOT / category / os.path.join(*clean_parts)
-    
-    # print(full_path)
-    if not full_path.exists():
-        print(f"Warning: Asset not found at {full_path}")
-    return str(full_path)
 
 
 class Bar(Frame):
@@ -190,18 +171,19 @@ class Bar(Frame):
                 c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
                 
                 # Layer 1: Inner Glow (Tight, Bright)
-                inner_scale = 1.0 + (self.effects.scale - 1.0) * 0.2
+                inner_scale = 1.0 + (self.effects.scale - 1.0) * self.effects.inner_glow_scale
                 b_w_inner = coords[2] * (inner_scale - 1.0)
                 b_rect_inner = (coords[0] - b_w_inner/2, bloom_y - b_w_inner/2, coords[2] + b_w_inner, bloom_h + b_w_inner)
                 self.platform.renderer.draw_rect(c_thresh, b_rect_inner, softness=self.effects.blur, gradient=(c_thresh, c_tip), axis=1.0, level=10.0, additive=True)
 
                 # Layer 2: Outer Bloom (Wide, Soft, Dynamic Size)
-                outer_scale = 1.0 + (self.effects.scale - 1.0) * (0.5 + 0.5 * smoothed_ratio)
+                outer_scale_mult = self.effects.outer_glow_scale_min + self.effects.outer_glow_scale_max * smoothed_ratio
+                outer_scale = 1.0 + (self.effects.scale - 1.0) * outer_scale_mult
                 b_w_outer = coords[2] * (outer_scale - 1.0)
                 b_rect_outer = (coords[0] - b_w_outer/2, bloom_y - b_w_outer/2, coords[2] + b_w_outer, bloom_h + b_w_outer)
-                c_outer_tip = c_tip[:3] + [current_alpha * 0.6] # Lower alpha for outer
+                c_outer_tip = c_tip[:3] + [current_alpha * self.effects.outer_glow_alpha_mult] # Lower alpha for outer
                 c_outer_thresh = c_thresh[:3] + [current_alpha * 0.6]
-                self.platform.renderer.draw_rect(c_outer_thresh, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_thresh, c_outer_tip), axis=1.0, level=10.0, additive=True)
+                self.platform.renderer.draw_rect(c_outer_thresh, b_rect_outer, softness=self.effects.blur * self.effects.outer_glow_blur_mult, gradient=(c_outer_thresh, c_outer_tip), axis=1.0, level=10.0, additive=True)
 
             # Draw the main segmented bar
             self.platform.renderer.draw_rect(c_top, coords, 
@@ -732,15 +714,11 @@ class Text:
     Text is all about creating words & numbers that are scaled to fit within
     rectangles
 
-    Fonts are scaled to fit
-    update triggers a resizing of the text each time its drawn
+    Fonts are scaled to fit.
+    `update()` triggers a resizing of the text each time its drawn.
     """
-    TYPEFACE = '/Inter/Inter-VariableFont_opsz,wght.ttf'
-    READABLE = 18   # smallest readable font size
-    MAX_LINES= 1
-
-    def __init__(self, parent, text='Default text', fontmax=None, reset=True, wrap=False, justify=('centre','middle'),\
-                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, colour=None):  #Create a font to fit a rectangle
+    def __init__(self, parent, text='Default text', fontmax=None, reset=True, wrap=False, justify=('centre','middle'),
+                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, colour=None, style=None):  #Create a font to fit a rectangle
 
         self.text     = text
         self.wrap     = wrap
@@ -748,7 +726,12 @@ class Text:
         self.radius   = radius
         self.justify  = justify if len(justify) == 2 else (justify, 'middle') # 'left', 'centre', right' --> text is always aligned into the middle of the screen (could use an align attribute)
         self.parent   = parent
-        self.fontfile = get_asset_path('fonts', Text.TYPEFACE)
+
+        if style is None:
+            style = TextStyle()
+        self.style = style
+
+        self.fontfile = get_asset_path('fonts', self.style.typeface)
 
         self.cache    = Cache()
         self.colour   = colour
@@ -828,9 +811,9 @@ class Text:
 
         font, fontwh = self.shrink_fontsize(wh, text, fontmax)
 
-        if self.wrap and fontwh[1] < Text.READABLE:  # split into two lines and draw half size
+        if self.wrap and fontwh[1] < self.style.min_size:  # split into two lines and draw half size
             try:
-                self.drawtext = wrap(text, width=1+len(text)//2, max_lines=Text.MAX_LINES)
+                self.drawtext = wrap(text, width=1+len(text)//2, max_lines=self.style.max_lines)
                 # print("wrap", self.drawtext)
                 font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0], fontmax)
                 fontwh[1]    *= 2  # double height, 2 lines
@@ -1050,8 +1033,6 @@ class Outline:
         # pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
         # self.frame.platform.screen.blit(surface, (0,0) )
         self.frame.platform.renderer.draw_rect(colour_index, coords, border_radius=radius, width=width)
-
-        self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_outline()))
         # print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
         return coords     
 
@@ -1062,228 +1043,4 @@ class Outline:
         else: 
             return self.outline['width'] 
 
-class ParticleSystem:
-    def __init__(self, frame, config):
-        self.frame = frame
-        self.count = config.get('count', 50)
-        self.color = config.get('colour', 'light')
-        self.speed = config.get('speed', 1.0)
-        self.size  = config.get('size', 2)
-        self.softness = config.get('softness', 0.5)
-        self.react_to_music = config.get('react_to_music', True)
-        self.particles = []
-        
-        for _ in range(self.count):
-            self.particles.append(self._reset_particle(start_random=True))
-            
-    def _reset_particle(self, start_random=False):
-        w, h = self.frame.abs_wh
-        x = random.randint(0, int(w))
-        y = random.randint(0, int(h)) if start_random else 0 # Start at bottom
-        
-        # Float up with some drift
-        vx = (random.random() - 0.5) * self.speed
-        vy = (random.random() * self.speed) + 0.5
-        
-        life = random.randint(50, 200)
-        return [x, y, vx, vy, life, life] # x, y, vx, vy, life, max_life
-
-    def draw(self):
-        w, h = self.frame.abs_wh
-        origin_x, origin_y = self.frame.abs_origin()
-        
-        col = self.frame.colours.get(self.color)
-        
-        speed_mult = 1.0
-        if self.react_to_music and hasattr(self.frame.platform, 'vu'):
-            vu = self.frame.platform.vu['mono']
-            # Scale speed between 1x and 4x based on volume
-            speed_mult = 1.0 + (vu * 3.0)
-
-        for p in self.particles:
-            # Update (Frame coords: 0,0 is bottom-left)
-            p[0] += p[2] * speed_mult
-            p[1] += p[3] * speed_mult
-            p[4] -= 1
-            
-            # Reset if out of bounds or dead
-            if p[1] > h or p[4] <= 0 or p[0] < 0 or p[0] > w:
-                new_p = self._reset_particle()
-                p[:] = new_p[:] # Update in place
-            
-            # Draw
-            alpha = int(255 * (p[4] / p[5]))
-            if len(col) == 3:
-                draw_col = list(col) + [alpha]
-            else:
-                draw_col = list(col[:3]) + [alpha]
-                
-            # Convert Frame (Bottom-Left) to Pygame/GL (Top-Left) for drawing
-            draw_x = origin_x + p[0]
-            draw_y = origin_y + (h - p[1])
-            
-            rect = (draw_x, draw_y, self.size, self.size)
-            self.frame.platform.renderer.draw_rect(draw_col, rect, softness=self.softness)
-
-class Background:
-
-    BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 255, \
-                             'per_frame_update':False, 'glow': False} 
-    BACKGROUND_IMAGE_PATH = '../backgrounds'
-
-
-    # background is a Str with a colour index eg 'background' or a Dict with the {path, opacity} for an image
-    def __init__(self, frame, background=None):
-        self.frame            = frame
-        self.background_image = None
-        self.background       = {'colour':None}
-        self.BACKGROUND_ART   = {  'album':  { 'update_fn': frame.platform.album_art,  'square' : False},
-                                   'artist': { 'update_fn': frame.platform.artist_art, 'square' : False} }
-
-        # print("Background.__init__>", background, self.frame.colours.is_colour(self.background))
-
-        if background is None:
-            self.background       = None #Background.BACKGROUND_DEFAULT['colour']
-
-        elif isinstance(background, dict) and 'image' in background:
-            self.background.update(background)
-            self.make_image()
-            
-        elif isinstance(background, dict) and any(key in background for key in ('colour','opacity','glow','particles')):
-            self.background.update(background)
-            if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
-            if 'opacity'          not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})   
-            if 'glow'             not in self.background:   self.background.update({'glow': Background.BACKGROUND_DEFAULT['glow']})
-
-            if 'particles' in self.background:
-                self.particle_system = ParticleSystem(self.frame, self.background['particles'])
-                self.background['per_frame_update'] = True
-
-
-        # its a filename with no parameters ie a shortcut
-        elif background.lower().endswith(('.jpg', '.png')):
-            self.background.update({'image': background}) 
-            self.make_image()
-
-        # its a colour
-        else:
-            self.background.update({'colour':background, 'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update'], 'opacity': Background.BACKGROUND_DEFAULT['opacity']})
-
-        # print("Background.__init__> background is", self.background, self.frame.framestr())
-
-
-    def make_image(self):
-        if 'opacity'           not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})    
-        if 'per_frame_update'  not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']})    
-
-        # use artist or album art as the background
-        if self.background['image'] in ('artist', 'album'):
-            self.background_image = Image(self.frame, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])  
-            self.update_fn = self.BACKGROUND_ART[self.background['image']]['update_fn']  
-        else:
-            path = get_asset_path('backgrounds', self.background['image'])
-            self.background_image = Image(self.frame, path=path, opacity=self.background['opacity'], target_wh=self.frame.abs_background()[-2:])
-        print("Background.__init__> background image created", self.background)    
-
-
-    def per_frame_update(self, condition=True):
-        if self.background is not None: 
-            self.background['per_frame_update']=condition
-        else:
-            # print("Background.per_frame_update> None background", self.background, self.frame.framestr() )  
-            pass
-
-
-    def is_per_frame_update(self):
-        if self.background is None:
-            return True
-        else:
-            return self.background['per_frame_update']
-
-    def is_opaque(self):
-        if self.background is None:
-            return True  #if there is no background this is opaque!
-        else:
-            return self.background['opacity']<255
-
-    def draw(self, perform_update=True):
-        if self.background is None: return
-        BLACK = (0,0,0)
-
-        # print("Background.draw> Test background", self.background, self.frame.framestr())
-        if perform_update or self.background['per_frame_update']:
-            # print("Background.draw> Drawing background", self.background, self.frame.framestr())
-            # if self.is_opaque():
-            #     self.frame.platform.screen.fill(BLACK, pygame.Rect(self.frame.abs_background() ))
-
-            if self.background.get('glow'):
-                # Draw glow using OpenGL renderer
-                rect_coords = self.frame.abs_background()
-                c_name = self.background.get('colour')
-                if c_name is None: c_name = 'background'
-                
-                colour = self.frame.colours.get(c_name)
-                # Increase opacity for visibility and use additive blending
-                opacity = self.background.get('opacity', 255) * 0.8
-                
-                if len(colour) == 3:
-                    glow_col = list(colour) + [opacity]
-                else:
-                    glow_col = list(colour)
-                    glow_col[3] = opacity
-                
-                self.frame.platform.renderer.draw_rect(glow_col, rect_coords, softness=1.5, additive=True)
-
-            if self.background_image is None:
-                if self.background['colour'] is None: return
-
-                # 1. Get the coordinates and dimensions of the area to fill
-                rect_coords = self.frame.abs_background()  # Should be (x, y, w, h)
-                rect_w, rect_h = rect_coords[2:]
-
-                # 2. Create a temporary Surface for the semi-transparent drawing
-                # alpha_surface = pygame.Surface((rect_w, rect_h), pygame.SRCALPHA)
-                # alpha_surface.set_alpha(self.background['opacity']) 
-
-                # Fill the *entire* temporary surface with the color
-                colour = self.frame.colours.get(self.background['colour'])
-                # alpha_surface.fill(colour)
-                
-                # Blit the temporary, transparent surface onto the main screen
-                # self.frame.platform.screen.blit(alpha_surface, rect_coords[:2]) # Use (x, y) coordinates
-                
-                # Use the renderer to draw the rect directly with opacity
-                # We need to append the opacity to the colour tuple if it's not already there
-                if len(colour) == 3:
-                    colour = list(colour) + [self.background['opacity']]
-                elif len(colour) == 4:
-                    colour = list(colour)
-                    colour[3] = self.background['opacity']
-                
-                shadow = self.background.get('shadow')
-                self.frame.platform.renderer.draw_rect(colour, rect_coords, shadow=shadow)
-
-                if hasattr(self, 'particle_system'):
-                    self.particle_system.draw()
-
-                # surface = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
-                # self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
-                # self.frame.platform.screen.blit((0,0) )
-                # print("Background.draw> colour ", self.frame.abs_background() )  
- 
-            else:
-                if self.background['image'] in ('artist', 'album'):
-                    image_ref = self.update_fn()
-                else:
-                    image_ref =None
-
-                self.background_image.draw(image_data=image_ref, coords=self.frame.abs_background()[:2]) 
-
-            self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_background()))
-            # print("Background.draw> ", self.background )  
-
-        # print("Background.draw> draw ", perform_update, self.background['per_frame_update'], self.background, self.frame.framestr() )  
-  
-
-
-#---- End Background -------        
+   

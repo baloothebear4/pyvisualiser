@@ -45,11 +45,11 @@ Purpose:
 
 Create core abstractions:
 
-    render/
-        pass_base.py
-        fbo.py
-        context.py
-        compositor.py
+    render classes
+        pass_base
+        fbo
+        context
+        compositor
 
 Define:
 
@@ -76,10 +76,10 @@ Goal:
 
 Create:
 
-    background/
-        base.py
-        surface.py
-        lighting.py
+    background.py with classes
+        BackgroundBase
+        BackgroundSurface
+        BackgroundLighting
 
 Background must support:
 
@@ -269,7 +269,7 @@ Include:
 
 ## 7.2 Preset Definitions
 
-Define preset families:
+Define preset profiles:
 
 - Studio Black
 - Warm Sunset

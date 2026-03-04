@@ -14,142 +14,19 @@ v2.0 baloothebear4 Feb 2026     Refactored - spliting out componenets eg Bar, le
 import  pygame, time, math
 from    pygame.locals import *
 import  numpy as np
-# from    io import BytesIO
 import  warnings
 import  os
 
 import  moderngl
 from    array import array
-from    .components import Outline, Background
+
+from    .components import Outline
+from    .backgrounds import Background
+from    pyvisualiser.core.render import RenderPass, RenderContext, Compositor
 
 
 """ Prevent image colour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
-      
-
-class DirtyAreaTracker:
-    def __init__(self, screen_surface, alpha=0.1):
-        """
-        Initializes the tracker with the screen size and the EWMA smoothing factor.
-        
-        :param screen_surface: The main pygame.Surface for the display.
-        :param alpha: The smoothing factor (0.0 to 1.0). Lower is smoother.
-        """
-        self.total_screen_area = screen_surface.get_width() * screen_surface.get_height()
-        self.alpha = alpha
-        self.rolling_avg_percent = 0.0
-
-    def _get_merged_area(self, dirty_rects):
-        """
-        Calculates the net area covered by a list of rectangles.
-        This is necessary because the rectangles can overlap.
-        """
-        if not dirty_rects:
-            return 0
-
-        union_rect = dirty_rects[0]
-        for rect in dirty_rects[1:]:
-            union_rect = union_rect.union(rect)
-
- 
-        total_dirty_area = union_rect.width * union_rect.height
-
-        return total_dirty_area
-
-
-    def update_average(self, dirty_rects):
-        """
-        Calculates the updated area percentage and updates the rolling average.
-        
-        :param dirty_rects: The list of Rects returned by your draw calls, 
-                            which you pass to pygame.display.update().
-        :return: The current rolling average of the dirty area percentage (0.0 to 100.0).
-        """
-        if self.total_screen_area == 0:
-            return 0.0
-            
-        # 1. Get the net area of the updated regions
-        net_dirty_area = self._get_merged_area(dirty_rects)
-
-        # 2. Calculate the percentage of the screen that was drawn
-        current_dirty_percent = (net_dirty_area / self.total_screen_area) * 100
-
-        # 3. Apply the Exponentially Weighted Moving Average (EWMA)
-        # S_t = alpha * Y_t + (1 - alpha) * S_{t-1}
-        # Where S_t is the new average, Y_t is the current value, and S_{t-1} is the old average.
-        self.rolling_avg_percent = (
-            self.alpha * current_dirty_percent + 
-            (1.0 - self.alpha) * self.rolling_avg_percent
-        )
-        
-        return self.rolling_avg_percent
-
-
-class DirtyRectManager:
-    """
-    A class to collect and manage "dirty" rectangles for partial screen updates.
-    It provides methods to add Rects and a method to get the final list 
-    for pygame.display.update().
-    """
-    def __init__(self):
-        # The list to store all dirty pygame.Rect objects
-        self.dirty_rects = []
-
-    def add(self, rect):
-        """
-        Adds a single dirty rectangle to the list.
-        If a tuple (x, y, w, h) is passed, it is converted to a pygame.Rect.
-        """
-        # print("DirtyRectManager.add", rect)
-
-        if isinstance(rect, tuple):
-            self.dirty_rects.append(pygame.Rect(rect))
-        elif isinstance(rect, pygame.Rect):
-            self.dirty_rects.append(rect)
-        elif rect is None or True or False:
-            return
-        else:
-            raise TypeError("DirtyRectManager.add> Expected pygame.Rect or (x, y, w, h) tuple")
-
-    def add_list(self, rect_list: list[pygame.Rect | tuple]):
-        """
-        Adds a list of dirty rectangles.
-        """
-        for rect in rect_list:
-            self.add(rect)
-
-    def get_and_clear(self) -> list[pygame.Rect]:
-        """
-        Returns the list of dirty Rects and clears the internal list for the next frame.
-        The union of all rects could also be calculated here for efficiency, 
-        but for simplicity, we return the raw list.
-        """
-        # Optionally, merge overlapping rects to reduce update calls.
-        # For simplicity, we just return the current list.
-        rects_to_update = self.dirty_rects
-        self.dirty_rects = [] # Clear the list for the next frame
-        return rects_to_update
-    
-    def get_union_and_clear(self) -> list[pygame.Rect]:
-        """
-        Calculates the union of all dirty rects, returns a list with the one 
-        bounding Rect, and clears the internal list. More efficient for 
-        small, spread-out areas.
-        """
-        if not self.dirty_rects:
-            return []
-        
-        # Calculate the union of all dirty rects
-        union_rect = self.dirty_rects[0].unionall(self.dirty_rects[1:])
-
-        self.dirty_rects = [] # Clear for the next frame
-        return [union_rect]
-
-    def clear(self):
-        """
-        Clears the list of dirty rectangles without returning them.
-        """
-        self.dirty_rects = []
 
 
 class PygameRenderer:
@@ -185,16 +62,10 @@ class GraphicsDriverPi:
         self.H      = GraphicsDriverPi.H
         self.FPS    = GraphicsDriverPi.FPS
         self.events = events
-        self.dirty_mgr = DirtyRectManager()
-
 
         self.clock  = pygame.time.Clock()
         self.screen = self.init_display()
         self.renderer = PygameRenderer(self.screen)
-
-        self.area_tracker = DirtyAreaTracker(self.screen, alpha=0.05)
-
-
 
         print("\nGraphicsDriverPI.init_display> Pi ", self.screen.get_size())
 
@@ -259,7 +130,6 @@ class GraphicsDriverPi:
 
 
     def draw_start(self, text=None):
-        # Without dirty rects
         # self.screen.fill((0,0,0))       # erase whole screen
         # All drawing now happens on the virtual surface.
         # self.virtual_surface.fill(GraphicsDriverPi.BACKGROUND_COLOR)       # erase the virtual screen
@@ -269,13 +139,6 @@ class GraphicsDriverPi:
 
     """ Draw on the transformed parts -optimised algorithm"""
     def draw_end(self):
-        dirty_rects = self.dirty_mgr.get_and_clear()
-        
-        if not dirty_rects:
-            # If nothing is dirty, don't update anything
-            self.ave_area_pc = self.area_tracker.update_average([])
-            print("GraphicsDriverPi.draw_end> NO dirty rects")
-            return
             
         transformed_rects = []
         # Get the dimensions of the non-rotated virtual surface
@@ -384,28 +247,28 @@ class GraphicsDriverGL:
     FPS     = 60
     BACKGROUND_COLOR = (10, 10, 20)
 
+    # The following methods were incorrectly placed inside Compositor during a previous refactor.
+    # They are now correctly placed here, and the old __init__ has been removed.
     def __init__(self, events):
         self.events = events
         self.W      = GraphicsDriverGL.W
         self.H      = GraphicsDriverGL.H
         self.FPS    = GraphicsDriverGL.FPS
-        
+
         self.clock  = pygame.time.Clock()
         self.window = self.init_display()
-        
-        # Initialize GLManager as the renderer
-        self.renderer = GLManager(self)
-        self.renderer.current_texture = None
-        
-        # Legacy support: Create a dummy surface for components (like Text) 
-        # that still try to blit to 'screen'. This prevents crashes, though 
-        # they won't be visible until ported to GL.
+
+        # --- New Render Pipeline Setup ---
+        mgl_ctx = moderngl.create_context()
+        self.render_context = RenderContext(mgl_ctx, (self.W, self.H), self)
+        self.compositor = Compositor(self.render_context)
+        self.geometry_pass = GeometryPass(self.render_context)
+        self.compositor.add_pass(self.geometry_pass)
+        self.renderer = self.geometry_pass # Components draw to the geometry pass
+
         self.screen = pygame.Surface((self.W, self.H))
-        
-        self.dirty_mgr = DirtyRectManager()
-        self.area_tracker = DirtyAreaTracker(self.screen, alpha=0.05)
         self.ave_area_pc = 0
-        print("\nGraphicsDriverGL.init_display> OpenGL Mode")
+        print("\nGraphicsDriverGL.init_display> OpenGL Mode with Pass-Based Renderer")
 
     def init_display(self):
         pygame.init()
@@ -413,17 +276,17 @@ class GraphicsDriverGL:
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
         pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE)
-        
+
         return pygame.display.set_mode((self.W, self.H), pygame.OPENGL | pygame.DOUBLEBUF)
 
     def draw_start(self, text=None):
         if text: pygame.display.set_caption(text)
-        self.renderer.clear()
+        self.renderer.clear_batch()
 
     def draw_end(self):
-        self.renderer.render()
+        self.compositor.render_frame()
         pygame.display.flip()
-        self.dirty_mgr.clear()
+
 
 
 
@@ -442,12 +305,11 @@ class GraphicsDriverMac:
         self.W      = GraphicsDriverMac.W
         self.H      = GraphicsDriverMac.H
         self.FPS    = GraphicsDriverMac.FPS
-        self.dirty_mgr = DirtyRectManager()
 
         self.screen = self.init_display()
         self.renderer = PygameRenderer(self.screen)
         self.clock  = pygame.time.Clock()
-        self.area_tracker = DirtyAreaTracker(self.screen, alpha=0.05)
+
         print("\nGraphicsDriverMac.init_display> Mac ", self.screen.get_size())
 
     def init_display(self):
@@ -460,15 +322,15 @@ class GraphicsDriverMac:
 
     def draw_end(self):
         # print("Screen.draw [END]")
-        # pygame.display.flip()
+        pygame.display.flip()
 
-        # Update only the dirty areas - to save draw and render time
-        dirty_rects = self.dirty_mgr.get_and_clear()
-        if dirty_rects:
-            pygame.display.update(dirty_rects)
+        # # Update only the dirty areas - to save draw and render time
 
-         # 7. Update the area tracker
-        self.ave_area_pc = self.area_tracker.update_average(dirty_rects)               
+        # if dirty_rects:
+        #     pygame.display.update(dirty_rects)
+
+        #  # 7. Update the area tracker
+        # self.ave_area_pc = self.area_tracker.update_average(dirty_rects)               
 
             
 
@@ -546,11 +408,15 @@ class GraphicsDriver:
 Entry point to OpenGL and the GPU based graphics processing
 
 '''
-class GLManager:
-    def __init__(self, platform):
-        self.platform = platform
-        # Create a context from the existing Pygame window
-        self.ctx = moderngl.create_context()
+class GeometryPass(RenderPass):
+    """
+    This pass is responsible for rendering all the basic geometry (rects, lines, textures).
+    It replaces the old monolithic GLManager and acts as the main 'renderer' object
+    that UI components interact with.
+    """
+    def __init__(self, context: RenderContext):
+        super().__init__(context)
+        self.platform = context.platform
         
         # Configure transparency/blending to match your 'opacity' logic
         self.ctx.enable(moderngl.BLEND)
@@ -570,10 +436,11 @@ class GLManager:
                 in float in_stroke; // stroke width (0 = fill)
                 in vec2 in_segments; // segment_size, gap_size
                 in float in_axis; // 0 = x (horz), 1 = y (vert)
-                in float in_level; // 0.0 to 1.0 fill level
-                in float in_use_tex; // 0.0 = vertex colors, 1.0 = texture
+                in float in_level; // 0.0 to 1.0 fill level. For Images: uv_scale.y
+                in float in_use_tex; // 0.0 = color, 1.0 = gradient, 2.0 = image
                 out vec4 v_color;
                 out vec2 v_uv;
+                out vec2 v_uv_raw; // Unmodified UVs for texture sampling
                 out float v_softness;
                 out vec3 v_params;
                 out float v_stroke;
@@ -585,6 +452,7 @@ class GLManager:
                     gl_Position = vec4(in_vert, 0.0, 1.0);
                     v_color = in_color;
                     v_uv = in_uv;
+                    v_uv_raw = in_uv;
                     v_softness = in_softness;
                     v_params = in_params;
                     v_stroke = in_stroke;
@@ -598,6 +466,7 @@ class GLManager:
                 #version 330
                 in vec4 v_color;
                 in vec2 v_uv;
+                in vec2 v_uv_raw;
                 in float v_softness;
                 in vec3 v_params;
                 in float v_stroke;
@@ -629,52 +498,27 @@ class GLManager:
                     // Calculate Signed Distance (negative inside, positive outside)
                     float dist = sdRoundedBox(pos, half_size, r);
                     
-                    // 1. Level Masking (Global)
-                    // Determine coordinate based on axis and anchor
-                    // abs(axis) < 1.5 is Vertical (1.0 or -1.0)
-                    // axis < 0.0 is End-Anchored (Bottom or Right)
-                    
-                    bool is_vert = (abs(v_axis) < 1.5);
-                    float coord_uv = is_vert ? v_uv.y : v_uv.x;
-                    
-                    if (v_axis < 0.0) coord_uv = 1.0 - coord_uv;
-                    
-                    // Discard pixels above the current level
-                    if (coord_uv > v_level) discard;
-
-                    // 2. Segment/LED Logic
                     float seg_alpha = 1.0;
-                    
-                    if (v_segments.x > 0.0 && v_segments.y > 0.0) {
-                        float total_seg = v_segments.x + v_segments.y;
-                        float size_px = is_vert ? size.y : size.x;
-                        
-                        float coord_px = coord_uv * size_px;
-                        
-                        float m = mod(coord_px, total_seg);
-                        
-                        // Strict discard for gaps
-                        if (m > v_segments.x) discard;
-                    }
 
                     float alpha = 0.0;
                     
                     if (v_stroke > 0.0) {
                         // Outline Rendering
-                        // We want pixels where dist is between 0 and -v_stroke (inner stroke)
-                        // Outer edge AA
                         float outer_alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
-                        // Inner edge AA
                         float inner_alpha = 1.0 - smoothstep(-0.5, 0.5, dist + v_stroke);
                         alpha = outer_alpha - inner_alpha;
                     } else {
                         // Filled Rendering
                         // Calculate blur amount based on softness
-                        // Use a dynamic blur radius: proportional to size for large glows, but at least 20px for small items
                         float min_dim = min(size.x, size.y);
                         float blur = v_softness * max(20.0, min_dim * 0.8); 
                         
-                        alpha = 1.0 - smoothstep(-blur, blur, dist);
+                        // Handle blur singularity to prevent artifacts
+                        if (blur < 0.5) {
+                            alpha = 1.0 - step(0.0, dist);
+                        } else {
+                            alpha = 1.0 - smoothstep(-blur, blur, dist);
+                        }
                         
                         // Optional: Inner Glow boost for soft filled shapes (Bar LEDs)
                         if (v_softness > 0.01) {
@@ -687,42 +531,49 @@ class GLManager:
                     
                     vec4 final_color = v_color;
                     
-                    if (v_use_tex > 0.5) {
-                        // Sample gradient texture based on coord_uv (0..1 along bar)
-                        vec4 tex_col = texture(gradient_tex, vec2(coord_uv, 0.5));
-                        final_color = vec4(tex_col.rgb, v_color.a); // Use texture RGB, vertex Alpha
+                    if (v_use_tex > 1.5) {
+                        // 2.0 = Full 2D Texture (Image)
+                        // Repurpose attributes for Texture UVs to support Atlasing
+                        // v_segments = uv_offset (u, v)
+                        // v_axis = uv_scale.x
+                        // v_level = uv_scale.y
+                        
+                        vec2 tex_uv = v_segments + v_uv_raw * vec2(v_axis, v_level);
+                        vec4 tex_col = texture(gradient_tex, tex_uv);
+                        
+                        // Use the texture's alpha channel!
+                        alpha = tex_col.a;
+                        final_color = tex_col * v_color; // Tint with vertex color
+                        
+                    } else {
+                        // 0.0 = Color, 1.0 = Gradient Bar
+                        
+                        // 1. Level Masking (Global)
+                        bool is_vert = (abs(v_axis) < 1.5);
+                        float coord_uv = is_vert ? v_uv.y : v_uv.x;
+                        
+                        if (v_axis < 0.0) coord_uv = 1.0 - coord_uv;
+                        
+                        // Discard pixels above the current level
+                        if (coord_uv > v_level) discard;
+
+                        // 2. Segment/LED Logic
+                        if (v_segments.x > 0.0 && v_segments.y > 0.0) {
+                            float total_seg = v_segments.x + v_segments.y;
+                            float size_px = is_vert ? size.y : size.x;
+                            float coord_px = coord_uv * size_px;
+                            float m = mod(coord_px, total_seg);
+                            if (m > v_segments.x) discard;
+                        }
+                        
+                        if (v_use_tex > 0.5) {
+                            // Sample gradient texture based on coord_uv (0..1 along bar)
+                            vec4 tex_col = texture(gradient_tex, vec2(coord_uv, 0.5));
+                            final_color = vec4(tex_col.rgb, v_color.a); // Use texture RGB, vertex Alpha
+                        }
                     }
                     
                     f_color = vec4(final_color.rgb, final_color.a * alpha);
-                }
-            """
-        )
-
-        # Texture Shader Program
-        self.tex_prog = self.ctx.program(
-            vertex_shader="""
-                #version 330
-                in vec2 in_vert;
-                in vec2 in_uv;
-                in float in_alpha;
-                out vec2 v_uv;
-                out float v_alpha;
-                void main() {
-                    gl_Position = vec4(in_vert, 0.0, 1.0);
-                    v_uv = in_uv;
-                    v_alpha = in_alpha;
-                }
-            """,
-            fragment_shader="""
-                #version 330
-                uniform sampler2D texture0;
-                uniform float opacity;
-                in vec2 v_uv;
-                in float v_alpha;
-                out vec4 f_color;
-                void main() {
-                    vec4 color = texture(texture0, v_uv);
-                    f_color = vec4(color.rgb, color.a * opacity * v_alpha);
                 }
             """
         )
@@ -733,27 +584,34 @@ class GLManager:
         
         self.render_queue = []
         
-        # Quad buffer for textures (x, y, u, v, alpha)
-        self.quad_buffer = self.ctx.buffer(reserve=4 * 5 * 4) # 5 floats * 4 vertices
-        self.quad_vao = self.ctx.simple_vertex_array(self.tex_prog, self.quad_buffer, 'in_vert', 'in_uv', 'in_alpha')
-
+        # Batching state
+        self.batches = []
+        self.render_queue = []
+        self.current_additive = False
         self.current_texture = None
 
-    def clear(self):
-        """Replaces screen.fill for the GPU"""
-        # Matches your GraphicsDriverPi.BACKGROUND_COLOR
-        bg = [c/255.0 for c in self.platform.BACKGROUND_COLOR]
-        self.ctx.clear(bg[0], bg[1], bg[2], 1.0)
+    def clear_batch(self):
+        """Clears the vertex data queue for the next frame."""
+        self.batches = []
         self.render_queue = []
+        self.current_additive = False
+        self.current_texture = None
+
+    def _push_batch(self):
+        """Moves current queue to the batch list."""
+        if self.render_queue:
+            self.batches.append({
+                'type': 'geometry',
+                'additive': self.current_additive,
+                'texture': self.current_texture,
+                'data': self.render_queue
+            })
+            self.render_queue = []
 
     def set_additive(self, additive):
-        if additive != self.is_additive:
-            self.flush()
-            self.is_additive = additive
-            if self.is_additive:
-                self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE
-            else:
-                self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        if additive != self.current_additive:
+            self._push_batch()
+            self.current_additive = additive
 
     def draw_rect(self, color, rect, width=0, **kwargs):
         """ Adapter to match PygameRenderer interface """
@@ -831,10 +689,8 @@ class GLManager:
             
             # Only flush and rebind if the texture has changed
             if self.current_texture != texture:
-                self.flush()
-                texture.use(location=0)
+                self._push_batch()
                 self.current_texture = texture
-                self.prog['gradient_tex'].value = 0
             
             self.add_rect(coords, color, opacity, softness, width, radius, segments, gradient, axis, level, use_tex=1.0)
         else:
@@ -908,7 +764,7 @@ class GLManager:
         ]
         
         if (len(self.render_queue) + len(rect_data)) * 4 > self.vbo.size:
-            self.flush()
+            self._push_batch()
             
         self.render_queue.extend(rect_data)
 
@@ -916,6 +772,9 @@ class GLManager:
         """
         Draws a line by constructing a rotated rectangle and using the SDF shader.
         """
+        # Ensure lines are drawn with standard blending unless specified otherwise
+        self.set_additive(False)
+
         x1, y1 = start_pos
         x2, y2 = end_pos
         
@@ -976,7 +835,7 @@ class GLManager:
         ]
         
         if (len(self.render_queue) + len(rect_data)) * 4 > self.vbo.size:
-            self.flush()
+            self._push_batch()
             
         self.render_queue.extend(rect_data)
 
@@ -993,30 +852,40 @@ class GLManager:
         if closed:
             self.draw_line(color, points[-1], points[0], width, softness)
 
-    def flush(self):
-        """Draws all queued rects"""
-        if not self.render_queue:
-            return
-
-        data = np.array(self.render_queue, dtype='f4')
-        self.vbo.write(data)
-        self.vao.render(moderngl.TRIANGLES, vertices=len(data)//18)
+    def render(self, **kwargs):
+        """
+        Called by the Compositor. This executes the batched draw calls.
+        The output_target is already bound by the Compositor before this is called.
+        """
+        self._push_batch() # Push whatever is pending in the queue
+        
+        for batch in self.batches:
+            if batch['type'] == 'geometry':
+                # 1. Set Blend Mode
+                if batch['additive']:
+                    self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE
+                else:
+                    self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+                
+                # 2. Bind Texture (if used)
+                if batch['texture']:
+                    batch['texture'].use(location=0)
+                    self.prog['gradient_tex'].value = 0
+                
+                # 3. Write Data & Render
+                data = np.array(batch['data'], dtype='f4')
+                self.vbo.write(data)
+                self.vao.render(moderngl.TRIANGLES, vertices=len(data)//18)
+        
+        # Reset for next frame
+        self.batches = []
         self.render_queue = []
-
-    def render(self):
-        self.flush()
 
     def blit(self, source, dest, area=None, special_flags=0, **kwargs):
         """
         Renders a Pygame Surface as a texture.
         This flushes the current batch of rects to ensure Z-order.
         """
-        self.set_additive(False) # Ensure standard blending for images
-        self.flush()
-        
-        # Invalidate current texture because blit uses a different shader/program
-        # and might change the bound texture on unit 0
-        self.current_texture = None
         
         texture = None
         texture_holder = kwargs.get('texture_holder')
@@ -1027,15 +896,24 @@ class GLManager:
         
         if texture is None:
              # Convert Pygame Surface to Texture
-             rgba_data = pygame.image.tostring(source, "RGBA", False)
+             # Ensure we get 4-byte RGBA data. Critical for text surfaces.
+             if source.get_flags() & pygame.SRCALPHA:
+                 work_surf = source
+             else:
+                 work_surf = source.convert_alpha()
+                 
+             rgba_data = pygame.image.tostring(work_surf, "RGBA", False)
              texture = self.ctx.texture(source.get_size(), 4, rgba_data)
              
              # Cache it if a holder is provided
              if texture_holder:
                  texture_holder._gl_texture = texture
              
-        texture.use(location=0)
-        
+        # Only flush and rebind if the texture has changed
+        if self.current_texture != texture:
+            self._push_batch()
+            self.current_texture = texture
+
         # Calculate Normalized Device Coordinates
         if hasattr(dest, 'x'):
              x, y = dest.x, dest.y
@@ -1055,19 +933,33 @@ class GLManager:
         x2 = ((x + w) / sw) * 2 - 1
         y2 = 1 - ((y + h) / sh) * 2
         
-        # Triangle Strip: TL, TR, BL, BR (Alpha 1.0 for main image)
-        vertices = [
-            x1, y1, 0.0, 0.0, 1.0,
-            x2, y1, 1.0, 0.0, 1.0,
-            x1, y2, 0.0, 1.0, 1.0,
-            x2, y2, 1.0, 1.0, 1.0
+        # Texture Coordinates (Support for Atlasing)
+        # tex_coords = (u, v, uw, vh)
+        tex_coords = kwargs.get('tex_coords', (0.0, 0.0, 1.0, 1.0))
+        u_off, v_off, u_scale, v_scale = tex_coords
+
+        # Common attributes for Image Quad
+        # r,g,b = 1.0 (white tint), a = opacity
+        # s=0, w=w, h=h, rad=0, stroke=0
+        # segments = (u_off, v_off) -> Repurposed for UV Offset
+        # axis = u_scale -> Repurposed for UV Scale X
+        # level = v_scale -> Repurposed for UV Scale Y
+        # use_tex = 2.0 (Image Mode)
+        
+        # Vertices: x, y, u, v, r, g, b, a, s, w, h, rad, stroke, seg_w, seg_gap, axis, level, use_tex
+        # UVs for shape are 0..1 (standard quad)
+        
+        img_data = [
+            x1, y1, 0.0, 0.0, 1.0, 1.0, 1.0, opacity, 0.0, w, h, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0, # TL
+            x2, y1, 1.0, 0.0, 1.0, 1.0, 1.0, opacity, 0.0, w, h, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0, # TR
+            x1, y2, 0.0, 1.0, 1.0, 1.0, 1.0, opacity, 0.0, w, h, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0, # BL
+            
+            x1, y2, 0.0, 1.0, 1.0, 1.0, 1.0, opacity, 0.0, w, h, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0, # BL
+            x2, y1, 1.0, 0.0, 1.0, 1.0, 1.0, opacity, 0.0, w, h, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0, # TR
+            x2, y2, 1.0, 1.0, 1.0, 1.0, 1.0, opacity, 0.0, w, h, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0  # BR
         ]
         
-        self.quad_buffer.write(np.array(vertices, dtype='f4'))
-        
-        # Render
-        self.tex_prog['opacity'].value = opacity
-        self.quad_vao.render(moderngl.TRIANGLE_STRIP)
+        self.render_queue.extend(img_data)
 
         # Draw Reflection if requested
         if reflection:
@@ -1083,15 +975,17 @@ class GLManager:
             y1_ref = y2
             y2_ref = y2 - h_ref_gl
             
-            # Vertices for reflection (Flipped UVs, Gradient Alpha)
-            ref_vertices = [
-                x1, y1_ref, 0.0, 1.0, ref_opacity,          # Top of reflection (matches bottom of image)
-                x2, y1_ref, 1.0, 1.0, ref_opacity,
-                x1, y2_ref, 0.0, 1.0 - ref_size, 0.0,       # Bottom of reflection (fades out)
-                x2, y2_ref, 1.0, 1.0 - ref_size, 0.0
+            # Reflection uses flipped UVs (1.0 -> 0.0) for shape to mirror image
+            # Alpha gradient: Top (y1_ref) = ref_opacity, Bottom (y2_ref) = 0.0
+            
+            ref_data = [
+                x1, y1_ref, 0.0, 1.0, 1.0, 1.0, 1.0, ref_opacity, 0.0, w, h_ref_gl, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0,
+                x2, y1_ref, 1.0, 1.0, 1.0, 1.0, 1.0, ref_opacity, 0.0, w, h_ref_gl, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0,
+                x1, y2_ref, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0,         0.0, w, h_ref_gl, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0,
+                
+                x1, y2_ref, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0,         0.0, w, h_ref_gl, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0,
+                x2, y1_ref, 1.0, 1.0, 1.0, 1.0, 1.0, ref_opacity, 0.0, w, h_ref_gl, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0,
+                x2, y2_ref, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0,         0.0, w, h_ref_gl, 0.0, 0.0, u_off, v_off, u_scale, v_scale, 2.0
             ]
             
-            self.quad_buffer.write(np.array(ref_vertices, dtype='f4'))
-            self.quad_vao.render(moderngl.TRIANGLE_STRIP)
-        
-        # texture.release() # Do not release, keep it cached on the surface
+            self.render_queue.extend(ref_data)

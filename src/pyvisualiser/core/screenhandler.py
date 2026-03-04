@@ -69,7 +69,7 @@ class ScreenController:
             is_not_control_screen = hasattr(screen, 'type') and screen.type != 'Control' 
             # if is_not_control_screen:  #ie create a menu from Test & Base screens
             menuSequence.append(screen.__name__)
-            print("ScreenController.__init__> intialised screen --> FIX TO EXCLUDE TEST & CONTROL SCREENS", screen.__name__)
+            # print("ScreenController.__init__> intialised screen --> FIX TO EXCLUDE TEST & CONTROL SCREENS", screen.__name__)
 
         self.screenmenu = ListNext(menuSequence, self.startScreen)
 

@@ -16,9 +16,8 @@ from   screens import *
 from   screens2 import *
 from   testscreens import *
 from   test_api_coverage import *
-from   test_advanced_visuals import AdvancedVisualsScreen
-from   pyvisualiser import ScreenController, Platform
-# from   pyvisualiser.platform import Platform
+from   test_advanced_visuals import *
+from   pyvisualiser import ScreenController
 import platform
 
 
@@ -80,8 +79,8 @@ SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  Sp
 # SCREENS = (ShadowTestScreen, ) + FULL_SCREENS
 # SCREENS = VU_BAR_TEST_SCREENS + FULL_SCREENS
 # SCREENS= (F7, F8) + VU_BAR_TEST_SCREENS + FULL_SCREENS
-SCREENS=TEST_SCREENS + FULL_SCREENS
-SCREENS=(BarEffectsTestScreen,LEDtestScreen,APICoverageScreen)+ SPECTRUM_TEST_SCREENS+FULL_SCREENS
+SCREENS = TEST_SCREENS + FULL_SCREENS
+SCREENS = (BackgroundEffectsScreen1, BackgroundEffectsScreen2, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen) + SPECTRUM_TEST_SCREENS + FULL_SCREENS
 
 
 """ 

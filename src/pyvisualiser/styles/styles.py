@@ -10,7 +10,9 @@ Collating all the classes that hold the styles of how visualisers work enables:
 
 
 class Effects:
-    def __init__(self, threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1, power=2.0):
+    def __init__(self, threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1, power=2.0,
+                 inner_glow_scale=0.2, outer_glow_scale_min=0.5, outer_glow_scale_max=0.5,
+                 outer_glow_alpha_mult=0.6, outer_glow_blur_mult=2.5):
         self.threshold = threshold
         self.scale     = scale
         self.blur      = blur
@@ -18,8 +20,65 @@ class Effects:
         self.attack    = attack
         self.decay     = decay
         self.power     = power
+        # New parameters for multi-layer bloom, with defaults matching the old hardcoded values
+        self.inner_glow_scale = inner_glow_scale
+        self.outer_glow_scale_min = outer_glow_scale_min
+        self.outer_glow_scale_max = outer_glow_scale_max
+        self.outer_glow_alpha_mult = outer_glow_alpha_mult
+        self.outer_glow_blur_mult = outer_glow_blur_mult
 
 
+class TextStyle:
+    def __init__(self, typeface='Inter/Inter-VariableFont_opsz,wght.ttf', min_size=18, max_lines=1):
+        self.typeface = typeface
+        self.min_size = min_size
+        self.max_lines = max_lines
+
+class VignetteStyle:
+    def __init__(self, strength=0.5, radius=0.8, softness=0.5):
+        self.strength = strength
+        self.radius = radius
+        self.softness = softness
+
+class NoiseStyle:
+    def __init__(self, strength=0.05, speed=1.0):
+        self.strength = strength
+        self.speed = speed
+
+class AmbientGlowStyle:
+    def __init__(self, color='light', opacity=0.3, radius=1.2, softness=0.8):
+        self.color = color
+        self.opacity = opacity
+        self.radius = radius
+        self.softness = softness
+
+class ReactiveGlowStyle:
+    def __init__(self, color='alert', attack=0.5, decay=0.1, threshold=0.5):
+        self.color = color
+        self.attack = attack
+        self.decay = decay
+        self.threshold = threshold
+
+class PeakAccentStyle:
+    def __init__(self, color='accent', attack=0.1, decay=0.5, threshold=0.9):
+        self.color = color
+        self.attack = attack
+        self.decay = decay
+        self.threshold = threshold
+
+class BackgroundStyle:
+    def __init__(self, base_color='dark', texture_path=None, texture_opacity=0.5, theme='std',
+                 vignette: VignetteStyle = None, noise: NoiseStyle = None, ambient_glow: AmbientGlowStyle = None,
+                 reactive_glow: ReactiveGlowStyle = None, peak_accent: PeakAccentStyle = None):
+        self.base_color = base_color
+        self.texture_path = texture_path
+        self.texture_opacity = texture_opacity
+        self.theme = theme
+        self.vignette = vignette if vignette is not None else VignetteStyle()
+        self.noise = noise if noise is not None else NoiseStyle()
+        self.ambient_glow = ambient_glow if ambient_glow is not None else AmbientGlowStyle()
+        self.reactive_glow = reactive_glow if reactive_glow is not None else ReactiveGlowStyle()
+        self.peak_accent = peak_accent if peak_accent is not None else PeakAccentStyle()
 
 class BarStyle:
     def __init__(self, led_h=10, led_gap=4, peak_h=1, right_offset=0, flip=False, radius=0, tip=False, orient='vert', col_mode=None, segment_size=None, segment_gap=None, corner_radius=None, edge_softness=0.0):

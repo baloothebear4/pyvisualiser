@@ -21,6 +21,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+from   pathlib import Path
+import os
 
 from pyvisualiser.styles.colour_palette import COLOUR_THEMES, purple
 
@@ -627,7 +629,7 @@ class Frame(Geometry):
         for f in draw_list:
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # f.draw_background(full)
-            if f.update_screen(full, **kwargs): self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
+            f.update_screen(full, **kwargs)  #: self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
             f.draw_outline(True)
 
 
@@ -905,7 +907,25 @@ class Cache:
             return None
 
 
-
+def get_asset_path(category: str, filename: str) -> str:
+    """
+    Standardized pathing: 
+    - category: 'textures', 'fonts', 'backgrounds'
+    - handles absolute pathing based on the project root
+    """
+    # Get the project root (3 levels up from this file, adjust as needed)
+    root = Path(__file__).parent.parent.parent.parent
+    
+    # Potential for resolution-aware pathing here
+    # if CONFIG.high_res: category = f"hi-res/{category}"
+    
+    path = root / "assets" / category / filename
+    
+    # print("Assets ", path)
+    if not path.exists():
+        raise FileNotFoundError(f"Asset missing: {path}")
+        
+    return str(path)
 
 """ test code
 
