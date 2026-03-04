@@ -18,8 +18,13 @@ from frames     import VUFrame, TextFrame, MetaData, PlayProgressFrame, Spectrum
 
 PI = 3.14152
 class VU2chFrame(Frame):
-    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False, led_h=5, led_gap=1,barsize_pc=0.7, theme=None, outline=None,background={'colour':'background', 'per_frame_update':True}):
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme,outline=outline,background=background)
+    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False, led_h=5, led_gap=1,barsize_pc=0.7, theme=None, outline=None,background={'colour':'background', 'per_frame_update':True}, **kwargs):
+        
+        # Separate Frame args from VUFrame args to prevent TypeError in Frame.__init__
+        frame_keys = ['square', 'padding', 'z_order']
+        frame_kwargs = {k: kwargs.pop(k) for k in frame_keys if k in kwargs}
+
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme,outline=outline,background=background,**frame_kwargs)
         # def VUVFrame(self, platform, bounds, channel, scalers=None, align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
         self.orient     = orient
@@ -30,15 +35,15 @@ class VU2chFrame(Frame):
         self.background = background
 
         if self.orient=='horz':
-            self += VUFrame(self, 'left',  align=('centre','top'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background)
-            self += VUFrame(self, 'right', align=('left','bottom'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background)
+            self += VUFrame(self, 'left',  align=('centre','top'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background, **kwargs)
+            self += VUFrame(self, 'right', align=('left','bottom'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background, **kwargs)
         else:     # Vertical
-            self += VUFrame(self, 'left', align=('left','middle'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None)
-            self += VUFrame(self, 'right', align=('right','bottom'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None)
+            self += VUFrame(self, 'left', align=('left','middle'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None, **kwargs)
+            self += VUFrame(self, 'right', align=('right','bottom'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None, **kwargs)
         # self.always_draw_background()
 
 class VUFlipFrame(Frame):
-    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False,theme=None, outline=None,background={'colour':'background', 'per_frame_update':True},led_h=2):
+    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False,theme=None, outline=None,background={'colour':'background', 'per_frame_update':True},led_h=2, **kwargs):
         Frame.__init__(self, parent, scalers=scalers, align=align, outline=outline,background=background, theme=theme)
         self.orient = orient
 
@@ -47,43 +52,52 @@ class VUFlipFrame(Frame):
         flip = (False, True) if flip else (True,False)
         if self.orient=='horz':
             cols = ColFramer(self)
-            cols += VUFrame(cols, 'left', orient=self.orient,flip=flip[0], tip=False,led_h=led_h)
-            cols += VUFrame(cols, 'right', orient=self.orient,flip=flip[1], tip=False,led_h=led_h)
+            cols += VUFrame(cols, 'left', orient=self.orient,flip=flip[0], tip=False,led_h=led_h, **kwargs)
+            cols += VUFrame(cols, 'right', orient=self.orient,flip=flip[1], tip=False,led_h=led_h, **kwargs)
 
         else:     # Vertical
             rows = RowFramer(self)
-            rows += VUFrame(rows, 'left', orient='vert',flip=flip[0],theme=self.theme,led_h=led_h )
-            rows += VUFrame(rows, 'right',orient='vert', flip=flip[1],theme=self.theme ,led_h=led_h)
+            rows += VUFrame(rows, 'left', orient='vert',flip=flip[0],theme=self.theme,led_h=led_h, **kwargs )
+            rows += VUFrame(rows, 'right',orient='vert', flip=flip[1],theme=self.theme ,led_h=led_h, **kwargs)
         # self.always_draw_background()
 
 
 class VUHorzFrame(Frame):
     def __init__(self, parent, channel, tip=False, **kwargs):
-        self.kwargs  = kwargs
-        self.parent  = parent
-        self.channel = channel
-        self.tip     = tip
+        # Split kwargs into Frame args and VUFrame args
+        frame_keys = ['scalers', 'align', 'square', 'theme', 'background', 'outline', 'padding']
+        frame_kwargs = {k: kwargs[k] for k in frame_keys if k in kwargs}
+        vu_kwargs = {k: v for k, v in kwargs.items() if k not in frame_keys}
 
-        Frame.__init__(self, self.parent, **self.kwargs)
+        Frame.__init__(self, parent, **frame_kwargs)
         cols = ColFramer(self, col_ratios=(1,3))
         # cols = self
-        channel_text = ' L' if self.channel=='left' else ' R'
+        channel_text = ' L' if channel=='left' else ' R'
         cols += TextFrame(cols, text=channel_text)
-        cols += VUFrame(cols, channel=channel, orient='horz', barsize_pc=0.8, led_gap=0,tip=self.tip)
+        
+        # Default gap to 0 for horizontal bars if not specified, but allow override
+        if 'led_gap' not in vu_kwargs and 'segment_gap' not in vu_kwargs:
+            vu_kwargs['segment_gap'] = 0
+            
+        cols += VUFrame(cols, channel=channel, orient='horz', barsize_pc=0.8, tip=tip, **vu_kwargs)
 
 
 
 class VU2chHorzFrame(Frame):
     def __init__(self, parent, tip=False, **kwargs):
-        self.tip =tip
-        Frame.__init__(self, parent, **kwargs)
+        # Split kwargs into Frame args and VUFrame args
+        frame_keys = ['scalers', 'align', 'square', 'theme', 'background', 'outline', 'padding']
+        frame_kwargs = {k: kwargs[k] for k in frame_keys if k in kwargs}
+        vu_kwargs = {k: v for k, v in kwargs.items() if k not in frame_keys}
+
+        Frame.__init__(self, parent, **frame_kwargs)
         # def VUVFrame(self, platform, bounds, channel, scalers=None, align=('left','bottom'), barsize_pc=0.7, theme='std', flip=False, \
         #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, barw_min=10, barw_max=200, tip=False, decay=DECAY):
         # self += VUHorzFrame(self, 'left',  scalers=(0.5,1.0), V='middle' , align=('left','middle'), flip=True )
-        back = {'colour':'background', 'per_frame_update':True}
+        # back = {'colour':'background', 'per_frame_update':True}
         rows = RowFramer(self)
-        rows += VUHorzFrame(rows, 'left' ,tip=self.tip)
-        rows += VUHorzFrame(rows, 'right',tip=self.tip)
+        rows += VUHorzFrame(rows, 'left' ,tip=tip, **vu_kwargs)
+        rows += VUHorzFrame(rows, 'right',tip=tip, **vu_kwargs)
         # self += VUHorzFrame(self, 'right', scalers=(0.5,1.0), V='middle' , align=('left','middle') )
         # self.always_draw_background()
 
@@ -205,7 +219,6 @@ class SpectrumStereoOffsetFrame(Frame):
         Frame.__init__(self, parent, scalers=scalers, align=align,background={'colour':'background', 'per_frame_update':True})
         self += SpectrumFrame(self, 'right', scalers=(1.0, 1.0), align=('left','top'), right_offset=2, barw_min=8, bar_space=1.5, theme='red', led_gap=0, tip=True, background=None)
         self += SpectrumFrame(self, 'left', scalers=(1.0, 1.0), align=('left','bottom'), right_offset=0, barw_min=8, bar_space=1.5, theme='blue', led_gap=0, tip=True,background=None )
-        print(self)
 
 
 

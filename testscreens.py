@@ -112,8 +112,11 @@ class VUScreen(Frame):   # comprises volume on the left, spectrum on the right
         background={'image':'stream.png','opacity':150, 'per_frame_update':True}
         Frame.__init__(self, platform,background='background')
         # self += VolumeSourceFrame(self  , 0.4, 'right')
-        self += VU2chHorzFrame(self,background=background)
-
+        self += VU2chHorzFrame(self,background=background,     # --- Add these extreme values ---
+            bloom_threshold=0.6,      # Bloom will start almost immediately
+            bloom_intensity=3.0,     # Bloom will be 10x the size of the LED
+            bloom_softness=0.9        # Bloom will be very diffuse)
+        )
 
 class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
     def __init__(self, platform):
@@ -123,19 +126,22 @@ class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
         # self += dbVolumeSourceFrame(self  , 0.5, 'right')
         # self += SpectrumFrame(self  , 'right', (0.7, 1.0), align=('right','middle'), led_gap=0, barw_min=2, tip=True)
 
+        #  segment_size=5, segment_gap=1, corner_radius=0, edge_softness=0.05, \
+        #  intensity_threshold=0.8, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=20, \
+
         cols = ColFramer(self)
         rows = RowFramer(cols)
         rows += VU2chFrame(rows, orient='horz', flip=True)
         rows += VU2chFrame(rows, orient='horz', flip=False)
         row1 = RowFramer(cols)
-        row1 += VU2chFrame(row1, orient='vert', flip=True)
-        row1 += VU2chFrame(row1, orient='vert', flip=False)
+        row1 += VU2chFrame(row1, orient='vert', flip=True, segment_size=5, segment_gap=4, corner_radius=4, edge_softness=0.05)
+        row1 += VU2chFrame(row1, orient='vert', flip=False,segment_size=5, segment_gap=4, corner_radius=4, edge_softness=0.05)
         row2 = RowFramer(cols)
-        row2 += VUFlipFrame(row2, orient='horz', flip=True)
-        row2 += VUFlipFrame(row2, orient='horz', flip=False)
+        row2 += VUFlipFrame(row2, orient='horz', flip=True,led_h=5, led_gap=5,barsize_pc=0.7,intensity_threshold=0.6, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=80)
+        row2 += VUFlipFrame(row2, orient='horz', flip=False,led_h=5, led_gap=5,barsize_pc=0.7,intensity_threshold=0.6, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=80)
         row3 = RowFramer(cols)
-        row3 += VUFlipFrame(row3, orient='vert', flip=True)     
-        row3 += VUFlipFrame(row3, orient='vert', flip=False)        
+        row3 += VUFlipFrame(row3, orient='vert', flip=True,led_h=5, segment_size=10, segment_gap=1, corner_radius=0, edge_softness=0.05)
+        row3 += VUFlipFrame(row3, orient='vert', flip=False,led_h=5, segment_size=10, segment_gap=1, corner_radius=0, edge_softness=0.05)        
 
 
 # class PlayerScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -306,14 +312,105 @@ class ImageTestScreen(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi', outline={'width':20,'colour':'alert'}, padding=20)
+        super().__init__(platform, theme='hifi', outline={'width':20,'colour':'alert'}, padding=2)
 
-        colframe = ColFramer(self, col_ratios =(1,1,2), background='mid', padpc=0, padding=0, outline={'colour':'alert','width':5}) #, align=('centre','middle'))
+        rows = RowFramer(self, row_ratios=(1,1), padding=20)
+        colframe = ColFramer(rows, col_ratios =(1,1,2), background='mid', padpc=0, padding=0, outline={'colour':'alert','width':5}) #, align=('centre','middle'))
 
-        colframe += MetaImages(colframe,  art_type='album',  opacity=255, outline={'colour':'alert','width':1})
+        colframe += MetaImages(colframe,  art_type='album',  opacity=255, outline={'colour':'alert','width':1}, reflection=True)
         colframe += TextFrame(colframe  , text='Test Art', background='light', outline={'colour':'alert','width':2})
-        colframe += MetaImages(colframe,  art_type='artist',  opacity=190, outline={'colour':'alert','width':1})
-        print(self)
+        colframe += MetaImages(colframe,  art_type='artist',  opacity=190, outline={'colour':'alert','width':1},reflection={'size': 0.4, 'opacity': 0.3})
+
+class ReflectionTestScreen(Frame):
+    @property
+    def title(self): return 'Reflection Test Screen'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', background={'image': 'particles.jpg', 'opacity': 100})
+        
+        cols = ColFramer(self, col_ratios=(1, 1, 1), padding=20)
+        
+        # Column 1: Default Reflection
+        col1 = RowFramer(cols, row_ratios=(5, 1))
+        col1 += MetaImages(col1, art_type='album', reflection=True, outline={'colour':'light', 'width':2}, z_order=1)
+        col1 += TextFrame(col1, text="Default", align=('centre', 'middle'))
+
+        # Column 2: Strong Reflection
+        col2 = RowFramer(cols, row_ratios=(5, 1))
+        col2 += MetaImages(col2, art_type='artist', reflection={'size': 0.5, 'opacity': 0.7}, outline={'colour':'alert', 'width':2}, z_order=1)
+        col2 += TextFrame(col2, text="Strong", align=('centre', 'middle'))
+
+        # Column 3: Subtle Reflection
+        col3 = RowFramer(cols, row_ratios=(5, 1))
+        col3 += MetaImages(col3, art_type='album', reflection={'size': 0.2, 'opacity': 0.2}, outline={'colour':'mid', 'width':2}, z_order=1)
+        col3 += TextFrame(col3, text="Subtle", align=('centre', 'middle'))
+
+class IntensityTestScreen(Frame):
+    @property
+    def title(self): return 'Intensity Test Screen'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', background={'image': 'particles.jpg', 'opacity': 100})
+        
+        rows = RowFramer(self, padding=20, padpc=0.3)
+        
+        # 1. Default
+        r1 = ColFramer(rows, col_ratios=(1, 3))
+        r1 += TextFrame(r1, text="Default", align=('right', 'middle'))
+        r1 += VU2chHorzFrame(r1)
+
+        # 2. High Sensitivity (Threshold 0.1)
+        r2 = ColFramer(rows, col_ratios=(1, 3))
+        r2 += TextFrame(r2, text="High Sensitivity", align=('right', 'middle'))
+        r2 += VU2chHorzFrame(r2, intensity_threshold=0.1)
+
+        # 3. High Intensity (Scale 4.0, Alpha 100)
+        r3 = ColFramer(rows, col_ratios=(1, 3))
+        r3 += TextFrame(r3, text="High Intensity", align=('right', 'middle'))
+        r3 += VU2chHorzFrame(r3, intensity_threshold=0.5, intensity_scale=4.0, intensity_alpha=100,intensity_blur=100.0)
+
+        # 4. Sharp Glow (Blur 0.0)
+        r4 = ColFramer(rows, col_ratios=(1, 3))
+        r4 += TextFrame(r4, text="Sharp Glow", align=('right', 'middle'))
+        r4 += VU2chHorzFrame(r4, intensity_threshold=0.5, intensity_blur=10.0, intensity_alpha=130)
+
+class BarParametersTestScreen(Frame):
+    @property
+    def title(self): return 'Bar Parameters Test Screen'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', background={'image': 'particles.jpg', 'opacity': 100})
+        
+        rows = RowFramer(self, row_ratios=(1, 1, 1, 1), padding=20)
+        
+        # 1. Default
+        r1 = ColFramer(rows, col_ratios=(1, 3))
+        r1 += TextFrame(r1, text="Default", align=('right', 'middle'))
+        r1 += VU2chHorzFrame(r1)
+
+        # 2. Blocky (Retro)
+        r2 = ColFramer(rows, col_ratios=(1, 3))
+        r2 += TextFrame(r2, text="Blocky (Retro)", align=('right', 'middle'))
+        r2 += VU2chHorzFrame(r2, segment_size=15, segment_gap=2, corner_radius=0, edge_softness=0.0)
+
+        # 3. Round & Soft (Modern)
+        r3 = ColFramer(rows, col_ratios=(1, 3))
+        r3 += TextFrame(r3, text="Round & Soft", align=('right', 'middle'))
+        r3 += VU2chHorzFrame(r3, segment_size=8, segment_gap=4, corner_radius=4, edge_softness=0.1)
+
+        # 4. Solid Bar (Analog)
+        r4 = ColFramer(rows, col_ratios=(1, 3))
+        r4 += TextFrame(r4, text="Solid (Analog)", align=('right', 'middle'))
+        r4 += VU2chHorzFrame(r4, segment_size=10, segment_gap=0, corner_radius=5, edge_softness=0.02)
 
 class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -345,6 +442,81 @@ class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the rig
         cols += VUFlipFrame(cols, background='dark',orient='vert',outline={'colour':'mid', 'width':20, 'opacity': 100, 'radius': 0})
         # cols.always_draw_background()
         print(self)
+
+class BloomImageTestScreen(Frame):
+    @property
+    def title(self): return 'Bloom Effect over Image Background'
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        # Screen background
+        Frame.__init__(self, platform, background={'image': 'particles.jpg', 'opacity': 255})
+        
+        # Add a column framer
+        cols = ColFramer(self, col_ratios=(1, 2), padding=20)
+        
+        # Left: Album Art with some opacity
+        cols += MetaImages(cols, art_type='album', opacity=200, outline={'colour':'light', 'width':2})
+        
+        # Right: VU Meters with Bloom over a semi-transparent background
+        # We want the VU frame itself to have a semi-transparent dark background so the main background shows through slightly
+        vu_bg = {'colour': 'dark', 'opacity': 100} 
+        
+        cols += VU2chHorzFrame(cols, 
+            background=vu_bg,
+            bloom_threshold=0.5,
+            bloom_intensity=2.0,
+            bloom_softness=0.8,
+            bloom_alpha=80, # Visible bloom
+            softness=0.1
+        )
+
+class ShadowTestScreen(Frame):
+    @property
+    def title(self): return 'Drop Shadow Test'
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        # Screen background
+        Frame.__init__(self, platform, background={'image': 'particles.jpg', 'opacity': 50})
+        
+        # Add a column framer
+        cols = ColFramer(self, col_ratios=(1, 1, 1), padding=40)
+        
+        # Frame 1: Hard Shadow
+        shadow1 = {
+            'color': (0, 0, 0),
+            'opacity': 255,
+            'offset': (15, 15),
+            'softness': 0.0
+        }
+        cols += TextFrame(cols, text="Hard Shadow", 
+                          background={'colour': 'light', 'shadow': shadow1, 'opacity': 255},
+                          outline={'colour': 'foreground', 'width': 2, 'radius': 10})
+
+        # Frame 2: Soft Shadow
+        shadow2 = {
+            'color': (0, 0, 0),
+            'opacity': 200,
+            'offset': (20, 20),
+            'softness': 0.8
+        }
+        cols += TextFrame(cols, text="Soft Shadow", 
+                          background={'colour': 'mid', 'shadow': shadow2, 'opacity': 255},
+                          outline={'colour': 'foreground', 'width': 2, 'radius': 20})
+
+        # Frame 3: Colored Glow (Centered Shadow)
+        shadow3 = {
+            'color': (255, 50, 50), # Red glow
+            'opacity': 255,
+            'offset': (0, 0), # Centered
+            'softness': 0.9
+        }
+        cols += TextFrame(cols, text="Red Glow", 
+                          background={'colour': 'dark', 'shadow': shadow3, 'opacity': 255},
+                          outline={'colour': 'foreground', 'width': 2, 'radius': 30})
 
 #----------- PlayProgress Test screens ---------------------------
 """

@@ -6,12 +6,12 @@ Low level platform dynamics
 
 
 v1.0 baloothebear4 1 Dec 2023   Original, based on Pygame visualiser mockups
-v1.1 baloothebear4 Feb 2024   refactored as part of pyvisualiseer
+v1.1 baloothebear4 Feb 2024     refactored as part of pyvisualiseer
+v2.0 baloothebear4 Feb 2026     Major upgrade to port to OpenGL for speed and visual complexity
 
 """
 
-import pygame, time
-# import collections
+import pygame
 from   pygame.locals import *
 import numpy as np
 from   framecore import Frame, Cache, Colour
@@ -20,11 +20,44 @@ from   io import BytesIO
 import requests
 import warnings
 import os
+import random
 """ Prevent image coolour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame")
 
 PI = np.pi
 
+class Effects:
+    def __init__(self, threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1, power=2.0):
+        self.threshold = threshold
+        self.scale     = scale
+        self.blur      = blur
+        self.alpha     = alpha
+        self.attack    = attack
+        self.decay     = decay
+        self.power     = power
+
+StrongEffect = Effects(threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1)
+DreamEffect = Effects(threshold=0.75, scale=3.0, blur=3.0, alpha=150, attack=0.4, decay=0.1)
+NeonGlow     = Effects(threshold=0.1, scale=2.0, blur=0.5, alpha=220, attack=0.8, decay=0.1, power=1.0)
+
+class BarStyle:
+    def __init__(self, led_h=10, led_gap=4, peak_h=1, right_offset=0, flip=False, radius=0, tip=False, orient='vert', col_mode=None, segment_size=None, segment_gap=None, corner_radius=None, edge_softness=0.0):
+        self.segment_size = segment_size if segment_size is not None else led_h
+        self.segment_gap  = segment_gap  if segment_gap  is not None else led_gap
+        self.corner_radius = corner_radius if corner_radius is not None else radius
+        self.peak_h     = peak_h
+        self.right_offset = right_offset
+        self.flip       = flip
+        self.orient     = orient
+        self.col_mode   = col_mode if col_mode is not None else orient
+        self.tip        = tip
+        self.edge_softness = edge_softness
+
+class SpectrumStyle:
+    def __init__(self, bar_space=0.5, barw_min=1, barw_max=20):
+        self.bar_space = bar_space
+        self.barw_min  = barw_min
+        self.barw_max  = barw_max
 
 class Bar(Frame):
     """
@@ -34,78 +67,224 @@ class Bar(Frame):
             's' solid colour
             'horz' colour according to x
         - colour theme:  tuple of colours over which the colours range - one colour is fixed colour
-        - leds ie discrete with colours
+        - leds ie discrete with colours -> LEDs have characteristics like, glow, intensity, colour, brick firmsness etc
         - vertical or horizontal,
         - left or right
         - peak lines
     """
     def __init__(self, parent, scalers=None, align=('centre', 'bottom'), theme=None, \
-                 box_size=(100,100), led_h=10, led_gap=4, peak_h=1, right_offset=0, \
-                 flip=False, radius=0, tip=False, orient='vert', col_mode=None):
-
-        self.right_offset = right_offset
+                 box_size=(100,100), style=None, effects=None, \
+                 # Legacy/Individual params
+                 led_h=10, led_gap=4, peak_h=1, right_offset=0, \
+                 flip=False, radius=0, tip=False, orient='vert', col_mode=None, \
+                 segment_size=None, segment_gap=None, corner_radius=None, edge_softness=0.05, \
+                 # Effects params
+                 intensity_threshold=0.75, intensity_scale=2.5, intensity_blur=1.0, intensity_alpha=100):
 
         Frame.__init__(self, parent, align=align,theme=theme, scalers=scalers)
         self.resize( box_size )
-        # parent += self
 
-        self.led_h      = led_h
-        self.led_gap    = led_gap
-        self.peak_h     = peak_h
-        self.radius     = radius    # this makes rounded corners 0= Rectangle - works really as a % of the height
-        if col_mode is None: col_mode = orient
-        colour_range    = self.h if col_mode == 'vert' else self.w
-        self.colours    = Colour(self.theme, colour_range)
-        self.flip       = flip
-        self.tip        = tip       # creates a rounded tip to the bar
-        self.orient     = orient
+        if style is None:
+            style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, right_offset=right_offset,
+                             flip=flip, radius=radius, tip=tip, orient=orient, col_mode=col_mode,
+                             segment_size=segment_size, segment_gap=segment_gap, corner_radius=corner_radius, edge_softness=edge_softness)
+        self.style = style
+
+        if effects:
+            self.effects = effects
+        else:
+            self.effects = Effects(threshold=intensity_threshold, scale=intensity_scale, blur=intensity_blur, alpha=intensity_alpha)
+        
+        colour_range = self.h if self.style.col_mode == 'vert' else self.w
+        self.colours = Colour(self.theme, colour_range)
+        
+        self.gradient_surface = self._create_gradient_surface()
+        self._gl_texture = None
+        self.bloom_states = {} # Stores smoothed bloom intensity per bar (keyed by offset)
+
         # parent += self
         # print("Bar.__init__", self.geostr())
+
+    def _create_gradient_surface(self):
+        colors = self.colours.colours
+        w = len(colors)
+        if w == 0: return None
+        # Create a 1D horizontal texture
+        surf = pygame.Surface((w, 1))
+        for i, c in enumerate(colors):
+            surf.set_at((i, 0), c)
+        return surf
+
+    def float_abs_rect(self, offset=(0,0), wh=None):
+        """ Calculates absolute coordinates keeping float precision to prevent jitter """
+        xy_shrink = self.outline_w + self.padding
+        wh_shrink = xy_shrink * 2
+        
+        w_frame = self.w
+        h_frame = self.h
+        
+        w_target = w_frame - wh_shrink if wh is None else wh[0]
+        h_target = h_frame - wh_shrink if wh is None else wh[1]
+        
+        x = self.x0 + xy_shrink + offset[0]
+        y = self.screen_wh[1] - (self.y0 + h_frame - xy_shrink - offset[1])
+        
+        return (x, y, w_target, h_target)
 
     def draw_peak(self, peak_h, flip, peak_coords):
         if peak_h> 0.0:
             colour = self.colours.get( colour_index=peak_h , flip=flip)  #
-            pygame.draw.rect(self.platform.screen, colour, peak_coords)
+            self.platform.renderer.draw_rect(colour, peak_coords, softness=self.style.edge_softness)
+
+    def _get_smoothed_bloom(self, key, target):
+        current = self.bloom_states.get(key, 0.0)
+        if target > current:
+            # Attack (Fast) - 40% of the difference per frame
+            current += (target - current) * self.effects.attack
+        else:
+            # Decay (Slow) - 10% of the difference per frame
+            current += (target - current) * self.effects.decay
+        
+        if current < 0.001: current = 0.0
+        self.bloom_states[key] = current
+        return current
 
     def draw(self, offset, ypc, w, peak=0, colour_index=None):
         self.tip_radius = int(w/2)
-        if self.orient == 'horz':
+        if self.style.orient == 'horz':
             self.drawH(offset, ypc, w, peak, colour_index)
         else:
             self.drawV(offset, ypc, w, peak, colour_index)
 
     def drawV(self, offset, ypc, w, peak=0, colour_index=None):
         """ Draw Vertical Bar """
-        if self.flip:
-            coords = self.abs_rect( offset=(offset, 0),  wh=[w, self.abs_h*ypc] )
+        if self.style.flip:
+            coords = self.float_abs_rect( offset=(offset, 0),  wh=[w, self.abs_h] )
 
-            for led_y in range( int(coords[1]), int(coords[1]+coords[3]) ,(self.led_h+self.led_gap)):
-                colour = self.colours.get(led_y-coords[1], False) if colour_index is None else self.colours.get(colour_index) # height based
-                pygame.draw.rect(self.platform.screen, colour, (coords[0], led_y, coords[2], self.led_h), border_radius=self.radius)
+            # Determine colors for gradient (Top, Bottom)
+            # Flip=True means bar grows downwards (usually). 
+            # coords[1] is top. coords[1]+coords[3] is bottom.
+            c_top = self.colours.get(0, False)
+            c_bot = self.colours.get(self.colours.num_colours, False)
+            
+            if colour_index is not None:
+                c_top = c_bot = self.colours.get(colour_index)
+
+            # --- Bloom Logic (Vertical Flip=True, Grows Down) ---
+            # 1. Calculate Raw Target Intensity
+            if ypc > self.effects.threshold:
+                range_above = max(0.001, 1.0 - self.effects.threshold)
+                excess_ratio = (ypc - self.effects.threshold) / range_above
+                excess_ratio = max(0.0, min(1.0, excess_ratio))
+                # Power curve for "heat up" effect
+                alpha_ratio = excess_ratio ** self.effects.power
             else:
-                if self.tip and ypc>0:
-                    colour = self.colours.get(coords[3], not self.flip) if colour_index is None else self.colours.get(colour_index)
-                    pygame.draw.rect(self.platform.screen, colour, (coords[0], coords[1]+coords[3], coords[2], self.led_h), border_bottom_left_radius=self.tip_radius, border_bottom_right_radius=self.tip_radius )
+                alpha_ratio = 0.0
 
-            pcoords = self.abs_rect( offset=(offset, peak*self.abs_h),  wh=[w, self.peak_h] )
+            # 2. Temporal Smoothing (Attack/Release)
+            smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
+
+            if smoothed_ratio > 0.01:
+                # Jitter for electrical noise effect
+                jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                
+                bloom_h = (ypc - self.effects.threshold) * self.abs_h
+                bloom_y = coords[1] + self.effects.threshold * self.abs_h
+                
+                c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
+                c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
+                
+                # Layer 1: Inner Glow (Tight, Bright)
+                inner_scale = 1.0 + (self.effects.scale - 1.0) * 0.2
+                b_w_inner = coords[2] * (inner_scale - 1.0)
+                b_rect_inner = (coords[0] - b_w_inner/2, bloom_y - b_w_inner/2, coords[2] + b_w_inner, bloom_h + b_w_inner)
+                self.platform.renderer.draw_rect(c_thresh, b_rect_inner, softness=self.effects.blur, gradient=(c_thresh, c_tip), axis=1.0, level=10.0, additive=True)
+
+                # Layer 2: Outer Bloom (Wide, Soft, Dynamic Size)
+                outer_scale = 1.0 + (self.effects.scale - 1.0) * (0.5 + 0.5 * smoothed_ratio)
+                b_w_outer = coords[2] * (outer_scale - 1.0)
+                b_rect_outer = (coords[0] - b_w_outer/2, bloom_y - b_w_outer/2, coords[2] + b_w_outer, bloom_h + b_w_outer)
+                c_outer_tip = c_tip[:3] + [current_alpha * 0.6] # Lower alpha for outer
+                c_outer_thresh = c_thresh[:3] + [current_alpha * 0.6]
+                self.platform.renderer.draw_rect(c_outer_thresh, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_thresh, c_outer_tip), axis=1.0, level=10.0, additive=True)
+
+            # Draw the main segmented bar
+            self.platform.renderer.draw_rect(c_top, coords, 
+                                             border_radius=self.style.corner_radius, 
+                                             softness=self.style.edge_softness,
+                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             gradient=(c_top, c_bot),
+                                             axis=1,
+                                             level=ypc,
+                                             gradient_image=self.gradient_surface,
+                                             texture_holder=self)
+
+            # Tip drawing (optional, can be added back if needed, but segments usually look good enough)
+
+            pcoords = self.float_abs_rect( offset=(offset, peak*self.abs_h),  wh=[w, self.style.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw (flip)> coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak)
         else:
-            coords = self.abs_rect( offset=(offset, self.abs_h*(1-ypc)),  wh=[w, self.abs_h*ypc] )
-            # print("Bar.draw V> coords", coords)
-            for led_y in range( int(coords[1]+coords[3])-self.led_h, int(coords[1]) ,-(self.led_h+self.led_gap)):
-                col    = coords[1] + coords[3]-led_y
-                colour = self.colours.get(col, False) if colour_index is None else self.colours.get(colour_index) # height based
+            coords = self.float_abs_rect( offset=(offset, 0),  wh=[w, self.abs_h] )
+            
+            # Gradient: Bottom of bar (high Y) is low value. Top of bar (low Y) is high value.
+            # coords[1] is Top (High Value). coords[1]+coords[3] is Bottom (Low Value).
+            c_top = self.colours.get(self.colours.num_colours, False) # High value color
+            c_bot = self.colours.get(0, False)         # Low value color
+            
+            if colour_index is not None:
+                c_top = c_bot = self.colours.get(colour_index)
 
-                pygame.draw.rect(self.platform.screen, colour, (coords[0], led_y , coords[2], self.led_h), border_radius=self.radius )
+            # --- Bloom Logic (Standard Vertical) ---
+            if ypc > self.effects.threshold:
+                range_above = max(0.001, 1.0 - self.effects.threshold)
+                excess_ratio = (ypc - self.effects.threshold) / range_above
+                excess_ratio = max(0.0, min(1.0, excess_ratio))
+                alpha_ratio = excess_ratio ** self.effects.power
             else:
-                if self.tip and ypc>0:
-                    col    = coords[3] #self.led_h+self.led_gap
-                    colour = self.colours.get(col, self.flip) if colour_index is None else self.colours.get(colour_index) # height based
-                    pygame.draw.rect(self.platform.screen, colour, (coords[0], coords[1], coords[2], self.led_h), border_top_left_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
+                alpha_ratio = 0.0
 
-            pcoords = self.abs_rect( offset=(offset, self.abs_h*(1-peak)),  wh=[w, self.peak_h] )
+            smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
+
+            if smoothed_ratio > 0.01:
+                jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                
+                bloom_h = (ypc - self.effects.threshold) * self.abs_h
+                bloom_y = coords[1] + (1.0 - ypc) * self.abs_h
+                
+                c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
+                c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
+                
+                # Inner Glow
+                inner_scale = 1.0 + (self.effects.scale - 1.0) * 0.2
+                b_w_inner = coords[2] * (inner_scale - 1.0)
+                b_rect_inner = (coords[0] - b_w_inner/2, bloom_y - b_w_inner/2, coords[2] + b_w_inner, bloom_h + b_w_inner)
+                self.platform.renderer.draw_rect(c_tip, b_rect_inner, softness=self.effects.blur, gradient=(c_tip, c_thresh), axis=1.0, level=10.0, additive=True)
+
+                # Outer Bloom
+                outer_scale = 1.0 + (self.effects.scale - 1.0) * (0.5 + 0.5 * smoothed_ratio)
+                b_w_outer = coords[2] * (outer_scale - 1.0)
+                b_rect_outer = (coords[0] - b_w_outer/2, bloom_y - b_w_outer/2, coords[2] + b_w_outer, bloom_h + b_w_outer)
+                
+                c_outer_tip = c_tip[:3] + [current_alpha * 0.6]
+                c_outer_thresh = c_thresh[:3] + [current_alpha * 0.6]
+                
+                self.platform.renderer.draw_rect(c_outer_tip, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_tip, c_outer_thresh), axis=1.0, level=10.0, additive=True)
+
+            self.platform.renderer.draw_rect(c_top, coords, 
+                                             border_radius=self.style.corner_radius, 
+                                             softness=self.style.edge_softness,
+                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             gradient=(c_top, c_bot),
+                                             axis=-1.0, # Bottom anchored
+                                             level=ypc,
+                                             gradient_image=self.gradient_surface,
+                                             texture_holder=self)
+
+            pcoords = self.float_abs_rect( offset=(offset, self.abs_h*(1-peak)),  wh=[w, self.style.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw > coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak, "col", col)
@@ -113,41 +292,129 @@ class Bar(Frame):
     """ Draw a horizontal bar """
     def drawH(self, offset, ypc, w, peak=0, colour_index=None):
         width  = self.abs_w
-        if self.flip:
+        if self.style.flip:
 
-            coords = self.abs_rect( offset=(width*(1-ypc), offset),  wh=[width*ypc, w] )
-            # print("Bar.drawH - flip> coords", coords)
-            for led_l in range( int(coords[0]+ coords[2])-self.led_h, int(coords[0]) ,-(self.led_h+self.led_gap)):
-                colour = self.colours.get(coords[0]+ coords[2]-led_l, False) if colour_index is None else self.colours.get(colour_index)
-                pygame.draw.rect(self.platform.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
+            coords = self.float_abs_rect( offset=(0, offset),  wh=[width, w] )
+            
+            c_left = self.colours.get(self.colours.num_colours, False) # High value (Red) on the moving left edge
+            c_right = self.colours.get(0, False)        # Low value (Green) on the fixed right edge
+            
+            if colour_index is not None:
+                c_left = c_right = self.colours.get(colour_index)
+
+            # --- Bloom Logic (Horizontal Flip=True, Grows Left) ---
+            if ypc > self.effects.threshold:
+                range_above = max(0.001, 1.0 - self.effects.threshold)
+                excess_ratio = (ypc - self.effects.threshold) / range_above
+                excess_ratio = max(0.0, min(1.0, excess_ratio))
+                alpha_ratio = excess_ratio ** self.effects.power
             else:
-                if self.tip and ypc>0:
-                    colour = self.colours.get(coords[2], True) if colour_index is None else self.colours.get(colour_index)
-                    pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_left_radius=self.tip_radius, border_top_left_radius=self.tip_radius )
+                alpha_ratio = 0.0
+
+            smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
+
+            if smoothed_ratio > 0.01:
+                jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                
+                bloom_w = (ypc - self.effects.threshold) * self.abs_w
+                bloom_x = coords[0] + (1.0 - ypc) * self.abs_w
+                
+                c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
+                c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
+
+                # Inner
+                inner_scale = 1.0 + (self.effects.scale - 1.0) * 0.2
+                b_h_inner = coords[3] * (inner_scale - 1.0)
+                b_rect_inner = (bloom_x - b_h_inner/2, coords[1] - b_h_inner/2, bloom_w + b_h_inner, coords[3] + b_h_inner)
+                self.platform.renderer.draw_rect(c_tip, b_rect_inner, softness=self.effects.blur, gradient=(c_tip, c_thresh), axis=2.0, level=10.0, additive=True)
+
+                # Outer
+                outer_scale = 1.0 + (self.effects.scale - 1.0) * (0.5 + 0.5 * smoothed_ratio)
+                b_h_outer = coords[3] * (outer_scale - 1.0)
+                b_rect_outer = (bloom_x - b_h_outer/2, coords[1] - b_h_outer/2, bloom_w + b_h_outer, coords[3] + b_h_outer)
+                
+                c_outer_tip = c_tip[:3] + [current_alpha * 0.6]
+                c_outer_thresh = c_thresh[:3] + [current_alpha * 0.6]
+                self.platform.renderer.draw_rect(c_outer_tip, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_tip, c_outer_thresh), axis=2.0, level=10.0, additive=True)
+
+            self.platform.renderer.draw_rect(c_left, coords, 
+                                             border_radius=self.style.corner_radius, 
+                                             softness=self.style.edge_softness,
+                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             gradient=(c_left, c_right),
+                                             axis=-2.0, # Right anchored
+                                             level=ypc,
+                                             gradient_image=self.gradient_surface,
+                                             texture_holder=self)
 
             peak_w  = width*(peak)
-            pcoords = self.abs_rect( offset=(width*(1-peak), offset),  wh=[self.peak_h, w] )
+            pcoords = self.float_abs_rect( offset=(width*(1-peak), offset),  wh=[self.style.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
         else:
-            coords = self.abs_rect( offset=(0, offset),  wh=[width*ypc, w] )
-            # print("Bar.drawH> coords", coords)
-            for led_l in range( int(coords[0]), int(coords[0]+ coords[2]) ,(self.led_h+self.led_gap)):
-                colour = self.colours.get(led_l-coords[0], self.flip) if colour_index is None else self.colours.get(colour_index)
-                pygame.draw.rect(self.platform.screen, colour, (led_l, coords[1], self.led_h, coords[3]), border_radius=self.radius )
+            coords = self.float_abs_rect( offset=(0, offset),  wh=[width, w] )
+            
+            c_left = self.colours.get(0, False)
+            c_right = self.colours.get(self.colours.num_colours, False)
+            
+            if colour_index is not None:
+                c_left = c_right = self.colours.get(colour_index)
+
+            # --- Bloom Logic (Horizontal Flip=False, Grows Right) ---
+            if ypc > self.effects.threshold:
+                range_above = max(0.001, 1.0 - self.effects.threshold)
+                excess_ratio = (ypc - self.effects.threshold) / range_above
+                excess_ratio = max(0.0, min(1.0, excess_ratio))
+                alpha_ratio = excess_ratio ** self.effects.power
             else:
-                if self.tip and ypc>0:
-                    colour = self.colours.get(coords[2], False) if colour_index is None else self.colours.get(colour_index)
-                    pygame.draw.rect(self.platform.screen, colour, (int(coords[0]+ coords[2]), coords[1], self.led_h, coords[3]), border_bottom_right_radius=self.tip_radius, border_top_right_radius=self.tip_radius )
+                alpha_ratio = 0.0
+
+            smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
+
+            if smoothed_ratio > 0.01:
+                jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                
+                bloom_w = (ypc - self.effects.threshold) * self.abs_w
+                bloom_x = coords[0] + self.effects.threshold * self.abs_w
+                
+                c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
+                c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
+
+                # Inner
+                inner_scale = 1.0 + (self.effects.scale - 1.0) * 0.2
+                b_h_inner = coords[3] * (inner_scale - 1.0)
+                b_rect_inner = (bloom_x - b_h_inner/2, coords[1] - b_h_inner/2, bloom_w + b_h_inner, coords[3] + b_h_inner)
+                self.platform.renderer.draw_rect(c_thresh, b_rect_inner, softness=self.effects.blur, gradient=(c_thresh, c_tip), axis=2.0, level=10.0, additive=True)
+
+                # Outer
+                outer_scale = 1.0 + (self.effects.scale - 1.0) * (0.5 + 0.5 * smoothed_ratio)
+                b_h_outer = coords[3] * (outer_scale - 1.0)
+                b_rect_outer = (bloom_x - b_h_outer/2, coords[1] - b_h_outer/2, bloom_w + b_h_outer, coords[3] + b_h_outer)
+                
+                c_outer_tip = c_tip[:3] + [current_alpha * 0.6]
+                c_outer_thresh = c_thresh[:3] + [current_alpha * 0.6]
+                self.platform.renderer.draw_rect(c_outer_thresh, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_thresh, c_outer_tip), axis=2.0, level=10.0, additive=True)
+
+            self.platform.renderer.draw_rect(c_left, coords, 
+                                             border_radius=self.style.corner_radius, 
+                                             softness=self.style.edge_softness,
+                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             gradient=(c_left, c_right),
+                                             axis=2.0, # Left anchored
+                                             level=ypc,
+                                             gradient_image=self.gradient_surface,
+                                             texture_holder=self)
 
             peak_w  = peak * width
-            pcoords = self.abs_rect( offset=(peak_w, offset),  wh=[self.peak_h, w] )
+            pcoords = self.float_abs_rect( offset=(peak_w, offset),  wh=[self.style.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
 class Image:
     DEFAULT_OPACITY = 255
     DEFAULT_CACHE   = 300
-    def __init__(self, parent, wh=None, path=None, align=None, scalers=None, opacity=None, outline=None, target_wh=None):
+    def __init__(self, parent, wh=None, path=None, align=None, scalers=None, opacity=None, outline=None, target_wh=None, reflection=None):
 
         self.image_cache = Cache(Image.DEFAULT_CACHE)
         self.path        = path #This is the tag for the image ie str of filename or URL - used as the key for the cache
@@ -155,6 +422,8 @@ class Image:
         self.opacity     = Image.DEFAULT_OPACITY if opacity is None else opacity
         self.old_image_data = None
         self.target_wh   = parent.abs_rect()[-2:] if target_wh is None else target_wh 
+        self._gl_texture = None
+        self.reflection  = reflection
 
         if path is not None:
             self.scaleInProportion(path)
@@ -269,10 +538,12 @@ class Image:
 
 
         if image is not None:
-            image = image.copy()
-            image.set_alpha(self.opacity)
+            
+            if image_data != self.old_image_data:
+                self._gl_texture = None
+
             # frame_width  = 0 if self.outline is None else self.outline.width 
-            self.parent.platform.screen.blit(image, coords)
+            self.parent.platform.renderer.blit(image, coords, texture_holder=self, opacity=self.opacity, reflection=self.reflection)
             self.old_image_data = image_data
             # print("Image.draw> New image", self.opacity, coords, image_data)
         else:
@@ -339,7 +610,7 @@ class Box(Frame):
         if pc is not None: wh = [self.wh[0]*pc, self.wh[1]]
         coords = self.abs_rect(offset=offset,  wh=wh)
         colour = self.colours.get(colour_index)
-        pygame.draw.rect(self.platform.screen, colour, coords, self.width)
+        self.platform.renderer.draw_rect(colour, coords, width=self.width)
         # print("Box.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
     def drawH(self, pc, flip=False, colour_index=None, offset=(0,0)):
@@ -349,7 +620,7 @@ class Box(Frame):
             coords = self.abs_rect( offset=offset,  wh=[self.w*pc, self.width] )
 
         colour = self.colours.get(self.w*pc, False) if colour_index is None else self.colours.get(colour_index)
-        pygame.draw.rect(self.platform.screen, colour, coords, border_radius=self.radius )
+        self.platform.renderer.draw_rect(colour, coords, border_radius=self.radius)
 
 """
 Lines are for drawing meter needles, oscilogrammes etc
@@ -376,7 +647,7 @@ class Line(Frame):
         if colour is None: colour = self.colour
         coords = self.abs_rect()
         colour_index = self.colours.get(colour)
-        pygame.draw.line(self.platform.screen, colour_index, coords, self.width)
+        self.platform.renderer.draw_line(colour_index, coords[:2], coords[2:], self.width)
         # print("Line.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
 
@@ -392,7 +663,7 @@ class Line(Frame):
 
         colour_index = self.colours.get(colour)  # Add a get col
         # print("Line.drawFrameCentredVector: val %f, ab %s, xy %s, yoff %f, len %d" % (val, ab, xy, self.centre_offset, self.radius))
-        pygame.draw.line(self.platform.screen, colour_index, ab, xy, width)
+        self.platform.renderer.draw_line(colour_index, ab, xy, width)
 
 
     def draw_mod_line(self, points, colour=None, amplitude=1.0, gain=1.0):
@@ -413,7 +684,7 @@ class Line(Frame):
 
         colour = self.radius*(self.amp_scale*amplitude) if colour is None else 'alert' # Add a get col
         colour_index = self.colours.get(colour)
-        pygame.draw.lines(self.platform.screen, colour_index, self.circle, line)
+        self.platform.renderer.draw_lines(colour_index, self.circle, line, width=self.width)
 
 
     def make_ripple(self, size):
@@ -488,6 +759,9 @@ class Text:
         self.colour   = colour
         self.colours  = parent.colours
         self.fontmax  = parent.abs_h if fontmax is None else fontmax 
+        self.rendered_surface = None
+        self.last_params      = None
+        self._gl_texture      = None
 
         # self.parent.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
         self.update()
@@ -544,7 +818,19 @@ class Text:
 
     def scalefont(self, wh, text, fontmax):  #scale the font to fit the rect, with a min fontsize
         # self.fontsize = wh[1] if self.fontmax == 0 else self.fontmax
-        self.drawtext = ['']*2  # lines of text
+        
+        # Handle explicit newlines first
+        if '\n' in text:
+            self.drawtext = text.split('\n')
+            num_lines = len(self.drawtext)
+            # Use the longest line to determine font size, with height adjusted for number of lines
+            longest_line = max(self.drawtext, key=len)
+            line_wh = (wh[0], wh[1] / num_lines)
+            font, fontwh = self.shrink_fontsize(line_wh, longest_line, fontmax)
+            # Adjust height for multiple lines
+            fontwh[1] *= num_lines
+            return font, fontwh
+
         font, fontwh = self.shrink_fontsize(wh, text, fontmax)
 
         if self.wrap and fontwh[1] < Text.READABLE:  # split into two lines and draw half size
@@ -555,20 +841,21 @@ class Text:
                 fontwh[1]    *= 2  # double height, 2 lines
             except ValueError as error:
                 print("Text.scalefont> textwrap failed" , error )
-                self.drawtext = text[:(1+len(text)//2)]
+                self.drawtext = [text[:(1+len(text)//2)]]
                 # print("wrap", self.drawtext)
                 font, fontwh  = self.shrink_fontsize(wh, self.drawtext[0], fontmax)
         else:
-            self.drawtext[0] = text
+            self.drawtext = [text]
 
         # print("Text.scalefont> max %s, target wh %s, fontwh %s, text<%s>, %s" % (self.whmax, wh, fontwh, text, self.drawtext))
         return font, fontwh
 
     def draw(self, text=None, offset=(0,0), coords=None, colour=None, fontmax=None):  #Draw the text in the corner of the frame
-        if text   is None:
-            text = self.text 
-        else:
+        if text is not None and text != self.text:
+            self._gl_texture = None
             self.text = text
+        elif text is None:
+            text = self.text 
 
         fontmax = self.fontmax if fontmax is None else fontmax
 
@@ -579,29 +866,40 @@ class Text:
         colour_index = self.colours.get(colour)
 
         if hasattr(self, 'font') and self.font is not None:
-            # for line_number, line in enumerate(self.drawtext):
-            line = self.drawtext[0]
-            line_number = 1
-            try:
-                info   = self.font.render(line, True, colour_index)
-                size   = info.get_rect()
-                coords = self.parent.align_coords(coords, size[-2:], self.justify)
-                self.parent.platform.screen.blit( info, coords  )  # position the text upper left
-                # self.parent.platform.screen.blit( info, (coords[0], coords[1]+ line_number*size[Text.MAX_LINES])  )  # position the text upper left
-                # print(" Text.draw> drawn text>", line, "<at", (coords), line_number, size, size[Text.MAX_LINES])
-                #self.parent.platform.dirty
-            except pygame.error as e:
-              print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
-              # Skip drawing this line but continue the loop
+            
+            lines = self.drawtext if isinstance(self.drawtext, list) else [self.drawtext[0]]
+            line_height = self.font.get_height()
+            total_height = line_height * len(lines)
+            
+            # Only cache texture if single line, otherwise we overwrite the cache for each line
+            holder = self if len(lines) == 1 else None
+            
+            # Calculate starting Y based on total height to keep it centered vertically if needed
+            # But align_coords handles the block. We just need to stack them.
+            
+            # Check cache
+            # current_params = (line, colour_index, id(self.font))
+            
+            for i, line in enumerate(lines):
+                try:
+                    info = self.font.render(line, True, colour_index)
+                    
+                    size = info.get_rect()
+                    # Align the block of text, then offset for this specific line
+                    # Note: align_coords aligns the *whole* block usually, but here we align line by line
+                    # relative to the center of the text block.
+                    
+                    # Simple vertical stacking:
+                    line_coords = list(self.parent.align_coords(coords, size[-2:], self.justify))
+                    # Adjust Y for line number (centering the block of text)
+                    start_y_offset = -(total_height / 2) + (line_height / 2)
+                    line_coords[1] += int(start_y_offset + (i * line_height))
+                    
+                    self.parent.platform.renderer.blit(info, line_coords, texture_holder=holder)
+                except pygame.error as e:
+                    print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
 
 
-    def drawVectoredText(self, val, text=None, offset=(0,0), coords=None, colour=None):
-        if text is None : text   = self.text
-        xy   = self.parent.anglexy(val, self.radius)
-        size = self.textsize(text)
-        text_offset = (xy[0]-size[0]/2, xy[1], size[0], size[1])
-        self.draw(text=text, coords=text_offset, colour=colour)
-        print(f"Text.drawVectoredText> radius {self.radius} val {val} text_offset {text_offset} text{text} text_size {size}")
     def drawVectoredText(self, val, text=None, colour=None):
         if text is None:
             text = self.text
@@ -620,55 +918,16 @@ class Text:
 
         # 4) **** DRAW DIRECT TO SCREEN, NOT VIA self.draw() ****
         # This bypasses align_coords and frame offsets entirely.
-        self.parent.platform.screen.blit(
-            self.font.render(text, True, colour_index),
-            (x, y))
-
-
-    #Glowing text version -- does not work well
-    # def drawVectoredText(self, val, text=None, colour=None):
-    #     if text is None:
-    #         text = self.text
-
-    #     if colour is None : colour = self.colour
-    #     colour_index = self.colours.get(colour)
-    #     screen = self.parent.platform.screen
-
-    #     # 1) Get absolute dial position
-    #     x, y = self.parent.anglexy(val, self.radius)
-
-    #     # 2) Render high-quality text surface
-    #     # (True enables font-level antialiasing)
-    #     txt = self.font.render(text, True, colour_index)
-
-    #     # 3) Optional soft glow layer (bigger blurred text behind)
-    #     glow = self.font.render(text, True, colour_index)
-    #     glow = pygame.transform.smoothscale(
-    #         glow,
-    #         (int(glow.get_width() * 1.25), int(glow.get_height() * 1.25))
-    #     )
-    #     glow.set_alpha(80)  # strength of glow
-
-    #     # 4) Sub-pixel perfect centring math (NOT integer truncated)
-    #     w, h = txt.get_size()
-    #     gx, gy = glow.get_size()
-
-    #     px = x - w / 2.0
-    #     py = y - h / 2.0
-
-    #     # 5) Shadow offset (half-pixel crispness)
-    #     sx = px + 1.0
-    #     sy = py + 1.0
-
-    #     # 6) Glow centred behind text
-    #     gx_pos = x - gx / 2.0
-    #     gy_pos = y - gy / 2.0
-
-    #     # 7) Draw stack (glow → shadow → text)
-    #     screen.blit(glow, (gx_pos, gy_pos))
-    #     screen.blit(self.font.render(text, True, (0,0,0)), (sx, sy))  # shadow
-    #     screen.blit(txt, (px, py))
-
+        
+        # Try to use cached surface if it matches, otherwise render fresh
+        if text == self.text and self.rendered_surface and self.last_params == (text, colour_index, id(self.font)):
+            surface = self.rendered_surface
+            self.parent.platform.renderer.blit(surface, (x, y), texture_holder=self)
+        else:
+            # Note: We don't cache this one as it might be transient or different from self.text
+            surface = self.font.render(text, True, colour_index)
+            self.parent.platform.renderer.blit(surface, (x, y))
+            
 
 
 
@@ -795,7 +1054,7 @@ class Outline:
 
         # pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
         # self.frame.platform.screen.blit(surface, (0,0) )
-        pygame.draw.rect(self.frame.platform.screen, colour_index, coords, border_radius=radius, width=width)
+        self.frame.platform.renderer.draw_rect(colour_index, coords, border_radius=radius, width=width)
 
         self.frame.platform.dirty_mgr.add(tuple(self.frame.abs_outline()))
         # print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
@@ -807,6 +1066,69 @@ class Outline:
             return 0
         else: 
             return self.outline['width'] 
+
+class ParticleSystem:
+    def __init__(self, frame, config):
+        self.frame = frame
+        self.count = config.get('count', 50)
+        self.color = config.get('colour', 'light')
+        self.speed = config.get('speed', 1.0)
+        self.size  = config.get('size', 2)
+        self.softness = config.get('softness', 0.5)
+        self.react_to_music = config.get('react_to_music', True)
+        self.particles = []
+        
+        for _ in range(self.count):
+            self.particles.append(self._reset_particle(start_random=True))
+            
+    def _reset_particle(self, start_random=False):
+        w, h = self.frame.abs_wh
+        x = random.randint(0, int(w))
+        y = random.randint(0, int(h)) if start_random else 0 # Start at bottom
+        
+        # Float up with some drift
+        vx = (random.random() - 0.5) * self.speed
+        vy = (random.random() * self.speed) + 0.5
+        
+        life = random.randint(50, 200)
+        return [x, y, vx, vy, life, life] # x, y, vx, vy, life, max_life
+
+    def draw(self):
+        w, h = self.frame.abs_wh
+        origin_x, origin_y = self.frame.abs_origin()
+        
+        col = self.frame.colours.get(self.color)
+        
+        speed_mult = 1.0
+        if self.react_to_music and hasattr(self.frame.platform, 'vu'):
+            vu = self.frame.platform.vu['mono']
+            # Scale speed between 1x and 4x based on volume
+            speed_mult = 1.0 + (vu * 3.0)
+
+        for p in self.particles:
+            # Update (Frame coords: 0,0 is bottom-left)
+            p[0] += p[2] * speed_mult
+            p[1] += p[3] * speed_mult
+            p[4] -= 1
+            
+            # Reset if out of bounds or dead
+            if p[1] > h or p[4] <= 0 or p[0] < 0 or p[0] > w:
+                new_p = self._reset_particle()
+                p[:] = new_p[:] # Update in place
+            
+            # Draw
+            alpha = int(255 * (p[4] / p[5]))
+            if len(col) == 3:
+                draw_col = list(col) + [alpha]
+            else:
+                draw_col = list(col[:3]) + [alpha]
+                
+            # Convert Frame (Bottom-Left) to Pygame/GL (Top-Left) for drawing
+            draw_x = origin_x + p[0]
+            draw_y = origin_y + (h - p[1])
+            
+            rect = (draw_x, draw_y, self.size, self.size)
+            self.frame.platform.renderer.draw_rect(draw_col, rect, softness=self.softness)
 
 class Background:
 
@@ -832,14 +1154,15 @@ class Background:
             self.background.update(background)
             self.make_image()
             
-        elif isinstance(background, dict) and any(key in background for key in ('colour','opacity','glow')):
+        elif isinstance(background, dict) and any(key in background for key in ('colour','opacity','glow','particles')):
             self.background.update(background)
             if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
             if 'opacity'          not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})   
             if 'glow'             not in self.background:   self.background.update({'glow': Background.BACKGROUND_DEFAULT['glow']})
 
-            if self.background.get('glow'):
-                self._create_blurred_glow(self.background['colour'], self.background['opacity'])
+            if 'particles' in self.background:
+                self.particle_system = ParticleSystem(self.frame, self.background['particles'])
+                self.background['per_frame_update'] = True
 
 
         # its a filename with no parameters ie a shortcut
@@ -899,12 +1222,22 @@ class Background:
             #     self.frame.platform.screen.fill(BLACK, pygame.Rect(self.frame.abs_background() ))
 
             if self.background.get('glow'):
-                # Calculate the absolute position for the glow surface
-                glow_x, glow_y = self.frame.abs_perimeter()[2:]
+                # Draw glow using OpenGL renderer
+                rect_coords = self.frame.abs_background()
+                c_name = self.background.get('colour')
+                if c_name is None: c_name = 'background'
                 
-                # Blit the pre-rendered glow surface
-                # self.frame.platform.screen.blit(self.glow_surface, (glow_x, glow_y))
-                # print("\ndrawing glow back")
+                colour = self.frame.colours.get(c_name)
+                # Increase opacity for visibility and use additive blending
+                opacity = self.background.get('opacity', 255) * 0.8
+                
+                if len(colour) == 3:
+                    glow_col = list(colour) + [opacity]
+                else:
+                    glow_col = list(colour)
+                    glow_col[3] = opacity
+                
+                self.frame.platform.renderer.draw_rect(glow_col, rect_coords, softness=1.5, additive=True)
 
             if self.background_image is None:
                 if self.background['colour'] is None: return
@@ -914,14 +1247,29 @@ class Background:
                 rect_w, rect_h = rect_coords[2:]
 
                 # 2. Create a temporary Surface for the semi-transparent drawing
-                alpha_surface = pygame.Surface((rect_w, rect_h), pygame.SRCALPHA)
-                alpha_surface.set_alpha(self.background['opacity']) 
+                # alpha_surface = pygame.Surface((rect_w, rect_h), pygame.SRCALPHA)
+                # alpha_surface.set_alpha(self.background['opacity']) 
 
                 # Fill the *entire* temporary surface with the color
                 colour = self.frame.colours.get(self.background['colour'])
-                alpha_surface.fill(colour)
+                # alpha_surface.fill(colour)
+                
                 # Blit the temporary, transparent surface onto the main screen
-                self.frame.platform.screen.blit(alpha_surface, rect_coords[:2]) # Use (x, y) coordinates
+                # self.frame.platform.screen.blit(alpha_surface, rect_coords[:2]) # Use (x, y) coordinates
+                
+                # Use the renderer to draw the rect directly with opacity
+                # We need to append the opacity to the colour tuple if it's not already there
+                if len(colour) == 3:
+                    colour = list(colour) + [self.background['opacity']]
+                elif len(colour) == 4:
+                    colour = list(colour)
+                    colour[3] = self.background['opacity']
+                
+                shadow = self.background.get('shadow')
+                self.frame.platform.renderer.draw_rect(colour, rect_coords, shadow=shadow)
+
+                if hasattr(self, 'particle_system'):
+                    self.particle_system.draw()
 
                 # surface = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
                 # self.frame.platform.screen.fill(colour, pygame.Rect(self.frame.abs_background() ))
@@ -941,65 +1289,6 @@ class Background:
 
         # print("Background.draw> draw ", perform_update, self.background['per_frame_update'], self.background, self.frame.framestr() )  
   
-
-    '''
-    This is an attempt with pygame to create more sophisticated graphics - but is really does not work very well at all
-
-    '''
-    GLOW_RADIUS_PERCENT = 0.05  # 5% of the frame's smallest dimension
-    def _create_blurred_glow(self, colour_name='background', opacity=255, radius_pc=None):
-        """
-        Creates a pre-rendered surface for a smooth, blurred-edge background 
-        using a fast Box Blur approximation via smooth scaling.
-        """
-        # Define constants/defaults
-        if radius_pc is None:
-            radius_pc = self.GLOW_RADIUS_PERCENT 
-        
-        # 1. Calculate Dimensions
-        rect_coords = self.frame.abs_background()
-        rect_w, rect_h = rect_coords[2:]
-        
-        min_dim = min(rect_w, rect_h)
-        glow_padding = int(min_dim * radius_pc)
-        
-        # Define the final target size (frame + padding on all sides)
-        target_w = rect_w + 2 * glow_padding
-        target_h = rect_h + 2 * glow_padding
-        
-        # 2. Create the Initial Small Surface (The Core)
-        # The smaller the initial surface, the blurrier the result when scaled up.
-        # We use a very small factor (e.g., 1/10th of the target size).
-        SCALE_FACTOR = 10 
-        
-        initial_w = max(1, target_w // SCALE_FACTOR)
-        initial_h = max(1, target_h // SCALE_FACTOR)
-        
-        # Create the core surface with full alpha (will be blurred later)
-        core_surface = pygame.Surface((initial_w, initial_h), pygame.SRCALPHA)
-        
-        # Get the color components
-        base_rgb = self.frame.colours.get(colour_name)[:3]
-        
-        # Fill the core surface with the color (at max opacity 255)
-        core_surface.fill(base_rgb + [255,])
-        
-        # 3. Apply the Blur (Smooth Scaling)
-        # This scales the small, solid block up to the final size using a smoothing
-        # algorithm, which results in a soft, blurred effect.
-        self.glow_surface = pygame.transform.smoothscale(core_surface, (target_w, target_h))
-        
-        # 4. Apply Overall Transparency
-        # The blur effect alone often results in a solid shape. We apply transparency
-        # to the whole surface to make it act like a soft glow.
-        GLOW_OPACITY = int(opacity * 0.4) # Use only 40% of the requested opacity for the outer glow
-        self.glow_surface.set_alpha(GLOW_OPACITY)
-        
-        # 5. Store Offsets
-        self.glow_offset_xy = (-glow_padding, -glow_padding)
-        self.glow_size_wh = (target_w, target_h)
-        
-        print(f"Background._create_blurred_glow> Smoothscale glow pre-rendered: {self.glow_surface.get_size()}")
 
 
 #---- End Background -------        

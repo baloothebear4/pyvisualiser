@@ -20,7 +20,7 @@ from    scipy.fft import rfft
 from    scipy.signal import butter, lfilter
 import  pyaudio
 import  wave
-from multiprocessing import Queue
+from    queue import Queue
 from    events import Events
 
 
@@ -193,6 +193,7 @@ class AudioProcessor(AudioData):
         try:
             self.stream.stop_stream()
             self.stream.close()
+            self.recorder.terminate()
         except Exception as e:
             print("AudioProcessor.Stop_capture> error", e)
 

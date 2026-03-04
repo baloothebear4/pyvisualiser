@@ -547,7 +547,7 @@ class Frame(Geometry):
     """
 
 
-    def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None, padding=0):
+    def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None, padding=0, z_order=0):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
@@ -577,6 +577,7 @@ class Frame(Geometry):
 
         self.frames         = []         #Holds the stack of containing frames
         self.outline_frame  = self.platform.create_outline(self, outline)
+        self.z_order        = z_order
 
         Geometry.__init__(self, bounds, self.platform.wh, scalers, alignment, square, self.outline_frame.w, padding)
 
@@ -621,7 +622,9 @@ class Frame(Geometry):
         self.draw_outline(True)
         # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
-        for f in self.frames:
+        # Sort frames by z_order for drawing (lowest first)
+        draw_list = sorted(self.frames, key=lambda x: x.z_order)
+        for f in draw_list:
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
             # f.draw_background(full)
             if f.update_screen(full, **kwargs): self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course

@@ -12,6 +12,8 @@
 from    frames    import *
 from    subframes import *
 from    framecore import Frame, ColFramer, RowFramer
+from    components   import DreamEffect
+
 
 """
 Screen classes - these are top level frames comprising frames of frames at full display size
@@ -27,7 +29,7 @@ class Screen1(Frame):   # comprises volume on the left, spectrum on the right
     def __init__(self, platform):
         Frame.__init__(self, platform, theme= 'hifi', padding=0)
 
-        BACK = {'image':'particles.jpg', 'opacity':50, 'glow':False}
+        BACK = {'image':'particles.jpg', 'opacity':50, 'glow':True}
         colframe = ColFramer(self, padpc=0.05, col_ratios=(2,3,1.8), outline={'width':0,'colour':'light'}, padding=0,background=BACK)
 
         colframe += MetaImages(colframe, art_type='album', background=None, outline={'colour':'light', 'width':5, 'opacity': 255, 'radius': 20})
@@ -87,7 +89,8 @@ class Screen3(Frame):   # comprises volume on the left, spectrum on the right
 class Screen4(Frame):
 
     def __init__(self, parent, scalers=None, align=None, theme='std'):
-        Frame.__init__(self, parent, scalers=scalers, align=align, background='background',theme='tea')
+        particles = {'count': 80, 'colour': 'light', 'speed': 0.2, 'size': 1, 'softness': 0.1}
+        Frame.__init__(self, parent, scalers=scalers, align=align, background={'colour':'background', 'particles':particles, 'opacity':0}, theme='tea')
 
         # SHOW = { 'artist': {'colour': 'foreground', 'align': ('centre','top'),   'scalers': (1.0, 0.33) }, \
         #          'track': {'colour' : 'light',      'align': ('centre','bottom'), 'scalers': (1.0, 0.33)}, \
@@ -96,9 +99,9 @@ class Screen4(Frame):
         TRACK  = {'track' : {'colour':'light', 'align': ('right', 'middle'), 'scalers': (1.0, 1.0)}}
         ALBUM  = {'album' : {'colour':'mid',   'align': ('right','middle'), 'scalers': (1.0, 1.0)} }
 
-        back  = {'colour':'background', 'opacity':255, 'per_frame_update':True}
+        back  = {'colour':'background', 'opacity':0, 'per_frame_update':True}
         cols  = ColFramer(self, col_ratios=(1,2), padding=5)
-        cols += MetaImages(cols,  'album', outline={'colour':'mid','width':3},padding=10)
+        cols += MetaImages(cols,  'album', outline={'colour':'mid','width':3, 'radius':10},padding=10,background={'opacity':0})
         rows  = RowFramer(cols, row_ratios=(3,1), padpc=0)
         rows += MetaDataFrame(rows, justify='left', background=back)
         rows += SpectrumFrame(cols,channel='mono', led_gap=0, bar_space=4, background=back)
@@ -119,7 +122,7 @@ class Screen5(Frame):   # comprises volume on the left, spectrum on the right
         ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
         PIVOT     = -0.5
         OUTLINE   = {'colour':'foreground', 'width':5, 'opacity': 255, 'radius': 10}
-        BACK      = {'colour':'dark', 'opacity':100, 'per_frame_update':True, 'glow':False}
+        BACK      = {'colour':'dark', 'opacity':10, 'glow':True}
         # self += MetaImages(self  , (0.25, 0.93),align=('right','middle'))
         # self += MetaImages(self  , (0.3, 0.3),align=('centre','top'))
         # self += MetaDataFrame(self  , scalers=(0.3, 1.0), align=('centre','middle'))
@@ -139,7 +142,7 @@ class Screen6(Frame):
 
         rows = RowFramer(self, row_ratios=(1,7), padpc=0.1)
         rows += MetaData(rows, metadata_type='track',background=None)
-        rows += SpectrumFrame(rows, channel='mono', outline={'width':0},background={'colour':'background','opacity':150})
+        rows += SpectrumFrame(rows, channel='mono', outline={'width':0},background={'colour':'background','opacity':150, 'glow':True})
 
 
 class Screen7(Frame):   # comprises volume on the left, spectrum on the right
@@ -158,9 +161,6 @@ class Screen7(Frame):   # comprises volume on the left, spectrum on the right
 
         subframe += MetaImages(subframe, art_type='album', background=None)
         subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0), justify='left', background=None)
-        subframe += VU2chFrame(subframe, led_h=7, led_gap=2,barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None)
+        subframe += VU2chFrame(subframe, led_h=7, led_gap=2,barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None, effects=DreamEffect)
 
         rows += Oscilogramme(rows, 'mono',background=None)
-
-
-
