@@ -161,8 +161,8 @@ class Bar(Frame):
 
             if smoothed_ratio > 0.01:
                 # Jitter for electrical noise effect
-                jitter = random.uniform(0.98, 1.02)
-                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                # jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
                 bloom_h = (ypc - self.effects.threshold) * self.abs_h
                 bloom_y = coords[1] + self.effects.threshold * self.abs_h
@@ -225,8 +225,8 @@ class Bar(Frame):
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
 
             if smoothed_ratio > 0.01:
-                jitter = random.uniform(0.98, 1.02)
-                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                # jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
                 bloom_h = (ypc - self.effects.threshold) * self.abs_h
                 bloom_y = coords[1] + (1.0 - ypc) * self.abs_h
@@ -290,8 +290,8 @@ class Bar(Frame):
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
 
             if smoothed_ratio > 0.01:
-                jitter = random.uniform(0.98, 1.02)
-                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                # jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
                 bloom_w = (ypc - self.effects.threshold) * self.abs_w
                 bloom_x = coords[0] + (1.0 - ypc) * self.abs_w
@@ -349,8 +349,8 @@ class Bar(Frame):
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
 
             if smoothed_ratio > 0.01:
-                jitter = random.uniform(0.98, 1.02)
-                current_alpha = self.effects.alpha * smoothed_ratio * jitter
+                # jitter = random.uniform(0.98, 1.02)
+                current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
                 bloom_w = (ypc - self.effects.threshold) * self.abs_w
                 bloom_x = coords[0] + self.effects.threshold * self.abs_w
@@ -627,7 +627,7 @@ class Line(Frame):
         # print("Line.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
 
-    def drawFrameCentredVector(self, val, colour=None, width=0, amplitude=1.0, gain=0, tick_pc=None):
+    def drawFrameCentredVector(self, val, colour=None, width=0, amplitude=1.0, gain=0, tick_pc=None, **kwargs):
         """ tick_pc is the percent of the line to draw from outside in, useful if the pivot is below the line
             val is the angle to draw the line
         """
@@ -639,7 +639,7 @@ class Line(Frame):
 
         colour_index = self.colours.get(colour)  # Add a get col
         # print("Line.drawFrameCentredVector: val %f, ab %s, xy %s, yoff %f, len %d" % (val, ab, xy, self.centre_offset, self.radius))
-        self.platform.renderer.draw_line(colour_index, ab, xy, width)
+        self.platform.renderer.draw_line(colour_index, ab, xy, width, **kwargs)
 
 
     def draw_mod_line(self, points, colour=None, amplitude=1.0, gain=1.0):
@@ -1003,44 +1003,77 @@ class Dots(Frame):
         opacity         - 255 is fully opaque, 0 is transparent.  Good for blending
 """
 class Outline:
-    #Default outline
-    OUTLINE = { 'width' : 1, 'radius' : 0, 'colour' : 'foreground', 'opacity': 255}
-
-    def __init__(self, frame, outline=None):
-        self.frame         = frame
-        self.outline       = outline
-        if self.outline is None: return
-        # print("Outline.init>", self.frame.framestr(), self.frame.outline)
-        #only one parameter is needed, else the default is set
-        if 'colour'       not in self.outline:   self.outline['colour']       = Outline.OUTLINE['colour'] 
-        if 'opacity'      not in self.outline:   self.outline['opacity']      = Outline.OUTLINE['opacity']      
-        if 'radius'       not in self.outline:   self.outline['radius']       = Outline.OUTLINE['radius']       
-        if 'width'        not in self.outline:   self.outline['width']        = Outline.OUTLINE['width']        
+    def __init__(self, frame, outline):
+        self.frame = frame
+        
+        if isinstance(outline, dict):
+            # If a dict is passed, create an OutlineStyle object from it.
+            self.style = OutlineStyle(**outline)
+        elif isinstance(outline, OutlineStyle):
+            # If an object is passed, use it directly.
+            self.style = outline
+        else:
+            # If it's None or something else, there's no outline.
+            self.style = None
 
     def draw(self, coords=None):
-        if self.outline is None: return [0,0,0,0]
-        width = 0 if  'width' not in self.outline else self.outline['width'] 
-        if  width == 0: return [0,0,0,0]
-        if coords       is None: coords = self.frame.abs_outline() 
+        if self.style is None or self.style.width <= 0:
+            return [0, 0, 0, 0]
 
-        colour       = self.outline['colour'] 
-        opacity      = self.outline['opacity'] 
-        radius       = self.outline['radius'] 
-        # print("Outline.draw>", self.frame.framestr(), self.frame.colour)    
-        colour_index = self.frame.colours.get(colour, opacity=opacity)
-        surface      = pygame.Surface( (self.frame.platform.screen.get_width(), self.frame.platform.screen.get_height()), pygame.SRCALPHA)
+        # --- 1. Draw Glow (if any) ---
+        # The glow is a filled, soft, additive rectangle drawn before the main outline.
+        # If the frame has an opaque background, it will cover the inner part of this glow,
+        # creating a halo effect.
+        if self.style.glow_intensity > 0 and self.style.softness > 0:
+            
+            # The glow rect should be larger than the frame to create a halo.
+            expand = max(3.0, self.style.width * 2.0)
+            
+            glow_coords = self.frame.abs_perimeter() # Use the full perimeter rect
+            glow_coords[0] -= expand
+            glow_coords[1] -= expand
+            glow_coords[2] += expand * 2
+            glow_coords[3] += expand * 2
 
-        # pygame.draw.rect(surface, colour, coords, border_radius=radius, width=width)
-        # self.frame.platform.screen.blit(surface, (0,0) )
-        self.frame.platform.renderer.draw_rect(colour_index, coords, border_radius=radius, width=width)
-        # print("Outline.draw> coords ", coords, "radius ", radius, "width ", width )   
+            glow_color = self.frame.colours.get(self.style.colour)
+            # Intensity acts as a multiplier on the base opacity.
+            glow_alpha = self.style.opacity * self.style.glow_intensity*255
+            
+            # Clamp alpha to valid range
+            glow_alpha = max(0, min(255, glow_alpha))
+            
+            final_glow_color = list(glow_color[:3]) + [int(glow_alpha)]
+
+            self.frame.platform.renderer.draw_rect(
+                final_glow_color,
+                glow_coords,
+                softness=self.style.softness,
+                additive=True,
+                border_radius=self.style.radius + expand, # Also expand the radius for a soft corner
+                level=10.0 # Explicitly prevent shader from clipping the glow at the frame edge
+            )
+
+        # --- 2. Draw Main Outline ---
+        if coords is None:
+            coords = self.frame.abs_outline()
+
+        # Use the standard opacity for the sharp outline
+        colour_index = self.frame.colours.get(self.style.colour, opacity=self.style.opacity * 255)
+        
+        self.frame.platform.renderer.draw_rect(
+            colour_index,
+            coords,
+            border_radius=self.style.radius,
+            width=self.style.width
+        )
+        
         return coords     
 
     @property
     def w(self):
-        if self.outline is None or 'width' not in self.outline:
+        if self.style is None:
             return 0
         else: 
-            return self.outline['width'] 
+            return self.style.width 
 
    

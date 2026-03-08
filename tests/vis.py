@@ -14,6 +14,7 @@
 
 from   screens import *
 from   screens2 import *
+from   VUscreens import *
 from   testscreens import *
 from   test_api_coverage import *
 from   test_advanced_visuals import *
@@ -46,7 +47,9 @@ VU_BAR_TEST_SCREENS = (VUScreen, VUVScreen, TestVUScreen, IntensityTestScreen)
 GEO_TEST_SCREENS= (ColAlignedScreen, RowAlignedScreen, \
                    F1, F2,  F3, F4, F5, F6, F7, F8 )
 
-TEST_SCREENS = (AdvancedVisualsScreen, APICoverageScreen, BarParametersTestScreen, VUVScreen, IntensityTestScreen )
+VU_METER_SCREENS = (VUTestScreen1,  VUImageScreen, VUNeedleStylesScreen,VUNeedleEffectsScreen, TestVUMetersScreen, TestVUImageScreen1, TestVUImageScreen2)
+#,
+TEST_SCREENS = (AmbientGlowTunerScreen, AdvancedVisualsScreen, APICoverageScreen, BarParametersTestScreen, VUVScreen, IntensityTestScreen, OutlineGlowTestScreen )
 
 MAIN_SCREENS= (TrackScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackSpectrumScreen, \
                TrackSpectrumScreen2, MetaArtFrame, TrackSpectrumScreen3, TrackSpectrumScreen4,\
@@ -79,8 +82,9 @@ SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  Sp
 # SCREENS = (ShadowTestScreen, ) + FULL_SCREENS
 # SCREENS = VU_BAR_TEST_SCREENS + FULL_SCREENS
 # SCREENS= (F7, F8) + VU_BAR_TEST_SCREENS + FULL_SCREENS
-SCREENS = TEST_SCREENS + FULL_SCREENS
-SCREENS = (BackgroundEffectsScreen1, BackgroundEffectsScreen2, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen) + SPECTRUM_TEST_SCREENS + FULL_SCREENS
+SCREENS = VU_METER_SCREENS #+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
+# SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
+
 
 
 """ 
@@ -90,6 +94,7 @@ SCREENS = (BackgroundEffectsScreen1, BackgroundEffectsScreen2, BarEffectsTestScr
 
 PI_PLATFORM  = { "gfx": "pi_kms", "loopback":"loopin", "roon_zone":"pre3" }
 MAC_PLATFORM = { "gfx": "gl", "loopback":"BlackHole 2ch", "roon_zone":"MacViz" }
+# Warning.filterwarnings("ignore", category=UserWarning, message=".*pkg_resources is deprecated.*")
 
 def machine():
     uname = platform.uname()

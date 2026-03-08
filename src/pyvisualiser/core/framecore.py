@@ -25,6 +25,7 @@ from   pathlib import Path
 import os
 
 from pyvisualiser.styles.colour_palette import COLOUR_THEMES, purple
+from pyvisualiser.styles.presets import BackgroundDefault, PaletteDefault, FullScale, OutlineDefault, Centred
 
 
 PI = np.pi
@@ -32,7 +33,7 @@ PI = np.pi
 # from platform   import Platform         # used for Test purposes
 
 class Geometry():
-    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=('centre', 'middle'), square=False, outline_w=0, padding=0):
+    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=Centred, square=False, outline_w=0, padding=0):
         """
             bounds is list of the bottom left and upper right corners eg (0,0,64,32)
             screen_wh is the size of the actual display screen - needed for absolute coordinates
@@ -524,10 +525,6 @@ class Geometry():
 # end Geometry class
 
 
-FULLSCALE = (1.0,1.0)
-CENTRED   = ('centre', 'middle')
-OUTLINE   = None #{ 'width' : 1, 'radius' : 0, 'colour_index' : 'foreground'}
-
 class Frame(Geometry):
     """
         - manages the alignment of a Frame within a Screen
@@ -549,7 +546,7 @@ class Frame(Geometry):
     """
 
 
-    def __init__(self, parent, scalers=FULLSCALE, align=CENTRED, square=False, theme=None, background=None, outline=None, padding=0, z_order=0):
+    def __init__(self, parent, scalers=FullScale, align=Centred, square=False, theme=None, background=None, outline=None, padding=0, z_order=0):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
@@ -559,9 +556,9 @@ class Frame(Geometry):
         """
         # print("Frame.__init__> startup>>>", type(self).__name__, align, scalers, theme, background)
 
-        scalers         = FULLSCALE   if scalers  is None else scalers
-        alignment       = CENTRED     if align    is None else align      
-        outline         = OUTLINE     if outline  is None else outline
+        scalers         = FullScale          if scalers  is None else scalers
+        alignment       = Centred            if align    is None else align      
+        outline         = OutlineDefault     if outline  is None else outline
 
         if isinstance(parent, Frame):
             """ Sub-frame, so scale to the size of the parent Frame """
@@ -574,8 +571,8 @@ class Frame(Geometry):
             """ Screen (aka top-level Frame), so scale to the boundary """
             bounds          = parent.boundary
             self.platform   = parent    #only needed by the top Frame or Screen, as is passed on draw()
-            self.theme      = 'std'                  if theme    is None else theme  
-            background      = 'background'           if background is None else background
+            self.theme      = PaletteDefault                if theme    is None else theme  
+            background      = BackgroundDefault           if background is None else background
 
         self.frames         = []         #Holds the stack of containing frames
         self.outline_frame  = self.platform.create_outline(self, outline)
@@ -592,9 +589,9 @@ class Frame(Geometry):
     def __iadd__(self, frame):
         self.frames.append(frame)
 
-        if frame.background_frame.is_opaque():
+        # if frame.background_frame.is_opaque():
             # print("Frame.__add__> child %s has opaque background forcing redraw> %s" % (type(frame).__name__, self.__str__()))
-            self.background_frame.per_frame_update()
+        # self.background_frame.per_frame_update()
 
         return self
 
@@ -612,15 +609,16 @@ class Frame(Geometry):
         for f in self.frames:
             # print("Frame.update_geometry> child from ", f.bounds, "to new parent", f.abs_coords(), f.scalers, f.align_offset,"has config", hasattr(f, 'configure'), f.framestr())
             f.update_geometry(self.canvas_coords())
-            if hasattr(f, 'configure'): f.configure()
+            if hasattr(f, 'configure'): 
+                # self.background_frame         = self.platform.create_background(self,self.background)
+                f.configure()
 
 
     # update the screen with the frame contents
     # whether the background and outline is drawn depends on whether the frame update is per frame or per metadata change
     #
     def update_screen(self, full=False, **kwargs):
-        if self.background_frame.is_per_frame_update(): full = True
-        self.draw_background(full)
+        self.draw_background(True)
         self.draw_outline(True)
         # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
@@ -645,6 +643,10 @@ class Frame(Geometry):
         if self.outline_frame is not None and full: # --> need to draw it everytime else the background erases it
             self.outline_frame.draw()
             # print("Frame.draw_outline> ", full, type(self).__name__, self.abs_background())
+
+    def handle_key(self, key):
+        """ Override to handle key presses directed at this frame """
+        pass
             
     def framestr(self):
         return "%-10s > wh %s, abs %s, parent %s, %s, %s, %s %s" % (type(self).__name__, self.wh, self.abs_rect(), self.bounds, self.scalers, self.alignment, self.theme, self.align_offset)
@@ -653,7 +655,7 @@ class Frame(Geometry):
         return "%-10s > %s" % (type(f).__name__, f.geostr())
 
     def __str__(self):
-        text = '%s Frame stack>' % (type(self).__name__)
+        text = '%s Frame stack> background %s' % (type(self).__name__, self.background_frame)
         text += "\n  " + self.geostr( self )
         # text += "\n  " + self.__str__()
         for f in self.frames:
@@ -910,7 +912,7 @@ class Cache:
 def get_asset_path(category: str, filename: str) -> str:
     """
     Standardized pathing: 
-    - category: 'textures', 'fonts', 'backgrounds'
+    - category: 'textures', 'fonts', 'backgrounds', 'VU Images'
     - handles absolute pathing based on the project root
     """
     # Get the project root (3 levels up from this file, adjust as needed)

@@ -1,25 +1,7 @@
 from pyvisualiser import *
-import time
+from pyvisualiser.styles.presets import *
 
 
-""" VU Meters """
-VUMETERS = ['blueVU', 'goldVU', 'blackVU', 'rainVU', 'redVU', 'vintVU', 'whiteVU', 'greenVU']
-
-class VUImageScreen(Frame):
-    """ VU meters left and right - based on an image background"""
-    @property
-    def title(self): return 'VU meters with image background'
-
-    @property
-    def type(self): return 'VU Image'
-
-    def __init__(self, platform, type='blueVU'):
-
-        back = {'image':'particles.jpg', 'per_frame_update':True}
-        Frame.__init__(self, platform, theme='hifi')
-        rows = RowFramer(self, row_ratios=(10,1), padding=10, background=back)
-        rows += VUMeterImageFrame(rows  , type=type, outline={'width':2})
-        rows += PlayProgressFrame(rows)
 
 
 
@@ -37,7 +19,7 @@ class VUImageScreen(Frame):
 class StereoSpectrumLRScreen(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
     def __init__(self, platform):
-        Frame.__init__(self, platform, theme='hifi')
+        Frame.__init__(self, platform, theme='hifi', background='background')
         self += Spectrum2chFrame(self, padding=30)
 
 
@@ -155,68 +137,6 @@ class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
 Test Code
 """
 
-VUMETERS = ['blueVU', 'goldVU', 'blackVU', 'rainVU', 'redVU', 'vintVU', 'whiteVU', 'greenVU']
-class TestVUImageScreen1(Frame):
-    """ VU meters left and right - based on an image background"""
-    @property
-    def title(self): return 'Test multiple VU meters with image backgrounds'
-
-    @property
-    def type(self): return 'Test'
-
-    def __init__(self, platform, type=None):
-
-        back = {'colour':'background', 'per_frame_update':True}
-        Frame.__init__(self, platform, background=back)
-
-        self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('left','top'))
-        self += VUMeterImageFrame(self  , type='goldVU', scalers=(0.5,0.5), align=('left','bottom'))
-        self += VUMeterImageFrame(self  , type='blackVU', scalers=(0.5,0.5), align=('right','top'))
-        self += VUMeterImageFrame(self  , type='rainVU', scalers=(0.5,0.5), align=('right','bottom'))
-        # self += VUMeterImageFrame(self  , type='redVU', scalers=(0.5,0.5), align=('left','top'))
-        # self += VUMeterImageFrame(self  , type='vintVU', scalers=(0.5,0.5), align=('left','bottom'))
-        # self += VUMeterImageFrame(self  , type='whiteVU', scalers=(0.5,0.5), align=('right','top'))
-        # self += VUMeterImageFrame(self  , type='greenVU', scalers=(0.5,0.5), align=('right','bottom'))
-
-class TestVUImageScreen2(Frame):
-    """ VU meters left and right - based on an image background"""
-    @property
-    def title(self): return 'Test multiple VU meters with image backgrounds'
-
-    @property
-    def type(self): return 'Test'
-
-    def __init__(self, platform):
-        # METERS = ['blueVU', 'goldVU', 'blackVU', 'rainVU', 'redVU', 'vintVU', 'whiteVU', 'greenVU']
-        Frame.__init__(self, platform)
-
-        # self += VUMeterImageFrame(self  , type='blueVU', scalers=(0.5,0.5), align=('left','top'))
-        # self += VUMeterImageFrame(self  , type='goldVU', scalers=(0.5,0.5), align=('left','bottom'))
-        # self += VUMeterImageFrame(self  , type='blackVU', scalers=(0.5,0.5), align=('right','top'))
-        # self += VUMeterImageFrame(self  , type='rainVU', scalers=(0.5,0.5), align=('right','bottom'))
-        self += VUMeterImageFrame(self  , type='redVU', scalers=(0.5,0.5), align=('left','top'))
-        self += VUMeterImageFrame(self  , type='vintVU', scalers=(0.5,0.5), align=('left','bottom'))
-        self += VUMeterImageFrame(self  , type='whiteVU', scalers=(0.5,0.5), align=('right','top'))
-        self += VUMeterImageFrame(self  , type='greenVU', scalers=(0.5,0.5), align=('right','bottom'))
-
-class TestVUMetersScreen(Frame):
-    """ Vol/source in centre - VU meters left and right """
-    @property
-    def title(self): return 'Tests out multiple configurations of Stereo VU Meters'
-
-    @property
-    def type(self): return 'Test'
-
-    def __init__(self, platform):
-        back = {'colour':'background', 'per_frame_update':True}
-        Frame.__init__(self, platform, background=back)
-
-        self += VUMeterFrame1(self  , scalers=(0.5,0.5), align=('left','top'))
-        self += VUMeterFrame2(self  , scalers=(0.5,0.5), align=('left','bottom'))
-        self += VUMeterFrame3(self  ,  scalers=(0.5,0.5), align=('right','top'))
-        self += VUMeterFrame4(self  ,  scalers=(0.5,0.5), align=('right','bottom'))
-
-        # self += VolumeSourceFrame(self  , 0.2, 'centre'
 
 class TestVisualiserScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -646,10 +566,10 @@ class F1(Frame):
         self.create()
 
     def create(self):
-        self += Frame(self, scalers=(0.5,0.5), align=('left','bottom'), background='mid', outline={'colour':'foreground','width':10})
-        self += Frame(self, scalers=(0.5,0.5), align=('right','bottom'), background='mid', outline={'colour':'foreground','width':10})
-        self += Frame(self, scalers=(0.5,0.5), align=('left','top'), background='light', outline={'colour':'foreground','width':10})
-        self += Frame(self, scalers=(0.5,0.5), align=('right','top'), background='mid', outline={'colour':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('left','bottom'), background=BackgroundDefault, outline={'colour':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('right','bottom'), background=None, outline={'colour':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('left','top'), background=None, outline={'colour':'foreground','width':10})
+        self += Frame(self, scalers=(0.5,0.5), align=('right','top'), background=None, outline={'colour':'foreground','width':10})
         # self += Frame(self, scalers=(0.3,0.3), align=('left','middle'), background='light', outline={'colour':'foreground','width':5})
         # self += Frame(self, scalers=(0.3,0.3), align=('right','middle'), background='mid', outline={'colour':'foreground','width':5})
         # self += Frame(self, scalers=(0.3,0.3), align=('centre','top'), background='mid', outline={'colour':'foreground','width':5})

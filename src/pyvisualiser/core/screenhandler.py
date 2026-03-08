@@ -52,7 +52,7 @@ class ScreenController:
         self.platform       = Platform(self.events, hw_platform)
 
         """ Setup the event callbacks """
-        EventHandler(self.events, self.platform, self.screenEvents)
+        EventHandler(self.events, self.platform, self.screenEvents, self.keyEvents)
 
 
         """Set up the screen for inital Mode"""
@@ -99,6 +99,10 @@ class ScreenController:
 
         elif e == 'exit':
             self.activeScreen = 'exit'
+
+    def keyEvents(self, key):
+        if self.activeScreen in self.screens:
+            self.screens[self.activeScreen].handle_key(key)
 
         else: 
             print("ScreenController.screenEvents: unknown event", e)
@@ -164,7 +168,7 @@ class ScreenController:
  
 """ Event processing - this is configured according to the platform/enviroment"""
 class EventHandler:        
-    def __init__(self, events, platform, screen_handler):
+    def __init__(self, events, platform, screen_handler,key_handler=None):
 
         self.platform          = platform
         self.track_rotate      = False
@@ -175,6 +179,7 @@ class EventHandler:
         self.events.Metadata  += self.MetadataAction   # respond to a changes to meta data
         self.events.Control   += self.ControlAction    # respond controls, start, stop, check, end loop 
         self.events.Screen    += screen_handler        # change screens
+        self.key_handler       = key_handler
 
 
     def ControlAction(self, e, text=None):
@@ -224,16 +229,21 @@ class EventHandler:
             self.track_rotate = not self.track_rotate
             print("EventHandler.KeyAction> R: track screen rotate", self.track_rotate)
 
-        elif key == K_UP:
-            print("EventHandler.KeyAction> UP: screen variant scrolling not implemented")
+        # elif key == K_UP:
+        #     print("EventHandler.KeyAction> UP: screen variant scrolling not implemented")
 
-        elif key == K_DOWN:
-            print("EventHandler.KeyAction> DOWN: screen variant scrolling not implemented")
+        # elif key == K_DOWN:
+        #     print("EventHandler.KeyAction> DOWN: screen variant scrolling not implemented")
+
         elif key == 'exit':
             print("EventHandler.KeyAction> quit")
             self.events.Screen('exit')
         else:
-            print("EventHandler.KeyAction> unknown event ",key)
+            # Pass other keys to the screen controller (and thus the active screen)
+            if self.key_handler:
+                self.key_handler(key)
+            else:
+                print("EventHandler.KeyAction> unknown event ",key)
         
 
     def MetadataAction(self, key):

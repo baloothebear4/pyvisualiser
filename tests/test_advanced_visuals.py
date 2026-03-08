@@ -10,6 +10,7 @@ from pyvisualiser.core.backgrounds import BackgroundBase
 from pyvisualiser.styles.presets import NeonGlow
 import numpy as np
 import math, time
+import pygame
 
 # from .test_api_coverage import BarTest
 # from framecore import Frame, ColFramer, RowFramer
@@ -148,61 +149,45 @@ class BackgroundEffectsScreen1(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi', background=None)
+        peak_style = PeakAccentStyle(colour='alert')
+        vignette=VignetteStyle(strength=1.0, radius=0.2, softness=0.8)
+        s1 = BackgroundStyle(colour='mid', theme='std', vignette=vignette)
+        s0 = BackgroundStyle(colour='background', theme='std', ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.7, radius=0.5, softness=0.5))
+        super().__init__(platform, theme='std', background=s0)
         
-        # Create 4 distinct background engines for the 4 quadrants
-        self.engines = []
+        outline={'colour':'mid', 'width':3, 'radius':5}
+        # Layout
+        rows = RowFramer(self, padding=20, padpc=0.02, outline=outline)
+        top = ColFramer(rows, padding=10, padpc=0.02)
+        bot = ColFramer(rows, padding=10, padpc=0.02   )
         
+        # Define a safe peak accent style to prevent colour errors
+
+
         # 1. Vignette (TL)
-        s1 = BackgroundStyle(base_color='mid', vignette=VignetteStyle(strength=1.0, radius=0.5, softness=0.4))
-        self.engines.append(BackgroundBase(platform, s1))
+ 
+        # f1 = Frame(top, background=s1)
+        top += TextFrame(top, background=s1, outline=outline ,text="Vignette (Strong)")
         
         # 2. Noise (TR)
-        s2 = BackgroundStyle(base_color='dark', noise=NoiseStyle(strength=0.2, speed=0.5))
-        self.engines.append(BackgroundBase(platform, s2))
+        s2 = BackgroundStyle(colour='mid', theme=self.theme, noise=NoiseStyle(strength=0.2, speed=0.5), peak_accent=peak_style)
+        # f2 = Frame(top, background=s2)
+        top += TextFrame(top, background=s2, outline=outline ,text="Noise (Heavy)", colour='light')
         
         # 3. Ambient Glow (BL)
-        s3 = BackgroundStyle(base_color='black', ambient_glow=AmbientGlowStyle(color='alert', opacity=1.0, radius=0.5, softness=0.5))
-        self.engines.append(BackgroundBase(platform, s3))
+        s3 = BackgroundStyle(colour='dark', theme=self.theme, ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.8, radius=0.5, softness=0.2))
+        # f3 = Frame(bot, background=s3)
+        bot += TextFrame(bot, background=s3, outline=outline ,text="Ambient Glow (Pulse)", colour='foreground')
         
         # 4. Reactive Glow (BR)
-        s4 = BackgroundStyle(base_color='black', reactive_glow=ReactiveGlowStyle(color='light', attack=0.1, decay=0.1, threshold=0.0))
-        self.engines.append(BackgroundBase(platform, s4))
+        s4 = BackgroundStyle(colour='dark', theme=self.theme, reactive_glow=ReactiveGlowStyle(colour='light', attack=0.1, decay=0.1, threshold=0.0))
+        # f4 = Frame(bot, background=s4)
+        bot += TextFrame(bot, background=s4, outline=outline, text="Reactive Glow (Audio)", colour='light')
 
-        # Add Labels
-        rows = RowFramer(self)
-        top = ColFramer(rows)
-        bot = ColFramer(rows)
-        top += TextFrame(top, text="Vignette (Strong)", colour='light')
-        top += TextFrame(top, text="Noise (Heavy)", colour='light')
-        bot += TextFrame(bot, text="Ambient Glow (Pulse)", colour='light')
-        bot += TextFrame(bot, text="Reactive Glow (Audio)", colour='light')
-
-    def update_screen(self, full=False, **kwargs):
-        # Calculate Viewports for 4 Quadrants (Bottom-Left Origin for GL)
-        w, h = self.platform.W, self.platform.H
-        hw, hh = int(w/2), int(h/2)
-        viewports = [
-            (0, hh, hw, hh),  # TL
-            (hw, hh, hw, hh), # TR
-            (0, 0, hw, hh),   # BL
-            (hw, 0, hw, hh)   # BR
-        ]
-
-        # Fake pulse for testing if no audio
-        sim_pulse = (math.sin(time.time() * 3) + 1) / 2.0
-        
-        audio_data = {'mono': sim_pulse, 'peak_mono': sim_pulse}
-        if hasattr(self.platform, 'vu') and self.platform.vu['mono'] > 0.01:
-             audio_data = {'mono': self.platform.vu['mono'], 'peak_mono': self.platform.peak['mono']}
-
-        for i, engine in enumerate(self.engines):
-            engine.set_viewport(viewports[i])
-            engine.update(audio_data)
-            if hasattr(self.platform, 'compositor'):
-                self.platform.compositor.add_pre_pass(engine.get_render_pass())
-        
-        super().update_screen(full, **kwargs)
+    # def update_screen(self, full=True, **kwargs):
+    #     # if hasattr(self.platform, 'compositor'):
+    #     #     self.platform.compositor.debug_view = 'pre_pass_output'
+    #     super().update_screen(full, **kwargs)
 
 
 class BackgroundEffectsScreen2(Frame):
@@ -213,52 +198,31 @@ class BackgroundEffectsScreen2(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi', background=None)
+        super().__init__(platform, theme='hifi')
         
-        self.engines = []
+        rows = RowFramer(self, padding=30)
+        top = ColFramer(rows, padding=10, padpc=0.02); bot = ColFramer(rows, padding=10, padpc=0.02)
         tex = 'metal.jpg'
         
         # 1. Texture + Vignette
-        s1 = BackgroundStyle(base_color='mid', texture_path=tex, texture_opacity=0.5, vignette=VignetteStyle(strength=0.8, radius=0.6))
-        self.engines.append(BackgroundBase(platform, s1))
+        s1 = BackgroundStyle(colour='foreground', theme=self.theme, texture_path=tex, texture_opacity=0.1, vignette=VignetteStyle(strength=1.8, radius=0.2))
+        # f1 = Frame(top, background=s1)
+        top += TextFrame(top, background=s1, text="Tex + Vignette", colour='light')
         
         # 2. Texture + Noise
-        s2 = BackgroundStyle(base_color='dark', texture_path=tex, texture_opacity=0.5, noise=NoiseStyle(strength=0.15))
-        self.engines.append(BackgroundBase(platform, s2))
+        s2 = BackgroundStyle(colour='background', theme=self.theme, texture_path=tex, texture_opacity=0.1, noise=NoiseStyle(strength=0.15))
+        # f2 = Frame(top, background=s2)
+        top += TextFrame(top, background=s2, text="Tex + Noise", colour='light')
         
         # 3. Texture + Ambient
-        s3 = BackgroundStyle(base_color='dark', texture_path=tex, texture_opacity=0.3, ambient_glow=AmbientGlowStyle(color='mid', opacity=0.8))
-        self.engines.append(BackgroundBase(platform, s3))
+        s3 = BackgroundStyle(colour='foreground', theme=self.theme, texture_path=tex, texture_opacity=0.9, ambient_glow=AmbientGlowStyle(colour='mid', opacity=0.8))
+        # f3 = Frame(bot, background=s3)
+        bot += TextFrame(bot, background=s3, text="Tex + Ambient", colour='light')
         
         # 4. Texture + Reactive
-        s4 = BackgroundStyle(base_color='dark', texture_path=tex, texture_opacity=0.3, reactive_glow=ReactiveGlowStyle(color='alert', threshold=0.0))
-        self.engines.append(BackgroundBase(platform, s4))
-
-        rows = RowFramer(self)
-        top = ColFramer(rows); bot = ColFramer(rows)
-        top += TextFrame(top, text="Tex + Vignette", align=('centre', 'middle'), colour='light')
-        top += TextFrame(top, text="Tex + Noise", align=('centre', 'middle'), colour='light')
-        bot += TextFrame(bot, text="Tex + Ambient", align=('centre', 'middle'), colour='light')
-        bot += TextFrame(bot, text="Tex + Reactive", align=('centre', 'middle'), colour='light')
-
-    def update_screen(self, full=False, **kwargs):
-        w, h = self.platform.W, self.platform.H
-        hw, hh = int(w/2), int(h/2)
-        viewports = [(0, hh, hw, hh), (hw, hh, hw, hh), (0, 0, hw, hh), (hw, 0, hw, hh)]
-
-        sim_pulse = (math.sin(time.time() * 3) + 1) / 2.0
-        audio_data = {'mono': sim_pulse, 'peak_mono': sim_pulse}
-        if hasattr(self.platform, 'vu') and self.platform.vu['mono'] > 0.01:
-             audio_data = {'mono': self.platform.vu['mono'], 'peak_mono': self.platform.peak['mono']}
-
-        for i, engine in enumerate(self.engines):
-            engine.set_viewport(viewports[i])
-            engine.update(audio_data)
-            if hasattr(self.platform, 'compositor'):
-                self.platform.compositor.add_pre_pass(engine.get_render_pass())
-        
-        super().update_screen(full, **kwargs)
-
+        s4 = BackgroundStyle(colour='dark', theme=self.theme, texture_path=tex, texture_opacity=0.1, starfield=StarfieldStyle(density=50, speed=0.5))
+        # f4 = Frame(bot, background=s4)
+        bot += TextFrame(bot, background=s4, text="Tex + Stars", colour='light')
 
 class GlowTestScreen(Frame):
     @property
@@ -268,7 +232,7 @@ class GlowTestScreen(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi', background=None) # No background to interfere
+        super().__init__(platform, theme='hifi', background='background') # No background to interfere
         
         # A row of bars with different brightness levels
         cols = ColFramer(self, col_ratios=(1, 1, 1, 1), padding=50, padpc=0.1)
@@ -295,7 +259,7 @@ class GlowTestScreen(Frame):
         # Tell the compositor to render the glow buffer for debugging
         if hasattr(self.platform, 'compositor'):
             # self.platform.compositor.debug_view = 'glow'
-            # Lower threshold so standard bright colors (max 1.0) trigger the glow for testing
+            # Lower threshold so standard bright colours (max 1.0) trigger the glow for testing
             self.platform.compositor.glow_extraction_pass.threshold = 0.5
         
         super().update_screen(full, **kwargs)
@@ -333,7 +297,7 @@ class BarEffectsTestScreen(Frame):
                                                                             5.0 (Huge halo)	        1.5 to 3.0   Needs to be >1.0 to be clearly visible behind the bar.
         intensity_alpha	        **The Brightness.**The maximum opacity 
                                 of the glow when the bar hits 100%.	        0 (Invisible)to
-                                                                            255 (Solid color)	    50 to 150   Keep it semi-transparent so it looks like light, not a solid block.
+                                                                            255 (Solid colour)	    50 to 150   Keep it semi-transparent so it looks like light, not a solid block.
         intensity_blur	        **The Softness.**Multiplier for the edge 
                                 blur. Relates to the bar size. 0.0 is 
                                 sharp, 1.0 is a standard soft glow.	        0.0 (Sharp)to
@@ -344,4 +308,147 @@ class BarEffectsTestScreen(Frame):
             eff_h = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
             horzbars += BarTest(horzbars, level, orient='horz', effects=eff_h)
             eff_v = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=0.5)
-            vertbars += BarTest(vertbars, level, orient='vert', theme='std', effects=eff_v)        
+            vertbars += BarTest(vertbars, level, orient='vert', theme='std', effects=eff_v)
+
+class OutlineGlowTestScreen(Frame):
+    @property
+    def title(self): return 'Outline Glow Effects Test'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        super().__init__(platform, theme='hifi', background={'image': 'particles.jpg', 'opacity': 50})
+        
+        rows = RowFramer(self, padding=30, padpc=0.05)
+        
+        # Row 1: Intensity Variations
+        r1 = ColFramer(rows, col_ratios=(1, 1, 1), padding=20,padpc=0.3)
+        
+        # 1. Subtle (Default-ish)
+        style1 = {'colour': 'light', 'width': 2, 'radius': 10, 'glow_intensity': 0.2, 'softness': 0.5}
+        r1 += TextFrame(r1, text="Subtle Glow\nInt: 0.2, Soft: 0.5", align=('centre', 'middle'), 
+                        outline=style1, background='dark')
+
+        # 2. Medium
+        style2 = {'colour': 'alert', 'width': 3, 'radius': 10, 'glow_intensity': 1.0, 'softness': 0.5}
+        r1 += TextFrame(r1, text="Medium Glow\nInt: 1.0, Soft: 0.5", align=('centre', 'middle'), 
+                        outline=style2, background='dark')
+
+        # 3. Intense
+        style3 = {'colour': 'foreground', 'width': 2, 'radius': 10, 'glow_intensity': 2.0, 'softness': 0.5}
+        r1 += TextFrame(r1, text="Intense Glow\nInt: 2.0, Soft: 0.5", align=('centre', 'middle'), 
+                        outline=style3, background='dark')
+
+        # Row 2: Softness Variations
+        r2 = ColFramer(rows, col_ratios=(1, 1, 1), padding=20,padpc=0.3)
+
+        # 1. Sharp
+        style4 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 0.1}
+        r2 += TextFrame(r2, text="Sharp Glow\nSoft: 0.1", align=('centre', 'middle'), 
+                        outline=style4, background='dark')
+
+        # 2. Soft
+        style5 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 1.0}
+        r2 += TextFrame(r2, text="Soft Glow\nSoft: 1.0", align=('centre', 'middle'), 
+                        outline=style5, background='dark')
+
+        # 3. Very Diffuse
+        style6 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 2.0}
+        r2 += TextFrame(r2, text="Diffuse Glow\nSoft: 2.0", align=('centre', 'middle'), 
+                        outline=style6, background='dark')
+
+class ParameterTuner:
+    def __init__(self, target_object, parameters):
+        """
+        target_object: The object instance to modify (e.g. an AmbientGlowStyle instance)
+        parameters: List of dicts defining the params:
+                    [{'name': 'Radius', 'attr': 'radius', 'min': 0.0, 'max': 5.0, 'step': 0.1}, ...]
+        """
+        self.target = target_object
+        self.params = parameters
+        self.selected_index = 0
+
+    def handle_key(self, key):
+        # Number keys 1-9 to select parameter
+        if key >= pygame.K_1 and key <= pygame.K_9:
+            idx = key - pygame.K_1
+            if idx < len(self.params):
+                self.selected_index = idx
+                print(f"Selected: {self.params[idx]['name']}")
+        
+        # Up/Down to adjust value
+        elif key == pygame.K_UP:
+            self._adjust(1)
+        elif key == pygame.K_DOWN:
+            self._adjust(-1)
+            
+    def _adjust(self, direction):
+        p = self.params[self.selected_index]
+        attr = p['attr']
+        current_val = getattr(self.target, attr)
+        new_val = current_val + (p['step'] * direction)
+        
+        # Clamp
+        new_val = max(p['min'], min(p['max'], new_val))
+        
+        # Set
+        setattr(self.target, attr, new_val)
+        # print(f"Adjusted {p['name']} to {new_val:.2f}")
+
+    def get_display_text(self):
+        lines = ["Parameter Tuner (Keys 1-{}, Up/Down)".format(len(self.params))]
+        for i, p in enumerate(self.params):
+            val = getattr(self.target, p['attr'])
+            prefix = ">> " if i == self.selected_index else "   "
+            lines.append(f"{prefix}{i+1}. {p['name']}: {val:.2f}")
+        lines.append("\nPress 'S' to print Preset code")
+        return "\n".join(lines)
+
+class AmbientGlowTunerScreen(Frame):
+    @property
+    def title(self): return 'Ambient Glow Tuner'
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        # 1. Create the style object we want to tune
+        self.glow_style = AmbientGlowStyle(colour='light', opacity=0.5, radius=1.0, softness=0.5)
+        
+        # 2. Create background using this style object
+        bg_style = BackgroundStyle(colour='background', ambient_glow=self.glow_style)
+        
+        super().__init__(platform, theme='hifi', background=bg_style)
+        
+        # 3. Setup Tuner
+        params = [
+            {'name': 'Radius',   'attr': 'radius',   'min': 0.0, 'max': 3.0, 'step': 0.1},
+            {'name': 'Softness', 'attr': 'softness', 'min': 0.0, 'max': 2.0, 'step': 0.05},
+            {'name': 'Opacity',  'attr': 'opacity',  'min': 0.0, 'max': 1.0, 'step': 0.05},
+        ]
+        self.tuner = ParameterTuner(self.glow_style, params)
+        
+        # 4. Display Frame
+        self.info_display = TextFrame(self, text="", align=('centre', 'middle'), 
+                                      background={'colour':'dark', 'opacity': 150}, 
+                                      outline={'colour':'mid', 'width':1})
+        self += self.info_display
+
+    def handle_key(self, key):
+        if key == pygame.K_s:
+            self.print_preset()
+        else:
+            self.tuner.handle_key(key)
+            # Force update of text
+            self.info_display.textcomp.text = self.tuner.get_display_text()
+
+    def update_screen(self, full=False, **kwargs):
+        # Update text content
+        self.info_display.textcomp.text = self.tuner.get_display_text()
+        super().update_screen(full, **kwargs)
+
+    def print_preset(self):
+        g = self.glow_style
+        print("\n--- PRESET CODE ---")
+        print(f"AmbientGlowStyle(colour='{g.colour}', radius={g.radius:.2f}, softness={g.softness:.2f}, opacity={g.opacity:.2f})")
+        print("-------------------\n")

@@ -13,7 +13,7 @@ import numpy as np
 
 
 
-BACKGROUND_COLOR = (10, 10, 20)  # Dark Blue/Grey, a nice HiFi screen background
+BACKGROUND_colour = (10, 10, 20)  # Dark Blue/Grey, a nice HiFi screen background
 class RenderContext:
     """
     Wraps the ModernGL context and manages shared resources.
@@ -35,13 +35,18 @@ class RenderContext:
         ], dtype='f4')
         
         self.quad_buffer = self.ctx.buffer(self.quad_data)
+        
+        # Create a dummy texture to bind when no texture is needed, 
+        # preventing feedback loops if the FBO target was previously bound to a texture unit.
+        self.empty_texture = self.ctx.texture((1, 1), 4)
+        self.empty_texture.write(b'\x00\x00\x00\x00')
 
     def resize(self, size: tuple[int, int]):
         self.size = size
         self.ctx.viewport = (0, 0, size[0], size[1])
 
-    def clear(self, color=(0.0, 0.0, 0.0, 1.0)):
-        self.ctx.clear(*color)
+    def clear(self, colour=(0.0, 0.0, 0.0, 1.0)):
+        self.ctx.clear(*colour)
 
     def get_quad_buffer(self):
         return self.quad_buffer
@@ -90,8 +95,8 @@ class RenderTarget:
     def use(self):
         self.fbo.use()
 
-    def clear(self, color=(0,0,0,0)):
-        self.fbo.clear(*color)
+    def clear(self, colour=(0,0,0,0)):
+        self.fbo.clear(*colour)
 
 class PingPongBuffer:
     """
@@ -141,9 +146,9 @@ class TextureBlitPass(RenderPass):
                 #version 330
                 uniform sampler2D source_texture;
                 in vec2 v_uv;
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    f_color = texture(source_texture, v_uv);
+                    f_colour = texture(source_texture, v_uv);
                 }
             """
         )
@@ -185,14 +190,14 @@ class BlurPass(RenderPass):
                 uniform sampler2D image;
                 uniform bool horizontal;
                 in vec2 v_uv;
-                out vec4 f_color;
+                out vec4 f_colour;
                 
                 // 5-tap Gaussian weights
                 uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 
                 void main() {
                     vec2 tex_offset = 1.0 / textureSize(image, 0); 
-                    float spread = 3.0; // Increase spread for wider, softer glow
+                    float spread = 1.0; // Reduced spread for smoother blur (less blocky)
                     vec3 result = texture(image, v_uv).rgb * weight[0]; 
                     
                     if(horizontal) {
@@ -206,7 +211,7 @@ class BlurPass(RenderPass):
                             result += texture(image, v_uv - vec2(0.0, tex_offset.y * i * spread)).rgb * weight[i];
                         }
                     }
-                    f_color = vec4(result, 1.0);
+                    f_colour = vec4(result, 1.0);
                 }
             """
         )
@@ -255,18 +260,18 @@ class CompositePass(RenderPass):
                 uniform sampler2D bloom;
                 uniform float bloom_intensity;
                 in vec2 v_uv;
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    vec4 hdrColor = texture(scene, v_uv);
-                    vec3 bloomColor = texture(bloom, v_uv).rgb;
+                    vec4 hdrcolour = texture(scene, v_uv);
+                    vec3 bloomcolour = texture(bloom, v_uv).rgb;
                     
                     // Additive blending
-                    vec3 result = hdrColor.rgb + bloomColor * bloom_intensity;
+                    vec3 result = hdrcolour.rgb + bloomcolour * bloom_intensity;
 
                     // Removed Tone mapping and Gamma correction to prevent "fog" / washout.
                     // The input scene is assumed to be sRGB-ish already, so we just add the bloom.
 
-                    f_color = vec4(result, hdrColor.a);
+                    f_colour = vec4(result, hdrcolour.a);
                 }
             """
         )
@@ -292,6 +297,93 @@ class CompositePass(RenderPass):
         
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
 
+class FXAAPass(RenderPass):
+    """
+    Fast Approximate Anti-Aliasing (FXAA) pass.
+    Reduces jagged edges in the final image.
+    """
+    def __init__(self, context: 'RenderContext'):
+        super().__init__(context)
+        self.prog = self.ctx.program(
+            vertex_shader="""
+                #version 330
+                in vec2 in_vert;
+                in vec2 in_uv;
+                out vec2 v_uv;
+                void main() {
+                    gl_Position = vec4(in_vert, 0.0, 1.0);
+                    v_uv = in_uv;
+                }
+            """,
+            fragment_shader="""
+                #version 330
+                uniform sampler2D tex;
+                uniform vec2 resolution;
+                in vec2 v_uv;
+                out vec4 f_colour;
+
+                #ifndef FXAA_REDUCE_MIN
+                  #define FXAA_REDUCE_MIN   (1.0/ 128.0)
+                #endif
+                #ifndef FXAA_REDUCE_MUL
+                  #define FXAA_REDUCE_MUL   (1.0/ 8.0)
+                #endif
+                #ifndef FXAA_SPAN_MAX
+                  #define FXAA_SPAN_MAX     8.0
+                #endif
+
+                void main() {
+                    vec2 inverseVP = 1.0 / resolution;
+                    vec3 rgbNW = texture(tex, v_uv + (vec2(-1.0, -1.0) * inverseVP)).xyz;
+                    vec3 rgbNE = texture(tex, v_uv + (vec2(1.0, -1.0) * inverseVP)).xyz;
+                    vec3 rgbSW = texture(tex, v_uv + (vec2(-1.0, 1.0) * inverseVP)).xyz;
+                    vec3 rgbSE = texture(tex, v_uv + (vec2(1.0, 1.0) * inverseVP)).xyz;
+                    vec3 rgbM  = texture(tex, v_uv).xyz;
+                    vec3 luma = vec3(0.299, 0.587, 0.114);
+                    float lumaNW = dot(rgbNW, luma);
+                    float lumaNE = dot(rgbNE, luma);
+                    float lumaSW = dot(rgbSW, luma);
+                    float lumaSE = dot(rgbSE, luma);
+                    float lumaM  = dot(rgbM,  luma);
+                    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+                    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+                    vec2 dir;
+                    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+                    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+                    float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+                    float inverseDirAdjustment = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+                    dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
+                          max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+                          dir * inverseDirAdjustment)) * inverseVP;
+                    vec3 rgbA = 0.5 * (
+                        texture(tex, v_uv + dir * (1.0 / 3.0 - 0.5)).xyz +
+                        texture(tex, v_uv + dir * (2.0 / 3.0 - 0.5)).xyz);
+                    vec3 rgbB = rgbA * 0.5 + 0.25 * (
+                        texture(tex, v_uv + dir * -0.5).xyz +
+                        texture(tex, v_uv + dir * 0.5).xyz);
+                    float lumaB = dot(rgbB, luma);
+                    if ((lumaB < lumaMin) || (lumaB > lumaMax)) {
+                        f_colour = vec4(rgbA, 1.0);
+                    } else {
+                        f_colour = vec4(rgbB, 1.0);
+                    }
+                }
+            """
+        )
+        self.quad_vao = self.ctx.simple_vertex_array(self.prog, context.get_quad_buffer(), 'in_vert', 'in_uv')
+
+    def render(self, input_target: 'RenderTarget', output_target: 'RenderTarget' = None, **kwargs):
+        if output_target:
+            output_target.use()
+        else:
+            self.ctx.screen.use()
+        
+        self.ctx.disable(moderngl.BLEND)
+        input_target.texture.use(location=0)
+        self.prog['tex'].value = 0
+        self.prog['resolution'].value = (input_target.texture.width, input_target.texture.height)
+        self.quad_vao.render(moderngl.TRIANGLE_STRIP)
+
 class Compositor:
     """Orchestrates the rendering pipeline."""
     def __init__(self, context: RenderContext):
@@ -300,6 +392,9 @@ class Compositor:
         self.main_target = RenderTarget(context.ctx, context.size, scale=1.0, dtype='f2')
         # Ping-Pong buffer for glow/blur (Half resolution)
         self.glow_buffer = PingPongBuffer(context.ctx, context.size, scale=0.5, dtype='f2')
+        
+        # Intermediate target for post-processing (e.g. before FXAA)
+        self.post_process_target = RenderTarget(context.ctx, context.size, scale=1.0, dtype='f1')
         
         self.passes: list[RenderPass] = []
         self.pre_passes: list[RenderPass] = [] # Transient passes cleared every frame
@@ -310,10 +405,13 @@ class Compositor:
         # Add post-processing passes
         self.glow_extraction_pass = GlowExtractionPass(context, threshold=1.0)
         self.post_passes.append(self.glow_extraction_pass)
-        self.blur_pass = BlurPass(context, iterations=2)
+        self.blur_pass = BlurPass(context, iterations=4)
         self.composite_pass = CompositePass(context)
+        self.fxaa_pass = FXAAPass(context)
         
         self.bloom_intensity = 0.8 # Slightly reduce default intensity
+        self.fxaa_enabled = True
+        
         self.debug_view = None # Can be 'glow'
     def add_pass(self, render_pass: RenderPass, at_start=False):
         if at_start:
@@ -328,6 +426,7 @@ class Compositor:
         self.context.resize(size)
         self.main_target.resize(size)
         self.glow_buffer.resize(size)
+        self.post_process_target.resize(size)
         for p in self.passes:
             p.resize(size)
         for p in self.post_passes:
@@ -340,22 +439,38 @@ class Compositor:
         2. (Future) Runs post-processing passes like blur and glow composite.
         3. Blits the final FBO to the screen (backbuffer).
         """
+        # print("Compositor.render_frame> Start")
+
         # --- Pass 1: Geometry ---
         # All standard drawing goes into our main off-screen buffer.
         self.main_target.use()
-        bg = [c/255.0 for c in BACKGROUND_COLOR]
-        self.main_target.clear(color=(bg[0], bg[1], bg[2], 1.0))
+        bg = [c/255.0 for c in BACKGROUND_colour]
+        self.main_target.clear(colour=(bg[0], bg[1], bg[2], 1.0))
+        # print(f"Compositor.render_frame> Main Target FBO: {self.main_target.fbo.glo}")
+        # print(f"Compositor.render_frame> Cleared main target to {bg}")
         
         # Ensure standard blending for pre-passes
+        self.context.ctx.enable(moderngl.BLEND)
         self.context.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
         
         # Execute transient pre-passes (e.g. Backgrounds)
+        if self.pre_passes:
+            # print(f"Compositor.render_frame> Executing {len(self.pre_passes)} pre-passes")
+            pass # Keep commented out unless needed for deep debug
         for p in self.pre_passes:
-            p.render(output_target=self.main_target)
+            p.render(target=self.main_target)
         
         # Execute all registered passes (just GeometryPass for now)
         for p in self.passes:
-            p.render(output_target=self.main_target)
+            p.render()
+
+        # --- DEBUG VIEW: Pre-Pass Output ---
+        # If enabled, this will immediately draw the main_target to the screen
+        # after the pre-passes have run, bypassing all post-processing.
+        if self.debug_view == 'pre_pass_output':
+            self.final_blit_pass.render(input_target=self.main_target)
+            self.pre_passes = [] # Reset for next frame
+            return # STOP HERE
 
         # --- Pass 2: Post-Processing (Glow Extraction) ---
         self.glow_extraction_pass.render(input_target=self.main_target, output_target=self.glow_buffer.read)
@@ -368,8 +483,13 @@ class Compositor:
             # For testing, just show the glow map
             self.final_blit_pass.render(input_target=self.glow_buffer.read)
         else:
-            # Composite Glow back onto Main
-            self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, intensity=self.bloom_intensity)
+            if self.fxaa_enabled:
+                # Composite to intermediate buffer, then apply FXAA to screen
+                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, output_target=self.post_process_target, intensity=self.bloom_intensity)
+                self.fxaa_pass.render(input_target=self.post_process_target)
+            else:
+                # Composite directly to screen
+                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, intensity=self.bloom_intensity)
 
         # Reset transient state for the next frame
         self.pre_passes = []
@@ -403,11 +523,11 @@ class GlowExtractionPass(RenderPass):
                 uniform sampler2D source_texture;
                 uniform float threshold;
                 in vec2 v_uv;
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    vec3 color = texture(source_texture, v_uv).rgb;
-                    vec3 bright_color = max(vec3(0.0), color - threshold);
-                    f_color = vec4(bright_color, 1.0);
+                    vec3 colour = texture(source_texture, v_uv).rgb;
+                    vec3 bright_colour = max(vec3(0.0), colour - threshold);
+                    f_colour = vec4(bright_colour, 1.0);
                 }
             """
         )

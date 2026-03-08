@@ -1,10 +1,10 @@
-'''
+"""
 Mar 2026 Baloothebear4 v1
 
 Backgrounds and fundemental and core to the whole look and feel. They deserve their own shaders and focus
 
 
-'''
+"""
 
 from  pyvisualiser.core.framecore import Frame, Cache, Colour, get_asset_path
 from  pyvisualiser.core.components import Image
@@ -20,7 +20,7 @@ class ParticleSystem:
     def __init__(self, frame, config):
         self.frame = frame
         self.count = config.get('count', 50)
-        self.colour = config.get('colour', 'light')
+        self.color = config.get('colour', 'light')
         self.speed = config.get('speed', 1.0)
         self.size  = config.get('size', 2)
         self.softness = config.get('softness', 0.5)
@@ -46,7 +46,7 @@ class ParticleSystem:
         w, h = self.frame.abs_wh
         origin_x, origin_y = self.frame.abs_origin()
         
-        col = self.frame.colours.get(self.colour)
+        col = self.frame.colours.get(self.color)
         
         speed_mult = 1.0
         if self.react_to_music and hasattr(self.frame.platform, 'vu'):
@@ -82,15 +82,14 @@ class ParticleSystem:
 class Background:
 
     BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 255, \
-                             'glow': False} 
-    # BACKGROUND_IMAGE_PATH = '../backgrounds'
+                             'per_frame_update':False, 'glow': False} 
+    BACKGROUND_IMAGE_PATH = '../backgrounds'
 
 
     # background is a Str with a colour index eg 'background' or a Dict with the {path, opacity} for an image
     def __init__(self, frame, background=None):
         self.frame            = frame
         self.background_image = None
-        self.background_base  = None
         self.background       = {'colour':None}
         self.BACKGROUND_ART   = {  'album':  { 'update_fn': frame.platform.album_art,  'square' : False},
                                    'artist': { 'update_fn': frame.platform.artist_art, 'square' : False} }
@@ -105,8 +104,7 @@ class Background:
         # --- NEW: OpenGL Background Style Support ---
         elif isinstance(background, BackgroundStyle):
             self.background_base = BackgroundBase(frame, background)
-            self.background = {'type': 'opengl'}
-            
+            self.background = {'type': 'opengl', 'per_frame_update': True}
 
         elif isinstance(background, dict) and 'image' in background:
             self.background.update(background)
@@ -114,7 +112,7 @@ class Background:
             
         elif isinstance(background, dict) and any(key in background for key in ('colour','opacity','glow','particles')):
             self.background.update(background)
-            # if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
+            if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
             if 'opacity'          not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})   
             if 'glow'             not in self.background:   self.background.update({'glow': Background.BACKGROUND_DEFAULT['glow']})
 
@@ -130,13 +128,14 @@ class Background:
 
         # its a colour
         else:
-            self.background.update({'colour':background, 'opacity': Background.BACKGROUND_DEFAULT['opacity']})
+            self.background.update({'colour':background, 'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update'], 'opacity': Background.BACKGROUND_DEFAULT['opacity']})
 
         # print("Background.__init__> background is", self.background, self.frame.framestr())
 
 
     def make_image(self):
         if 'opacity'           not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})    
+        if 'per_frame_update'  not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']})    
 
         # use artist or album art as the background
         if self.background['image'] in ('artist', 'album'):
@@ -177,63 +176,66 @@ class Background:
             self.background_base.draw()
             return
 
-        print("Background.draw> LEGACY background draw", self.background, self.frame.framestr())
+        BLACK = (0,0,0)
 
-        if self.background.get('glow'):
-            # Draw glow using OpenGL renderer
-            rect_coords = self.frame.abs_background()
-            c_name = self.background.get('colour')
-            if c_name is None: c_name = 'background'
-            
-            colour = self.frame.colours.get(c_name)
-            # Increase opacity for visibility and use additive blending
-            opacity = self.background.get('opacity', 255) * 0.8
-            
-            if len(colour) == 3:
-                glow_col = list(colour) + [opacity]
+        # print("Background.draw> Test background", self.background, self.frame.framestr())
+        if perform_update or self.background['per_frame_update']:
+
+
+            if self.background.get('glow'):
+                # Draw glow using OpenGL renderer
+                rect_coords = self.frame.abs_background()
+                c_name = self.background.get('colour')
+                if c_name is None: c_name = 'background'
+                
+                colour = self.frame.colours.get(c_name)
+                # Increase opacity for visibility and use additive blending
+                opacity = self.background.get('opacity', 255) * 0.8
+                
+                if len(colour) == 3:
+                    glow_col = list(colour) + [opacity]
+                else:
+                    glow_col = list(colour)
+                    glow_col[3] = opacity
+                
+                self.frame.platform.renderer.draw_rect(glow_col, rect_coords, softness=1.5, additive=True)
+
+            if self.background_image is None:
+                if self.background['colour'] is None: return
+
+                # 1. Get the coordinates and dimensions of the area to fill
+                rect_coords = self.frame.abs_background()  # Should be (x, y, w, h)
+                rect_w, rect_h = rect_coords[2:]
+
+                colour = self.frame.colours.get(self.background['colour'])
+                
+                # Use the renderer to draw the rect directly with opacity
+                # We need to append the opacity to the colour tuple if it's not already there
+                if len(colour) == 3:
+                    colour = list(colour) + [self.background['opacity']]
+                elif len(colour) == 4:
+                    colour = list(colour)
+                    colour[3] = self.background['opacity']
+                
+                shadow = self.background.get('shadow')
+                self.frame.platform.renderer.draw_rect(colour, rect_coords, shadow=shadow)
+
+                if hasattr(self, 'particle_system'):
+                    self.particle_system.draw()
+ 
             else:
-                glow_col = list(colour)
-                glow_col[3] = opacity
-            
-            self.frame.platform.renderer.draw_rect(glow_col, rect_coords, softness=1.5, additive=True)
+                if self.background['image'] in ('artist', 'album'):
+                    image_ref = self.update_fn()
+                else:
+                    image_ref =None
 
-        if self.background_image is None:
-            if self.background['colour'] is None: return
-
-            # 1. Get the coordinates and dimensions of the area to fill
-            rect_coords = self.frame.abs_background()  # Should be (x, y, w, h)
-            rect_w, rect_h = rect_coords[2:]
-
-            colour = self.frame.colours.get(self.background['colour'])
-            
-            # Use the renderer to draw the rect directly with opacity
-            # We need to append the opacity to the colour tuple if it's not already there
-            if len(colour) == 3:
-                colour = list(colour) + [self.background['opacity']]
-            elif len(colour) == 4:
-                colour = list(colour)
-                colour[3] = self.background['opacity']
-            
-            shadow = self.background.get('shadow')
-            self.frame.platform.renderer.draw_rect(colour, rect_coords, shadow=shadow)
-
-            if hasattr(self, 'particle_system'):
-                self.particle_system.draw()
-
-        else:
-            if self.background['image'] in ('artist', 'album'):
-                image_ref = self.update_fn()
-            else:
-                image_ref =None
-
-            self.background_image.draw(image_data=image_ref, coords=self.frame.abs_background()[:2]) 
+                self.background_image.draw(image_data=image_ref, coords=self.frame.abs_background()[:2]) 
 
             # print("Background.draw> ", self.background )  
 
         # print("Background.draw> draw ", perform_update, self.background['per_frame_update'], self.background, self.frame.framestr() )  
   
-    def __str__(self):
-        return str(self.background)
+
 
 #---- End Background -------     
 
@@ -333,9 +335,9 @@ class BackgroundRenderPass(RenderPass):
             fragment_shader="""
                 #version 330
                 in vec2 v_uv;
-                out vec4 f_colour;
+                out vec4 f_color;
 
-                uniform vec3 u_colour;
+                uniform vec3 u_base_color;
                 uniform float u_time;
 
                 // Texture
@@ -352,41 +354,37 @@ class BackgroundRenderPass(RenderPass):
                 uniform float u_noise_strength;
 
                 // Ambient Glow
-                uniform vec3 u_ambient_colour;
+                uniform vec3 u_ambient_color;
                 uniform float u_ambient_opacity;
                 uniform float u_ambient_radius;
                 uniform float u_ambient_softness;
 
                 // Reactive Glow
-                uniform vec3 u_reactive_colour;
+                uniform vec3 u_reactive_color;
                 uniform float u_reactive_intensity;
 
                 // Peak Accent
-                uniform vec3 u_peak_accent_colour;
+                uniform vec3 u_peak_accent_color;
                 uniform float u_peak_intensity;
-
-                // Starfield
-                uniform float u_starfield_density;
-                uniform float u_starfield_speed;
 
                 float random(vec2 st) {
                     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
                 }
 
                 void main() {
-                    vec4 colour = vec4(u_colour, 1.0);
+                    vec4 color = vec4(u_base_color, 1.0);
                     
                     // 1. Texture Layer
                     if (u_has_texture) {
-                        vec4 texcolour = texture(u_texture, v_uv);
-                        colour = mix(colour, texcolour, u_texture_opacity);
+                        vec4 texColor = texture(u_texture, v_uv);
+                        color = mix(color, texColor, u_texture_opacity);
                     }
                     
                     // 2. Noise Layer (Film Grain)
                     if (u_noise_strength > 0.0) {
                         float noise = random(v_uv + u_time * 0.1);
                         // Overlay noise (centered around 0)
-                        colour.rgb += (noise - 0.5) * u_noise_strength;
+                        color.rgb += (noise - 0.5) * u_noise_strength;
                     }
                     
                     // 3. Ambient Glow (Radial wash from bottom-center)
@@ -394,14 +392,14 @@ class BackgroundRenderPass(RenderPass):
                         float dist = distance(v_uv, vec2(0.5, 0.0)); // Bottom center
                         // Smoothstep for soft falloff
                         float glow = 1.0 - smoothstep(u_ambient_radius - u_ambient_softness, u_ambient_radius + u_ambient_softness, dist);
-                        colour.rgb = mix(colour.rgb, u_ambient_colour, glow * u_ambient_opacity);
+                        color.rgb = mix(color.rgb, u_ambient_color, glow * u_ambient_opacity);
                     }
 
                     // 4. Reactive Glow (Pulsing from center)
                     if (u_reactive_intensity > 0.0) {
                         float dist = distance(v_uv, vec2(0.5, 0.5));
                         float glow = 1.0 - smoothstep(0.0, 0.6, dist); // Fixed radius for now
-                        colour.rgb += u_reactive_colour * glow * u_reactive_intensity;
+                        color.rgb += u_reactive_color * glow * u_reactive_intensity;
                     }
 
                     // 5. Peak Accent (Flash)
@@ -409,40 +407,17 @@ class BackgroundRenderPass(RenderPass):
                         // Subtle screen flash or edge highlight
                         float peak_dist = distance(v_uv, vec2(0.5, 0.5));
                         float peak_glow = (1.0 - smoothstep(0.05, 0.2, peak_dist)) * u_peak_intensity;
-                        colour.rgb += u_peak_accent_colour * peak_glow;
+                        color.rgb += u_peak_accent_color * peak_glow;
                     }
 
                     // 6. Vignette (Darken edges)
                     if (u_vignette_strength > 0.0) {
                         float d = distance(v_uv, vec2(0.5));
                         float v = smoothstep(u_vignette_radius, u_vignette_radius + u_vignette_softness, d);
-                        colour.rgb = mix(colour.rgb, vec3(0.0), v * u_vignette_strength);
+                        color.rgb = mix(color.rgb, vec3(0.0), v * u_vignette_strength);
                     }
 
-                    // 7. Starfield
-                    if (u_starfield_density > 0.0) {
-                        for (float i = 1.0; i <= 3.0; i++) {
-                            float speed = u_starfield_speed * 0.05 * i;
-                            vec2 shift = vec2(u_time * speed, 0.0);
-                            vec2 uv_scaled = v_uv * 10.0 * i + shift;
-                            vec2 id = floor(uv_scaled);
-                            vec2 pos = fract(uv_scaled) - 0.5;
-                            
-                            float n = random(id);
-                            
-                            if (n > (1.0 - u_starfield_density * 0.002)) {
-                                float size = 0.1 * n; 
-                                float star = 1.0 - smoothstep(0.0, size, length(pos));
-                                colour.rgb += vec3(star * n);
-                            }
-                        }
-                    }
-
-                    f_colour = colour;
-                    
-                    // DEBUG: Force Red if vignette is active to verify draw
-                    // if (u_vignette_strength > 0.9) f_colour = vec4(1.0, 0.0, 0.0, 1.0); 
-                    // f_colour = vec4(1.0, 0.0, 0.0, 1.0); // DEBUG: FORCE RED TO VERIFY GEOMETRY
+                    f_color = color;
                 }
             """
         )
@@ -450,8 +425,6 @@ class BackgroundRenderPass(RenderPass):
 
     def render(self, **kwargs):
         # Ensure standard blending is used for background, preventing additive bleed from previous frames
-        self.ctx.disable(moderngl.DEPTH_TEST)
-        self.ctx.disable(moderngl.CULL_FACE)
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
         
         # Handle Viewport for split-screen testing
@@ -459,26 +432,37 @@ class BackgroundRenderPass(RenderPass):
         if self.viewport:
             original_viewport = self.ctx.viewport
             self.ctx.viewport = self.viewport
-            # self.ctx.scissor = self.viewport # DEBUG: Disable Scissor to test FBO write access
-
-        # DEBUG: Clear to MAGENTA. If you see Magenta, the FBO is writable and the Pass is running.
-        # If you see Blue, the clear is being masked or ignored.
-        # print(f"  BackgroundRenderPass> Clearing FBO {self.ctx.fbo.size} to MAGENTA (Scissor Disabled)")
-        # self.ctx.clear(1.0, 0.0, 1.0, 1.0)
-
-        # --- START DEBUGGING ---
-        # print(f"\n--- BG Pass Render (Viewport: {self.viewport}) ---")
-        # --- END DEBUGGING ---
 
         self.prog['u_time'].value = time.time() - self.start_time
 
-        # We need a way to resolve theme colours to RGB floats (0-1).
-        # We will inject a `colour_resolver` function into this pass from BackgroundBase.
-        resolver = getattr(self, 'colour_resolver', lambda x: (0,0,0))
+        # Resolve colors from theme
+        def get_rgb(color_name):
+            if not color_name: return (0.0, 0.0, 0.0)
+            # Assuming Frame.colours logic is available or we use a helper
+            # For now, assume style passes color names that need lookup, OR hex/tuples
+            # Since we don't have easy access to Frame.colours here, we rely on style resolving it 
+            # OR we assume the style object has resolved colors. 
+            # Let's assume style colors are strings and we need to look them up in the theme palette
+            # BUT RenderPass doesn't have access to Frame.
+            # Solution: BackgroundBase should resolve colors before creating/updating style?
+            # Or we pass a resolver. For simplicity, let's assume style colors are valid hex/tuples or handled by BackgroundBase.
+            # Actually, BackgroundStyle usually holds strings like 'mid', 'dark'.
+            # We need the frame's colour palette.
+            return (0.0, 0.0, 0.0) # Placeholder, logic moved to BackgroundBase update
 
-        # Base colour
-        base_rgb = resolver(self.style.colour)
-        self.prog['u_colour'].value = base_rgb
+        # Uniforms are updated by BackgroundBase before calling render, 
+        # or we pull them here if we had access. 
+        # Better design: BackgroundBase pushes values to uniforms.
+        # But RenderPass.render is called by Compositor.
+        # So we must set uniforms here based on self.style and self.lighting state.
+        
+        # We need a way to resolve theme colors to RGB floats (0-1).
+        # We will inject a `color_resolver` function into this pass from BackgroundBase.
+        resolver = getattr(self, 'color_resolver', lambda x: (0,0,0))
+
+        # Base Color
+        base_rgb = resolver(self.style.base_color)
+        self.prog['u_base_color'].value = base_rgb
 
         # Texture
         if self.surface.texture:
@@ -487,16 +471,7 @@ class BackgroundRenderPass(RenderPass):
             self.prog['u_texture_opacity'].value = float(self.style.texture_opacity)
             self.prog['u_has_texture'].value = True
         else:
-            # Bind dummy texture to avoid feedback loop (reading from FBO target)
-            self.context.empty_texture.use(location=0)
-            self.prog['u_texture'].value = 0
             self.prog['u_has_texture'].value = False
-
-        # --- START DEBUGGING ---
-        # print(f"  Vignette Strength: {vignette_strength_val:.2f}, Noise Strength: {noise_strength_val:.2f}, Ambient Opacity: {ambient_opacity_val:.2f}")
-        # print(f"  Reactive Intensity: {reactive_intensity_val:.2f}, Peak Intensity: {peak_intensity_val:.2f}")
-        # print(f"  Has Texture: {has_texture_val}, Base colour: {colour_val}")
-        # --- END DEBUGGING ---
 
         # Vignette
         if self.style.vignette:
@@ -505,51 +480,37 @@ class BackgroundRenderPass(RenderPass):
             self.prog['u_vignette_softness'].value = float(self.style.vignette.softness)
         else:
             self.prog['u_vignette_strength'].value = 0.0
-            vignette_strength_val = 0.0
 
         # Noise
         if self.style.noise:
             self.prog['u_noise_strength'].value = float(self.style.noise.strength)
         else:
             self.prog['u_noise_strength'].value = 0.0
-            noise_strength_val = 0.0
 
         # Ambient Glow
         if self.style.ambient_glow:
-            self.prog['u_ambient_colour'].value = resolver(self.style.ambient_glow.colour)
+            self.prog['u_ambient_color'].value = resolver(self.style.ambient_glow.color)
             self.prog['u_ambient_opacity'].value = float(self.style.ambient_glow.opacity)
             self.prog['u_ambient_radius'].value = float(self.style.ambient_glow.radius)
             self.prog['u_ambient_softness'].value = float(self.style.ambient_glow.softness)
         else:
             self.prog['u_ambient_opacity'].value = 0.0
-            ambient_opacity_val = 0.0
 
         # Reactive Glow
         if self.style.reactive_glow:
-            self.prog['u_reactive_colour'].value = resolver(self.style.reactive_glow.colour)
+            self.prog['u_reactive_color'].value = resolver(self.style.reactive_glow.color)
             self.prog['u_reactive_intensity'].value = self.lighting.reactive_intensity
         else:
             self.prog['u_reactive_intensity'].value = 0.0
-            reactive_intensity_val = 0.0
 
         # Peak Accent
         if self.style.peak_accent:
-            self.prog['u_peak_accent_colour'].value = resolver(self.style.peak_accent.colour)
+            self.prog['u_peak_accent_color'].value = resolver(self.style.peak_accent.color)
             self.prog['u_peak_intensity'].value = self.lighting.peak_intensity
         else:
             self.prog['u_peak_intensity'].value = 0.0
-            peak_intensity_val = 0.0
 
-        # Starfield
-        if self.style.starfield:
-            self.prog['u_starfield_density'].value = float(self.style.starfield.density)
-            self.prog['u_starfield_speed'].value = float(self.style.starfield.speed)
-        else:
-            self.prog['u_starfield_density'].value = 0.0
-
-        # print(f"  BackgroundRenderPass> Drawing Quad... Program: {self.prog.glo}")
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
-        # print("  BackgroundRenderPass> Draw complete.")
 
         # Restore viewport
         if original_viewport:
@@ -574,15 +535,15 @@ class BackgroundBase:
         self.surface = BackgroundSurface(style, self.engine.render_context)
         self.render_pass = BackgroundRenderPass(self.engine.render_context, style, self.surface, self.lighting)
         
-        # Inject colour resolver into render pass
-        self.render_pass.colour_resolver = self._resolve_colour
+        # Inject color resolver into render pass
+        self.render_pass.color_resolver = self._resolve_color
 
-    def _resolve_colour(self, colour_name):
-        """Helper to convert theme colour names to (r,g,b) floats"""
-        if not colour_name: return (0.0, 0.0, 0.0)
+    def _resolve_color(self, color_name):
+        """Helper to convert theme color names to (r,g,b) floats"""
+        if not color_name: return (0.0, 0.0, 0.0)
         # Use Frame's Colour object to lookup
         # Colour.get returns (r,g,b) or (r,g,b,a) 0-255 integers
-        col = self.frame.colours.get(colour_name)
+        col = self.frame.colours.get(color_name)
         return tuple(c / 255.0 for c in col[:3])
 
     def update(self):
@@ -595,21 +556,37 @@ class BackgroundBase:
         if hasattr(self.engine, 'compositor'):
             # Calculate viewport for this frame
             # abs_rect returns (x, y, w, h) in Pygame coords (Top-Left origin)
-            # BUT Frame.abs_rect() is designed to return GL-compatible coordinates (x, y_bottom, w, h)
-            # because it does: screen_h - (y0 + h)
+            # OpenGL needs Bottom-Left origin.
+            # Geometry.abs_rect returns [x, y, w, h] where y is top-left.
+            # Geometry.norm() returns [a, b, c, d] where b is bottom-y relative to screen height?
+            # Let's use the frame's absolute coordinates carefully.
+            
             x, y, w, h = self.frame.abs_rect()
             
-            viewport = (int(x), int(y), int(w), int(h))
             # Convert Pygame Y (Top-Left) to OpenGL Y (Bottom-Left)
             # GL_Y = ScreenHeight - (Pygame_Y + Height)
-            screen_h = self.frame.platform.H
-            gl_y = screen_h - (y + h)
+            # Wait, Frame.abs_rect() calculation:
+            # rect = [x, int(screen_h - (y0 + h)), w, h]
+            # So rect[1] is the Top-Left Y.
+            # The Bottom-Left Y is simply screen_h - rect[1] - h?
+            # Actually, Frame.y0 is the bottom coordinate in normalized space.
+            # Let's look at Geometry.abs():
+            # rect = [x0, screen_h - (y0 + h), w, h]
+            # So y0 is the bottom Y.
+            # So for OpenGL viewport, we can just use (x0, y0, w, h) directly from the normalized coords!
+            # But we need to account for margins/padding which abs_rect does.
             
-            viewport = (int(x), int(gl_y), int(w), int(h))
+            # Let's recalculate GL viewport from Frame geometry:
+            # x = self.frame.x0 + outline + padding
+            # y = self.frame.y0 + outline + padding
             
-            # DEBUG: Trace coordinate calculation
-            # print(f"Background.draw> Frame: {type(self.frame).__name__} Abs: ({x}, {y}, {w}, {h}) -> GL Viewport: {viewport} (Screen H: {self.frame.platform.H})")
-            # print(f"Background.draw> Frame: {type(self.frame).__name__} Abs: ({x}, {y}, {w}, {h}) -> GL Viewport: {viewport} (Screen H: {screen_h})")
+            shrink = self.frame.outline_w + self.frame.padding
+            gl_x = self.frame.x0 + shrink
+            gl_y = self.frame.y0 + shrink
+            gl_w = self.frame.w - (shrink * 2)
+            gl_h = self.frame.h - (shrink * 2)
+            
+            viewport = (int(gl_x), int(gl_y), int(gl_w), int(gl_h))
             
             self.render_pass.viewport = viewport
             self.engine.compositor.add_pre_pass(self.render_pass)

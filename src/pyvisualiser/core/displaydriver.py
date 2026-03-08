@@ -663,7 +663,7 @@ class GeometryPass(RenderPass):
         # gradient should be a tuple (color_start, color_end)
         gradient = kwargs.get('gradient')
         axis = kwargs.get('axis', 1.0) # 1.0 = Vertical, 0.0 = Horizontal
-        level = kwargs.get('level', 1.0) # Default to full fill
+        level = kwargs.get('level', 10.0) # Default to NO clipping (was 1.0)
         gradient_image = kwargs.get('gradient_image')
         texture_holder = kwargs.get('texture_holder')
         additive = kwargs.get('additive', False)
@@ -712,7 +712,7 @@ class GeometryPass(RenderPass):
              # Match shader logic: float blur = v_softness * max(20.0, min_dim * 0.8);
              min_dim = min(w, h)
              blur_radius = softness * max(20.0, min_dim * 0.8)
-             padding = blur_radius + 1.0 # Add 1px safety margin
+             padding = blur_radius * 1.5 + 10.0 # Standard safety margin
 
         # Normalize to OpenGL Clip Space
         sw, sh = self.platform.W, self.platform.H
@@ -768,12 +768,13 @@ class GeometryPass(RenderPass):
             
         self.render_queue.extend(rect_data)
 
-    def draw_line(self, color, start_pos, end_pos, width=1, softness=0.0):
+    def draw_line(self, color, start_pos, end_pos, width=1, softness=0.0, **kwargs):
         """
         Draws a line by constructing a rotated rectangle and using the SDF shader.
         """
         # Ensure lines are drawn with standard blending unless specified otherwise
-        self.set_additive(False)
+        additive = kwargs.get('additive', False)
+        self.set_additive(additive)
 
         x1, y1 = start_pos
         x2, y2 = end_pos

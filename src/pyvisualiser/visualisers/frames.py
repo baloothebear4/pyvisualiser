@@ -14,8 +14,9 @@
 """
 
 # from    displaydriver import make_font, scaleImage, scalefont
-from    pyvisualiser.core.framecore  import Frame
-from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, Effects, BarStyle, SpectrumStyle
+from    pyvisualiser.core.framecore  import Frame, get_asset_path
+from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, Effects, BarStyle, SpectrumStyle, VUNeedleStyle, VUMeterStyle, VUMeterScale
+from    pyvisualiser.styles.presets  import Centred
 
 PI = 3.14152
 
@@ -72,14 +73,10 @@ class TextFrame(Frame):
         if self.update_fn is not None: text = self.update_fn()
 
         # print("TextFrame.update ", text, self.geostr())
-        if full or self.textcomp.new_content_available(text) or self.background_frame.is_per_frame_update():
-            # print("TextFrame.draw ", full, text, colour, full, self.geostr())
-            self.draw_background(True) # clear whats there -- not needed for
-            self.textcomp.draw(text=text, colour=colour, fontmax=fontmax)
-            return self.abs_rect()
-        else:
-            # print("TextFrame.draw > NO DRAW", text, colour, self.geostr())
-            return False # no need to redraw
+        # print("TextFrame.draw ", full, text, colour, full, self.geostr())
+        self.draw_background(True) # clear whats there -- not needed for
+        self.textcomp.draw(text=text, colour=colour, fontmax=fontmax)
+        return self.abs_rect()
         
     @property
     def width(self):
@@ -97,7 +94,7 @@ MetaData Frames
 class PlayProgressFrame(Frame):
     """ This creates a propgress bar that moves according to play progress with time elapsd and time to go calc """
     def __init__(self, parent, scalers=None, align=None, barsize_pc=0.5, theme=None, flip=False, outline=None,\
-                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background='background', z_order=0, **kwargs):
+                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background='background', z_order=10, **kwargs):
 
         self.barsize_pc     = barsize_pc      # min widths
         self.barw_max       = barw_max      # max width
@@ -127,19 +124,19 @@ class PlayProgressFrame(Frame):
         elapsed   = f"  {int( self.platform.elapsed//60)}:{int( self.platform.elapsed %60):02d}"
         remaining = f"{int( self.platform.remaining//60)}:{int(  self.platform.remaining%60):02d}  "
 
-        if full or self.elapsed.new_content_available(elapsed) or self.background_frame.is_per_frame_update():
-            self.draw_background(True)
-            hide_backline = -self.h/2 if self.platform.elapsedpc*self.w > self.h/2 else 0 # offset by the radius, makes sure the very start is OK too
-            self.boxbar.drawH(self.platform.elapsedpc, flip=True, colour_index='dark', offset=(hide_backline,0))
-            self.boxbar.drawH(self.platform.elapsedpc, colour_index='light')
-            # Create the string representation
+        # if full or self.elapsed.new_content_available(elapsed):
+        # self.draw_background(True)
+        hide_backline = -self.h/2 if self.platform.elapsedpc*self.w > self.h/2 else 0 # offset by the radius, makes sure the very start is OK too
+        self.boxbar.drawH(self.platform.elapsedpc, flip=True, colour_index='dark', offset=(hide_backline,0))
+        self.boxbar.drawH(self.platform.elapsedpc, colour_index='light')
+        # Create the string representation
 
-            self.elapsed.draw(elapsed, colour='light')
-            self.remaining.draw(remaining, colour='light')
+        self.elapsed.draw(elapsed, colour='light')
+        self.remaining.draw(remaining, colour='light')
             # print("PlayProgressFrame>", elapsed, remaining)
-            return True
-        else:
-            return False
+        #     return True
+        # else:
+            # return False
             # no need to redraw
 
 class ArtFrame(Frame):
@@ -219,85 +216,131 @@ class VUMeter(Frame):
         - optional arc
         - optional background image
     """
-    FONTH     = 0.05        # as a percentage of the overall frame height
-    PIVOT     = -0.5        # % of the frame height the pivot is below
-    NEEDLELEN = 0.8         # length of the needle as pc of height
-    TICKLEN   = 0.8         # length marks
-    SCALESLEN = 0.9
-    ARCLEN    = TICKLEN
-    TICK_PC   = 0.1         # lenth of the ticks as PC of the needle
-    TICK_W    = 3           # width of the ticks in pixels
-    DECAY     = 0.3         # decay factor
-    SMOOTH    = 15          # samples to smooth
+    # FONTH     = 0.05        # as a percentage of the overall frame height
+    # PIVOT     = -0.5        # % of the frame height the pivot is below
+    # NEEDLELEN = 0.8         # length of the needle as pc of height
+    # TICKLEN   = 0.8         # length marks
+    # SCALESLEN = 0.9
+    # ARCLEN    = TICKLEN
+    # TICK_PC   = 0.1         # lenth of the ticks as PC of the needle
+    # TICK_W    = 3           # width of the ticks in pixels
+    # DECAY     = 0.3         # decay factor
+    # SMOOTH    = 15          # samples to smooth
 
     # MARKS     = {'-40':0.1, '-20':0.3, '-10':0.4, '-3':0.6, '0':0.7, '+3':0.8, '+6':0.9}
     # Key is the value (0-1) where the mark is drawn, with colour, width & text
-    MARKS     = {0.1: {'text':'-40', 'width': TICK_W, 'colour': 'light'},
-                 0.3: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
-                #  0.4: {'text':'-10', 'width': TICK_W, 'colour': 'light'},
-                 0.5: {'text':'-5', 'width': TICK_W, 'colour': 'light'},
-                 0.6: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
-                 0.7: {'text':'+0', 'width': TICK_W, 'colour': 'alert'},
-                 0.8: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'},
-                 0.9: {'text':'+6', 'width': TICK_W*3, 'colour': 'alert'} }
-    # Key is the radius, attributes width & colour
-    ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
-                 ARCLEN*0.9: {'width': TICK_W//2, 'colour': 'mid'} }
-    # Key is the Valign=None, attributes Words, Colour
-    ANNOTATE  = { 'Valign':'middle', 'text':'dB', 'colour':'mid' }
-    ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
-    NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': NEEDLELEN, 'radius_pc': 1.0 }
-    VUIMAGEPATH = 'VU Images'
+
+    # VUIMAGEPATH = 'VU Images'
  
-    def __init__(self, parent, channel, scalers=None, align=('centre','middle'), peakmeter=False, outline=None, square=False,\
-                endstops=ENDSTOPS, tick_w=TICK_W, tick_pc=TICK_PC, fonth=FONTH, pivot=PIVOT, decay=DECAY, smooth=SMOOTH, bgdimage=None, \
-                needle=NEEDLE, ticklen=TICKLEN, scaleslen=SCALESLEN, theme=None, marks=MARKS, annotate=ANNOTATE, arcs=ARCS, \
-                background=None, **kwargs):
+    def __init__(self, parent, channel, scalers=None, align=Centred, outline=None, square=False, background=None,
+                 style: VUMeterStyle = None, z_order=0, **kwargs):
         
-        # 1. Capture all configuration parameters into self.config
+        # 1. Capture all non-style configuration parameters into self.config
         self.config = {
             'channel': channel,
             'scalers': scalers,
             'align': align,
-            'peakmeter': peakmeter,
+            'outline':outline,
             'outline': outline,
-            'endstops': endstops,
-            'tick_w': tick_w,
-            'tick_pc': tick_pc,
-            'fonth': fonth,
-            'pivot': pivot,
-            'decay': decay,
-            'smooth': smooth,
-            'bgdimage': bgdimage,
-            'needle': needle,
-            'ticklen': ticklen,
-            'scaleslen': scaleslen,
-            'theme': theme,
-            'marks': marks,
-            'annotate': annotate,
-            'arcs': arcs,
             'background': background,
-            'square': square
+            'square': square,
+            'z_order': z_order
         }
-        # Add any remaining keyword arguments
-        self.config.update(kwargs)
 
-        z_order = kwargs.get('z_order', 0)
+        # 2. Resolve Style (VUMeterStyle)
+        # if style is None:
+        #     # Fallback to legacy arguments or class defaults
+        #     _endstops = endstops if endstops is not None else self.ENDSTOPS
+        #     _pivot = pivot if pivot is not None else self.PIVOT
+        #     _needle = needle if needle is not None else self.NEEDLE
+        #     _theme = theme # VUMeterStyle handles None by defaulting to 'meter1'
+        #     _marks = marks if marks is not None else self.MARKS
+        #     _arcs = arcs if arcs is not None else self.ARCS
+        #     _annotate = annotate if annotate is not None else self.ANNOTATE
+        if style is None:
+            # If no style object is passed, build one from kwargs for backward compatibility.
+            peakmeter = kwargs.get('peakmeter', False)
+            endstops = kwargs.get('endstops', (3 * PI / 4, 5 * PI / 4))
+            pivot = kwargs.get('pivot', -0.5)
+            bgdimage = kwargs.get('bgdimage')
+            needle = kwargs.get('needle')
+            theme = kwargs.get('theme', 'meter1')
+            decay = kwargs.get('decay', 0.3)
+            smooth = kwargs.get('smooth', 15)
 
-        # 2. Determine the channel/alignment for the parent Frame.__init__
+            # Scale-related legacy arguments
+            marks = kwargs.get('marks')
+            arcs = kwargs.get('arcs')
+            annotate = kwargs.get('annotate')
+            tick_w = kwargs.get('tick_w', 3)
+            ticklen = kwargs.get('ticklen', 0.8)
+            tick_pc = kwargs.get('tick_pc', 0.1)
+            scaleslen = kwargs.get('scaleslen', 0.9)
+            fonth = kwargs.get('fonth', 0.05)
+
+            # Ensure needle is a Style object
+            if isinstance(needle, dict):
+                _needle = VUNeedleStyle(**needle)
+            elif isinstance(needle, VUNeedleStyle):
+                _needle = needle
+            else:
+                _needle = VUNeedleStyle()
+
+            _scale = VUMeterScale(marks=marks, arcs=arcs, annotate=annotate,
+                                  tick_width=tick_w, tick_length=ticklen, tick_radius_pc=tick_pc,
+                                  scale_radius=scaleslen, font_height=fonth)
+
+            style = VUMeterStyle(endstops=endstops, pivot=pivot, needle=_needle, scale=_scale,
+                                 texture_path=bgdimage, theme=theme, show_peak=peakmeter,
+                                 decay=decay, smooth=smooth)
+
+        elif isinstance(style, dict):
+            # Allow passing style as a dictionary
+            style = VUMeterStyle(**style)
+
+        # Ensure scale is present if style was passed but scale was missing
+        if style.scale is None:
+            style.scale = VUMeterScale()
+            
+        #     # Ensure needle is a Style object
+        #     if isinstance(_needle, dict):
+        #         _needle = VUNeedleStyle(**_needle)
+            
+        #     _scale = VUMeterScale(marks=_marks, arcs=_arcs, annotate=_annotate,
+        #                           tick_width=tick_w, tick_length=ticklen, tick_radius_pc=tick_pc,
+        #                           scale_radius=scaleslen, font_height=fonth)
+            
+        #     style = VUMeterStyle(endstops=_endstops, pivot=_pivot, needle=_needle, scale=_scale, texture_path=bgdimage, theme=_theme, show_peak=peakmeter)
+        
+        # if isinstance(style, dict):
+        #     style = VUMeterStyle(**style)
+        
+        # # Ensure scale is present if style was passed but scale was missing
+        # if style.scale is None:
+        #      _marks = marks if marks is not None else self.MARKS
+        #      _arcs = arcs if arcs is not None else self.ARCS
+        #      _annotate = annotate if annotate is not None else self.ANNOTATE
+        #      style.scale = VUMeterScale(marks=_marks, arcs=_arcs, annotate=_annotate,
+        #                                 tick_width=tick_w, tick_length=ticklen, tick_radius_pc=tick_pc,
+        #                                 scale_radius=scaleslen, font_height=fonth)
+            
+        self.style = style
+
+        # 3. Determine the channel/alignment for the parent Frame.__init__
         align_channel = channel if channel in ('left', 'right') else align[0]
         
-        # 3. Call the parent's __init__ using the stored values
+        # 4. Call the parent's __init__ using the stored values
         super().__init__(parent, 
                          scalers=self.config['scalers'], 
                          align=(align_channel, self.config['align'][1]),
-                         theme=self.config['theme'], 
+                         theme=self.style.theme, 
                          background=self.config['background'],
                          square=self.config['square'],
                          outline=self.config['outline'],
-                         z_order=z_order)
+                         z_order=z_order,
+                         **kwargs)
 
-        # 4. Initialize the frame layout using the configure() method
+        # 5. Initialize the frame layout using the configure() method
         self.configure()
 
     def configure(self):
@@ -312,73 +355,82 @@ class VUMeter(Frame):
         
         # Pull required configs locally for cleaner code
         cfg = self.config
+        style = self.style
         
         # --- Background Setup (Image or Vector) ---
-        if cfg['bgdimage'] is not None:
-            self.path     = VUMeter.VUIMAGEPATH + '/' + cfg['bgdimage']
-            self.bgdimage = Image(self, align=('centre', 'middle'), path=self.path, outline=cfg['outline'])
+        if style.texture_path is not None:
+            self.path     = get_asset_path('VU Images', style.texture_path)
+            self.bgdimage = Image(self, align=('centre', 'middle'), path=self.path, outline=cfg['outline'], opacity=int(style.texture_opacity*255))
             # Image.__init__ should add the Image to self.frames, so VUMeter is a parent
         
         else:
             # Vector Background Setup
             self.path = None
-            radius = self.abs_h * (0.5 - cfg['pivot'])
-            self.anglescale(radius, cfg['endstops'], cfg['pivot'])
+            radius = self.abs_h * (0.5 - style.pivot)
+            self.anglescale(radius, style.endstops, style.pivot)
 
+            # Resolve scale components
+            current_marks = style.scale.marks if style.scale and style.scale.marks is not None else {}
+            current_arcs = style.scale.arcs if style.scale and style.scale.arcs is not None else {}
+            current_annotate = style.scale.annotate if style.scale and style.scale.annotate is not None else {}
 
             # Add Text objects for scales (marks)
             self.scales = {
-                mark: Text(self, text=cfg['marks'][mark]['text'], 
-                           colour=cfg['marks'][mark]['colour'], 
-                           fontmax=self.abs_h * cfg['fonth'], 
-                           endstops=cfg['endstops'], 
-                           centre_offset=cfg['pivot'], 
-                           radius=radius * cfg['scaleslen'], 
-                           reset=False)
-                for mark in cfg['marks']
+                mark: Text(self, text=current_marks[mark]['text'], 
+                               colour=current_marks[mark]['colour'],
+                               fontmax=self.abs_h * style.scale.font_height,
+                               endstops=style.endstops,
+                               centre_offset=style.pivot,
+                               radius=radius * style.scale.scale_radius,
+                               reset=False)
+                    for mark in current_marks
             }
             
             # Add dB Annotation
-            self.dB = Text(self, fontmax=self.abs_h * cfg['fonth'] * 2, 
-                           text=cfg['annotate']['text'], 
-                           justify=('centre', cfg['annotate']['Valign']), 
-                           colour=cfg['annotate']['colour'], 
-                           reset=True)
+            if current_annotate and current_annotate.get('text'):
+                self.dB = Text(self, fontmax=self.abs_h * style.scale.font_height * 2,
+                               text=current_annotate.get('text', ''),
+                               justify=('centre', current_annotate.get('Valign', 'middle')),
+                               colour=current_annotate.get('colour', 'mid'),
+                               reset=True)
+            else:
+                self.dB = None
             
             # Add Ticks (Line)
-            self.ticks = Line(self, width=cfg['tick_w'], endstops=cfg['endstops'], 
-                              tick_pc=cfg['tick_pc'], centre_offset=cfg['pivot'], 
-                              radius=radius * cfg['ticklen'], theme=cfg['theme'])
+            self.ticks = Line(self, width=style.scale.tick_width, endstops=style.endstops, 
+                              tick_pc=style.scale.tick_radius_pc, centre_offset=style.pivot, 
+                              radius=radius * style.scale.tick_length, theme=style.theme)
             
             # Add Arcs (Line objects)
             self.arclines = []
-            for rad_pc, arc in cfg['arcs'].items():
-                self.arclines.append(
-                    Line(self, width=arc['width'], colour=arc['colour'], 
-                         endstops=cfg['endstops'], tick_pc=cfg['tick_pc'], 
-                         centre_offset=cfg['pivot'], radius=radius * rad_pc, theme=cfg['theme'])
-                )
+            if current_arcs:
+                for rad_pc, arc in current_arcs.items():
+                    self.arclines.append(
+                        Line(self, width=arc['width'], colour=arc['colour'],
+                             endstops=style.endstops, tick_pc=style.scale.tick_radius_pc,
+                             centre_offset=style.pivot, radius=radius * rad_pc, theme=style.theme)
+                    )
             
             # NOTE: Text and Line objects must add themselves to self.frames in their __init__
 
         # --- Needle Setup (common to both background types) ---
-        radius = self.abs_h * (0.5 - cfg['pivot'])
-        self.VU = VU(self.platform, cfg['channel'], decay=cfg['decay'], smooth=cfg['smooth'])
+        radius = self.abs_h * (0.5 - style.pivot)
+        self.VU = VU(self.platform, cfg['channel'], decay=style.decay, smooth=style.smooth)
         
         # Needle Line
-        self.needle = Line(self, width=cfg['needle']['width'], tick_pc=cfg['needle']['radius_pc'], 
-                           centre_offset=cfg['pivot'], endstops=cfg['endstops'], 
-                           radius=radius * cfg['needle']['length'], theme=cfg['theme'], 
-                           colour=cfg['needle']['colour'])
+        self.needle = Line(self, width=style.needle.width, tick_pc=style.needle.radius_pc, 
+                           centre_offset=style.pivot, endstops=style.endstops, 
+                           radius=radius * style.needle.length, theme=style.theme, 
+                           colour=style.needle.colour)
         
         # Peak Line
-        self.peak  = Line(self, width=cfg['needle']['width'], tick_pc=cfg['needle']['radius_pc'], 
-                         centre_offset=cfg['pivot'], endstops=cfg['endstops'], 
-                         radius=radius * cfg['needle']['length'], theme=cfg['theme'], 
+        self.peak  = Line(self, width=style.needle.width, tick_pc=style.needle.radius_pc, 
+                         centre_offset=style.pivot, endstops=style.endstops, 
+                         radius=radius * style.needle.length, theme=style.theme, 
                          colour='alert')
         
-        self.peakmeter = cfg['peakmeter']
         # The Line objects should also add themselves to self.frames.    
+        # print("VUMeter.configure>", self.__str__())
 
     def update_screen(self, full):
         self.draw_background(True)
@@ -393,23 +445,46 @@ class VUMeter(Frame):
     def drawVUBackground(self):
         # Optimization: Group draw calls to batch geometry and reduce GPU flushes
         # 1. Draw all Lines (Ticks and Arcs) first
-        for val, mark in self.config['marks'].items():
+        current_marks = self.style.scale.marks if self.style.scale and self.style.scale.marks is not None else {}
+        
+        for val, mark in current_marks.items():
             self.ticks.drawFrameCentredVector(val, colour=mark['colour'], width=mark['width'])
 
         for arc in self.arclines:
             arc.drawFrameCentredArc(0)
 
         # 2. Draw all Text (Scales and dB) second
-        for val, mark in self.config['marks'].items():
-            self.scales[val].drawVectoredText(val, colour=mark['colour'])
+        if self.scales:
+            for val, mark in current_marks.items():
+                if val in self.scales:
+                    self.scales[val].drawVectoredText(val, colour=mark['colour'])
 
-        self.dB.draw()
+        if self.dB:
+            self.dB.draw()
 
     def drawNeedle(self):
         # print("VUeter._drawNeedle", self.framestr(), "\n", self.needle.framestr())
         vu, peaks   = self.VU.read()
+        
+        # 1. Draw Glow (Behind)
+        if self.style.needle.glow_intensity > 0:
+            # Draw a wider, softer, additive line behind the main needle
+            self.needle.drawFrameCentredVector(vu, colour=self.style.needle.glow_colour, 
+                                               width=self.style.needle.width * 4, 
+                                               softness=1.5, additive=True)
+
+        # 2. Draw Main Needle
         self.needle.drawFrameCentredVector(vu)
-        if self.peakmeter and peaks > 0: self.peak.drawFrameCentredVector(peaks)
+        
+        # 3. Draw Peak Needle
+        if self.style.show_peak and peaks > 0: self.peak.drawFrameCentredVector(peaks)
+
+        # 4. Draw Tip Glow (High Level)
+        if self.style.needle.tip_glow and vu > 0.8:
+            tip_xy = self.needle.anglexy(vu, self.needle.radius)
+            col = self.colours.get(self.style.needle.glow_colour)
+            # Draw a small glowing dot at the tip
+            self.platform.renderer.draw_rect(col, (tip_xy[0]-6, tip_xy[1]-6, 12, 12), border_radius=6, softness=1.0, additive=True)
 
 
 

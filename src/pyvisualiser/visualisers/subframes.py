@@ -15,6 +15,7 @@ Subframes are combinations of base frames that come together for easier formatti
 """
 from pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer
 from pyvisualiser.visualisers.frames     import VUFrame, TextFrame, MetaData, PlayProgressFrame, SpectrumFrame, OscilogrammeBar, MetaImages, VUMeter
+from pyvisualiser.styles.styles  import VUNeedleStyle, VUMeterStyle, VUMeterScale, OutlineStyle
 
 PI = 3.14152
 class VU2chFrame(Frame):
@@ -180,7 +181,7 @@ Spectrum Analyser Frames - variants on
 
 class Spectrum2chFrame(Frame): #""" Vert split - L/R """
     def __init__(self, parent, **kwargs) :
-        Frame.__init__(self, parent, background='dark', outline={'width':4,'colour':'light'}, **kwargs)
+        Frame.__init__(self, parent, outline={'width':4,'colour':'light'}, **kwargs)
 
         rows = ColFramer(self, background='background', scalers=(0.7, 0.7), padding=10, outline={'width':4,'colour':'light'})
         rows += SpectrumFrame(rows, 'left'  )
@@ -229,18 +230,17 @@ class VUMeterFrame1(Frame):
     def __init__(self, parent, scalers=None, align=('centre', 'middle')):
 
         Frame.__init__(self, parent, scalers=scalers, align=align)
-        NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
-        ENDSTOPS  = (3*PI/4-0.2, 5*PI/4+0.2)  #Position of endstop if not the edge of the frame
-        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
-        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), arcs={}, endstops=ENDSTOPS, needle=NEEDLE)
+        style = VUMeterStyle(endstops=(3*PI/4-0.2, 5*PI/4+0.2), 
+                             needle=VUNeedleStyle(width=4, colour='foreground', length=0.8, radius_pc=1.0),
+                             scale=VUMeterScale(arcs={}))
+        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), style=style)
+        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), style=style)
 
 class VUMeterFrame2(Frame):
     """ 180 degrees meter, centre rotate """
 
     def __init__(self, parent, scalers=None, align=('centre', 'middle')):
         Frame.__init__(self, parent, scalers=scalers, align=align)
-        NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
-        ENDSTOPS  = (PI/2, 3*PI/2)
         TICK_W    = 3
 
         TICKLEN   = 0.8         # length marks
@@ -260,10 +260,17 @@ class VUMeterFrame2(Frame):
                      1.0: {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
         ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'middle', 'text':'PPM', 'colour':'mid' }
+        
+        style = VUMeterStyle(endstops=(PI/2, 3*PI/2), pivot=-0.4, 
+                             needle=VUNeedleStyle(width=4, colour='foreground', length=0.8, radius_pc=1.0),
+                             scale=VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, 
+                                                tick_width=TICK_W, tick_length=TICKLEN, tick_radius_pc=TICK_PC, scale_radius=SCALESLEN), 
+                             show_peak=True)
+
         self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
-                        pivot=-0.4, endstops=ENDSTOPS, peakmeter=True, needle=NEEDLE, marks=MARKS, arcs=ARCS, annotate=ANNOTATE, smooth=SMOOTH)
+                        style=style)
         self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
-                        pivot=-0.4, endstops=ENDSTOPS, peakmeter=True, needle=NEEDLE, marks=MARKS, arcs=ARCS, annotate=ANNOTATE, smooth=SMOOTH)
+                        style=style)
 
 class VUMeterFrame3(Frame):
     """ 270 speedo dial type VU - colourful """
@@ -281,10 +288,15 @@ class VUMeterFrame3(Frame):
                      1.0: {'text':'7', 'width': TICK_W, 'colour': 'alert'} }
         ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'bottom', 'text':'Peak RMS', 'colour':'mid' }
+        
+        style = VUMeterStyle(pivot=0, endstops=(PI/4, 7*PI/4),
+                             scale=VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, 
+                                                tick_width=TICK_W))
+
         self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
-                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE)
+                        style=style)
         self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
-                        pivot=0, endstops=(PI/4, 7*PI/4), marks=MARKS, arcs=ARCS,annotate=ANNOTATE,)
+                        style=style)
 
 class VUMeterFrame4(Frame):
     """120 degrees meter, low pivot """
@@ -293,7 +305,6 @@ class VUMeterFrame4(Frame):
         TICK_W    = 3
         TICK_PC   = 0.2
         ARCLEN    = 0.8
-        NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.85, 'radius_pc': 0.4 }
         MARKS     = {0.0: {'text':'-60', 'width': TICK_W, 'colour': 'mid'},
                      0.1: {'text':'-40', 'width': TICK_W, 'colour': 'mid'},
                      0.3: {'text':'-20', 'width': TICK_W, 'colour': 'mid'},
@@ -306,34 +317,46 @@ class VUMeterFrame4(Frame):
         ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
                      ARCLEN*(1-TICK_PC): {'width': TICK_W//2, 'colour': 'mid'} }
         ANNOTATE  = { 'Valign':'middle', 'text':'dB', 'colour':'mid' }
-        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), annotate=ANNOTATE,\
-                        pivot=-0.7, endstops=(3*PI/4, 5*PI/4), tick_pc=TICK_PC, peakmeter=False, needle=NEEDLE, marks=MARKS, arcs=ARCS)
-        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), annotate=ANNOTATE,\
-                        pivot=-0.7, endstops=(3*PI/4, 5*PI/4), tick_pc=TICK_PC, peakmeter=False, needle=NEEDLE, marks=MARKS, arcs=ARCS)
+        
+        style = VUMeterStyle(pivot=-0.7, endstops=(3*PI/4, 5*PI/4), 
+                             needle=VUNeedleStyle(width=4, colour='foreground', length=0.85, radius_pc=0.4),
+                             scale=VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, 
+                                                tick_width=TICK_W, tick_radius_pc=TICK_PC))
+
+        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), \
+                        style=style)
+        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('right', 'bottom'), \
+                        style=style)
 
 class VUMeterImageFrame(Frame):
     """ Image background based class - the """
     def __init__(self, parent, type=None, scalers=None, align=('centre', 'middle'),outline=None,square=False):
+
         Frame.__init__(self, parent, scalers=scalers, align=align, outline =outline,square=square)
 
-        NEEDLE      = { 'width':3, 'colour': 'dark', 'length': 0.7, 'radius_pc': 0.7 }
-        NEEDLE2     = { 'width':3, 'colour': 'mid', 'length': 0.8, 'radius_pc': 0.55 }
-        NEEDLE3     = { 'width':3, 'colour': 'foreground', 'length': 0.7, 'radius_pc': 0.5 }
-        NEEDLE4     = { 'width':4, 'colour': 'alert', 'length': 0.85, 'radius_pc': 0.75 }
+        NEEDLE      = VUNeedleStyle(colour='dark', width=4, length=0.7, radius_pc = 0.7)
+                                    # { 'width':3, 'colour': 'dark', 'length': 0.7, 'radius_pc': 0.7 }
+        NEEDLE2     = VUNeedleStyle(colour='mid', width=3, length=0.8, radius_pc = 0.55)
+                            # { 'width':3, 'colour': 'mid', 'length': 0.8, 'radius_pc': 0.55 }
+        NEEDLE3     = VUNeedleStyle(colour='foreground', width=3, length=0.7, radius_pc = 0.5)
+                        # { 'width':3, 'colour': 'foreground', 'length': 0.7, 'radius_pc': 0.5 }
+        NEEDLE4     = VUNeedleStyle(colour='alert', width=4, length=0.85, radius_pc = 0.75)
+                        # { 'width':4, 'colour': 'alert', 'length': 0.85, 'radius_pc': 0.75 }
+
         ENDSTOPS    = (3*PI/4, 5*PI/4)
-        METERS      = { 'blueVU' : {'file': 'blue-bgr.png', 'needle':NEEDLE, 'endstops':ENDSTOPS, 'pivot':-0.49, 'theme':'blue'},
-                        'goldVU' : {'file': 'gold-bgr.png', 'needle':NEEDLE2, 'endstops':ENDSTOPS, 'pivot':-0.35, 'theme':'white'},
-                        'blackVU': {'file': 'black-white-bgr.png', 'needle':NEEDLE3, 'endstops':ENDSTOPS, 'pivot':-0.65, 'theme':'meter1'},
-                        'rainVU' : {'file': 'rainbow-bgr.png', 'needle':NEEDLE4, 'endstops':ENDSTOPS, 'pivot':-0.75, 'theme':'meter1'},
-                        'redVU'  : {'file': 'red-bgr.jpeg', 'needle':{ 'width':3, 'colour': 'dark', 'length': 0.8, 'radius_pc': 0.65 }, 'endstops':ENDSTOPS, 'pivot':-0.76, 'theme':'meter1'},
-                        'vintVU' : {'file': 'vintage-bgr.jpeg', 'needle':{ 'width':3, 'colour': 'alert', 'length': 0.7, 'radius_pc': 0.8 }, 'endstops':ENDSTOPS, 'pivot':-0.6, 'theme':'meter1'},
-                        'whiteVU': {'file': 'white-red-bgr.png', 'needle':{ 'width':2, 'colour': 'foreground', 'length': 0.75, 'radius_pc': 0.65 }, 'endstops':ENDSTOPS, 'pivot':-0.75, 'theme':'meter1'},
-                        'greenVU': {'file': 'emerald-bgr.jpeg', 'needle':{ 'width':2, 'colour': 'foreground', 'length': 0.63, 'radius_pc': 0.60 }, 'endstops':ENDSTOPS, 'pivot':-0.6, 'theme':'meter1'} }
+        METERS      = { 'blueVU' : VUMeterStyle(texture_path='blue-bgr.png', needle=NEEDLE, endstops=ENDSTOPS, pivot=-0.49, theme='blue'),
+                        'goldVU' : VUMeterStyle(texture_path='gold-bgr.png', needle=NEEDLE2, endstops=ENDSTOPS, pivot=-0.35, theme='white'),
+                        'blackVU': VUMeterStyle(texture_path='black-white-bgr.png', needle=NEEDLE3, endstops=ENDSTOPS, pivot=-0.65, theme='meter1'),
+                        'rainVU' : VUMeterStyle(texture_path='rainbow-bgr.png', needle=NEEDLE4, endstops=ENDSTOPS, pivot=-0.75, theme='meter1'),
+                        'redVU'  : VUMeterStyle(texture_path='red-bgr.jpeg', needle=VUNeedleStyle(width=3, colour='dark', length=0.8, radius_pc=0.65), endstops=ENDSTOPS, pivot=-0.76, theme='meter1'),
+                        'vintVU' : VUMeterStyle(texture_path='vintage-bgr.jpeg', needle=VUNeedleStyle(width=3, colour='alert', length=0.7, radius_pc=0.8), endstops=ENDSTOPS, pivot=-0.6, theme='meter1'),
+                        'whiteVU': VUMeterStyle(texture_path='white-red-bgr.png', needle=VUNeedleStyle(width=2, colour='foreground', length=0.75, radius_pc=0.65), endstops=ENDSTOPS, pivot=-0.75, theme='meter1'),
+                        'greenVU': VUMeterStyle(texture_path='emerald-bgr.jpeg', needle=VUNeedleStyle(width=2, colour='foreground', length=0.63, radius_pc=0.60), endstops=ENDSTOPS, pivot=-0.6, theme='meter1') }
 
         # if the meter type does not exist then there will be a run time error
         # meter colour themes assume meter1
-        meter = METERS[type]
-        self += VUMeter(self, 'left', scalers=(0.5, 1.0), align=('left', 'bottom'), theme=meter['theme'],\
-                        pivot=meter['pivot'], endstops=meter['endstops'], needle=meter['needle'], bgdimage=meter['file'],outline=outline)
-        self += VUMeter(self, 'right', scalers=(0.5, 1.0), align=('left', 'bottom'), theme=meter['theme'],\
-                        pivot=meter['pivot'], endstops=meter['endstops'], needle=meter['needle'], bgdimage=meter['file'],outline=outline)
+        style = METERS[type]
+        outline = OutlineStyle(width=4, radius=10, colour='light', glow_intensity=0.1, softness=0.2)
+        cols = ColFramer(self, padding=10, padpc=0.05)
+        cols += VUMeter(cols, 'left', style=style, outline=outline)
+        cols += VUMeter(cols, 'right', style=style, outline=outline)
