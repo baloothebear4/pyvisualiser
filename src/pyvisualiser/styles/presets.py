@@ -36,6 +36,7 @@ OutlineDefault = None #{ 'width' : 1, 'radius' : 5, 'colour' : 'foreground', 'op
 # Frame Defaults
 FullScale      = (1.0,1.0)
 Centred        = ('centre', 'middle')
+PI = 3.14159265358979323846
 
 # 
 
@@ -56,8 +57,9 @@ Centred        = ('centre', 'middle')
 
 # VU Meter presets (analogue)
 #
-
-
+VUGlow          = AmbientGlowStyle(colour='foreground', radius=0.2, softness=0.4, opacity=0.7)
+VUOutline       = OutlineStyle(colour='foreground', width=4, opacity=1.0, radius=25, glow_intensity=0.1, softness=0.05)  
+VUBackground    = BackgroundStyle(colour='background', ambient_glow=VUGlow)
 # VU Meter presets (bar based)
 
 

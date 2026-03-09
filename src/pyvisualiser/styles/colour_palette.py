@@ -25,6 +25,7 @@ COLOUR_THEMES= {    'white' : {'light':[255,255,175], 'mid':[200,200,125], 'dark
                     'leds'  : {'background': [5, 15, 30], 'range':[ [1, 40, 64],[75, 226, 242], [75, 195, 242]] },
                     'back'  : {'range':[ blue, black ] },
                     'grey'  : {'range':[ white,[75, 226, 242], [75, 195, 242] ] },
+                    'meter2': { 'background': [253, 245, 230], 'foreground': [26, 24,22], 'light': [255, 252, 224], 'mid': [140, 126, 109], 'dark': [61, 54, 45], 'alert': [192,57,43], 'range':[[50, 50, 50], [200, 0, 0]]},
                     'meter1': {'light':[200,200,200], 'mid':grey, 'dark':[50,50,50], 'foreground':white, 'background':[10, 10, 10], 'alert':red, 'range':[ white, red, grey]},
                     'rainbow': {'white': white, 'grey': grey, 'green': green, 'amber': amber, 'red': red, 'purple': purple, 'blue': blue,  'black': black,  'yellow': yellow, 'range':[grey, red, yellow, green, blue, purple, white]},
                     'black' : { 'light':[240, 240, 240], 'mid': [192, 192, 192], 'dark': [64, 64, 64], 'foreground': white, 'background': [50, 50, 50], 'alert': red, 'range':[[64, 64, 64],[192, 192, 192],[240, 240, 240]]},

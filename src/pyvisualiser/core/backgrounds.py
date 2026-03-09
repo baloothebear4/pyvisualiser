@@ -177,7 +177,7 @@ class Background:
             self.background_base.draw()
             return
 
-        print("Background.draw> LEGACY background draw", self.background, self.frame.framestr())
+        # print("Background.draw> LEGACY background draw", self.background, self.frame.framestr())
 
         if self.background.get('glow'):
             # Draw glow using OpenGL renderer

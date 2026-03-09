@@ -546,7 +546,7 @@ class Frame(Geometry):
     """
 
 
-    def __init__(self, parent, scalers=FullScale, align=Centred, square=False, theme=None, background=None, outline=None, padding=0, z_order=0):
+    def __init__(self, parent, scalers=FullScale, align=Centred, square=False, theme=None, background=None, outline=None, padding=0, z_order=2):
         """
             scalars is a tuple (w%, h%) where % is of the bounds eg (0,0,64,32) is half the width, full height
             align is a tuple (horizontal, vertical) - where horz is one of 'left', 'right', 'centre', vertical 'top', 'middle', 'bottom'
@@ -618,17 +618,19 @@ class Frame(Geometry):
     # whether the background and outline is drawn depends on whether the frame update is per frame or per metadata change
     #
     def update_screen(self, full=False, **kwargs):
-        self.draw_background(True)
         self.draw_outline(True)
+        self.draw_background(True)
         # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
         # Sort frames by z_order for drawing (lowest first)
         draw_list = sorted(self.frames, key=lambda x: x.z_order)
         for f in draw_list:
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
+
+            f.draw_outline(True)
             # f.draw_background(full)
             f.update_screen(full, **kwargs)  #: self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
-            f.draw_outline(True)
+
 
 
     def draw_background(self, full=True):
@@ -907,6 +909,32 @@ class Cache:
             return self.cache[key]
         else:
             return None
+
+class Smoother:
+    """
+    Collects 5 points then performs a triangle smoothing
+    """
+    def __init__(self, maximum, ave_size=5):
+        self.size = ave_size
+        self.FrameHeight = maximum
+        self.smoother = [0.0]* self.size
+
+    def add(self, data):
+        self.smoother.insert(0, data)
+        del self.smoother[-1]
+
+    def smoothed(self):
+        if self.size==5: #Triange smoother
+            return min(self.FrameHeight, (sum(self.smoother)+2*self.smoother[2]+self.smoother[1] +self.smoother[3])/8)
+        else:           #Rectangle smoother, can reduce size to 3 as well
+            ave = 0
+            tot = 0
+            for i, v in enumerate(self.smoother):
+                inc  = len(self.smoother) - i
+                tot += inc
+                ave += v * inc
+            return ave / (tot*0.9)  # this increased teh amplitude as the smoothing damps the range for VUs
+
 
 
 def get_asset_path(category: str, filename: str) -> str:

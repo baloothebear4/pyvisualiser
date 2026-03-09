@@ -47,7 +47,7 @@ VU_BAR_TEST_SCREENS = (VUScreen, VUVScreen, TestVUScreen, IntensityTestScreen)
 GEO_TEST_SCREENS= (ColAlignedScreen, RowAlignedScreen, \
                    F1, F2,  F3, F4, F5, F6, F7, F8 )
 
-VU_METER_SCREENS = (VUTestScreen1,  VUImageScreen, VUNeedleStylesScreen,VUNeedleEffectsScreen, TestVUMetersScreen, TestVUImageScreen1, TestVUImageScreen2)
+VU_METER_SCREENS = (VUTestScreen1,  VUTestScreen2,VUImageScreen, VUVintageScreen, VUModernScreen, VUTungstenScreen, VUNeedleStylesScreen,VUNeedleEffectsScreen, TestVUMetersScreen, TestVUImageScreen1, TestVUImageScreen2)
 #,
 TEST_SCREENS = (AmbientGlowTunerScreen, AdvancedVisualsScreen, APICoverageScreen, BarParametersTestScreen, VUVScreen, IntensityTestScreen, OutlineGlowTestScreen )
 

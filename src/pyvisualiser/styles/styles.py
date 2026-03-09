@@ -146,19 +146,21 @@ SCALESLEN = 0.9
 ARCLEN    = TICKLEN
 TICK_PC   = 0.1         # lenth of the ticks as PC of the needle
 TICK_W    = 3           # width of the ticks in pixels
-MARKS     = {0.1: {'text':'-40', 'width': TICK_W, 'colour': 'light'},
-                0.3: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
-            #  0.4: {'text':'-10', 'width': TICK_W, 'colour': 'light'},
-                0.5: {'text':'-5', 'width': TICK_W, 'colour': 'light'},
-                0.6: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
-                0.7: {'text':'+0', 'width': TICK_W, 'colour': 'alert'},
-                0.8: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'},
-                0.9: {'text':'+6', 'width': TICK_W*3, 'colour': 'alert'} }
+MARKS     = {   0.12: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
+                0.3: {'text':'-10', 'width': TICK_W, 'colour': 'light'},
+                # 0.4: {'text':'-7', 'width': TICK_W, 'colour': 'light'},
+                0.5: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
+                0.6: {'text':'-1', 'width': TICK_W, 'colour': 'light'},
+                0.7: {'text':'+0', 'width': TICK_W, 'colour': 'light'},
+                0.8: {'text':'+1', 'width': TICK_W*2, 'colour': 'alert'},
+                # 0.9: {'text':'+2', 'width': TICK_W*2, 'colour': 'alert'},                 
+                0.9: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'}}
 # Key is the radius, attributes width & colour
-ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
-                ARCLEN*0.9: {'width': TICK_W//2, 'colour': 'mid'} }
+# ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
+#                 ARCLEN*0.9: {'width': TICK_W//2, 'colour': 'mid'} }
+ARCS      = { ARCLEN*0.9: {'width': TICK_W-1, 'colour': 'mid'} }
 class VUMeterScale:
-    def __init__(self, marks=MARKS, arcs=ARCS, annotate=ANNOTATE, 
+    def __init__(self, marks=MARKS, arcs=None, annotate=ANNOTATE, 
                  tick_width=TICK_W, tick_length=TICKLEN, tick_radius_pc=TICK_PC, 
                  scale_radius=0.9, font_height=FONTH):
         self.marks          = marks
@@ -170,7 +172,7 @@ class VUMeterScale:
         self.scale_radius   = scale_radius
         self.font_height    = font_height
 
-DECAY     = 0.3         # decay factor
+DECAY     = 0.4         # decay factor
 SMOOTH    = 15          # samples to smooth
 PI = 3.14152
 class VUMeterStyle:

@@ -627,7 +627,7 @@ class Line(Frame):
         # print("Line.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
 
-    def drawFrameCentredVector(self, val, colour=None, width=0, amplitude=1.0, gain=0, tick_pc=None, **kwargs):
+    def drawFrameCentredVector(self, val, colour=None, width=0, amplitude=1.0, gain=0, tick_pc=None, opacity=255, **kwargs):
         """ tick_pc is the percent of the line to draw from outside in, useful if the pivot is below the line
             val is the angle to draw the line
         """
@@ -637,7 +637,7 @@ class Line(Frame):
         xy         = self.anglexy(val, self.radius,  amp_scale=amplitude, gain=gain)#, xyscale=self.xyscale)
         ab         = self.anglexy(val, self.radius*(1-tick_pc))#, xyscale=self.xyscale)
 
-        colour_index = self.colours.get(colour)  # Add a get col
+        colour_index = self.colours.get(colour, opacity=opacity)  # Add a get col
         # print("Line.drawFrameCentredVector: val %f, ab %s, xy %s, yoff %f, len %d" % (val, ab, xy, self.centre_offset, self.radius))
         self.platform.renderer.draw_line(colour_index, ab, xy, width, **kwargs)
 
@@ -701,12 +701,16 @@ class Line(Frame):
 
     def drawFrameCentredArc(self, val, colour=None):
         if colour is None: colour = self.colour
-        xy     = self.anglexy(val, self.radius)
+        
+        # Approximate arc with lines for OpenGL compatibility
+        points = []
+        steps = 32 # Resolution
+        for i in range(steps + 1):
+            pc = i / steps
+            points.append(self.anglexy(pc, self.radius))
+            
         colour_index = self.colours.get(colour)  # Add a get col
-        arcwh  = [self.radius*2, self.radius*2]
-        coords = self.abs_centre( offset=(-arcwh[0]/2, -arcwh[1]/2) )+arcwh
-        # print("Line.drawFrameCentredArc>", coords, self.h*(self.centre_offset), self.geostr())
-        pygame.draw.arc(self.platform.screen, colour_index, coords, 3*PI/2+self.endstops[0], 3*PI/2+self.endstops[1], self.width)
+        self.platform.renderer.draw_lines(colour_index, False, points, width=self.width)
 
 
 class Text:
@@ -718,7 +722,7 @@ class Text:
     `update()` triggers a resizing of the text each time its drawn.
     """
     def __init__(self, parent, text='Default text', fontmax=None, reset=True, wrap=False, justify=('centre','middle'),
-                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, colour=None, style=None):  #Create a font to fit a rectangle
+                 endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, colour=None, style=None, z_order=0):  #Create a font to fit a rectangle
 
         self.text     = text
         self.wrap     = wrap
@@ -726,6 +730,7 @@ class Text:
         self.radius   = radius
         self.justify  = justify if len(justify) == 2 else (justify, 'middle') # 'left', 'centre', right' --> text is always aligned into the middle of the screen (could use an align attribute)
         self.parent   = parent
+        self.z_order  = z_order
 
         if style is None:
             style = TextStyle()
@@ -828,12 +833,13 @@ class Text:
         # print("Text.scalefont> max %s, target wh %s, fontwh %s, text<%s>, %s" % (self.whmax, wh, fontwh, text, self.drawtext))
         return font, fontwh
 
-    def draw(self, text=None, offset=(0,0), coords=None, colour=None, fontmax=None):  #Draw the text in the corner of the frame
+    def draw(self, text=None, offset=(0,0), coords=None, colour=None, fontmax=None, z_order=None):  #Draw the text in the corner of the frame
         if text is not None and text != self.text:
             self._gl_texture = None
             self.text = text
         elif text is None:
             text = self.text 
+        if z_order is None: z_order = self.z_order
 
         fontmax = self.fontmax if fontmax is None else fontmax
 
@@ -873,12 +879,13 @@ class Text:
                     start_y_offset = -(total_height / 2) + (line_height / 2)
                     line_coords[1] += int(start_y_offset + (i * line_height))
                     
-                    self.parent.platform.renderer.blit(info, line_coords, texture_holder=holder)
+                    self.parent.platform.renderer.blit(info, line_coords, texture_holder=holder, z_order=z_order)
                 except pygame.error as e:
                     print(f"Text.draw Pygame Render ERROR for line '{line}': {e}")
 
 
-    def drawVectoredText(self, val, text=None, colour=None):
+    def drawVectoredText(self, val, text=None, colour=None, z_order=None):
+        if z_order is None: z_order = self.z_order
         if text is None:
             text = self.text
 
@@ -900,11 +907,11 @@ class Text:
         # Try to use cached surface if it matches, otherwise render fresh
         if text == self.text and self.rendered_surface and self.last_params == (text, colour_index, id(self.font)):
             surface = self.rendered_surface
-            self.parent.platform.renderer.blit(surface, (x, y), texture_holder=self)
+            self.parent.platform.renderer.blit(surface, (x, y), texture_holder=self, z_order=z_order)
         else:
             # Note: We don't cache this one as it might be transient or different from self.text
             surface = self.font.render(text, True, colour_index)
-            self.parent.platform.renderer.blit(surface, (x, y))
+            self.parent.platform.renderer.blit(surface, (x, y), z_order=z_order)
             
 
 
