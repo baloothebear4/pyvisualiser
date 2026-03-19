@@ -18,12 +18,13 @@ import pygame
 # from advanced_frames import EchoWaveFrame, PulseOrbFrame, SpectrumWaveFrame, FreqWaveFrame
 
 
+
 class BarTest(Frame):
     """
     Creates a set of static bars with varying levels of effects so we can see whats going on
     """
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, \
-                 barsize_pc=0.7, flip=False, outline=None,square=False, \
+                 barsize_pc=0.7, flip=False, outline=None,square=False, update_fn=None,\
                  peak_h=1, barw_min=10, barw_max=400, tip=False, decay=0.3, orient='vert', \
                  # New API
                  style=None, \
@@ -57,7 +58,7 @@ class BarTest(Frame):
             'peak_h':peak_h, 'barw_min':barw_min, 'barw_max':barw_max, \
             'tip':tip, 'decay':decay, 'orient':orient, \
             'style': style, \
-            'effects': effects
+            'effects': effects, 'update_fn':update_fn
         }
         # Add any remaining keyword arguments
         self.config.update(kwargs)
@@ -75,11 +76,16 @@ class BarTest(Frame):
                         effects=self.config['effects'])
 
         self.level     = self.config['channel']
+        self.update_fn = self.config['update_fn']
         # print("VUFrame._configure> box=%s, flip=%d, orient %s, frame> %s" % (box, self.config['flip'], self.config['orient'], self.geostr()))
 
     def update_screen(self, full):
 
-        height, peaks = self.level, self.level
+        if self.update_fn is not None:
+            height = self.update_fn()
+            peaks  = height
+        else:
+            height, peaks = self.level, self.level
         self.draw_background(True)
         self.bar.draw( 0, height, self.barw, peaks)
         return True
@@ -310,6 +316,87 @@ class BarEffectsTestScreen(Frame):
             eff_v = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=0.5)
             vertbars += BarTest(vertbars, level, orient='vert', theme='std', effects=eff_v)
 
+
+class AudioTest(Frame):
+    """
+    Checking out how all the audio metadata works:  bass, treble, bpm
+    """
+    def __init__(self, parent, metadata):
+        Frame.__init__(self, parent)
+        self.metadata = metadata
+        r1 = RowFramer(self, padding=0, padpc=0.05)
+
+        r1 += TextFrame(r1, update_fn=self.get_audio_metadata_str)
+        r1 += BarTest(r1, 0, orient='vert', update_fn=self.get_audio_metadata)
+
+    def get_audio_metadata_str(self):
+         return "%s\n%.2f" % (self.metadata,self.get_audio_metadata())
+
+    def get_audio_metadata(self):
+        return self.platform.audioanalysis[self.metadata]
+ 
+
+ANALYSIS_METADATA = ["beat", "bpm","centroid", "kurtosis","flux","volume"]
+
+class AudioTestScreen(Frame):
+    @property
+    def title(self): return 'Audio Parameters Test Screen'    
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):   
+        super().__init__(platform, theme='hifi', background='background')
+
+
+        cols = ColFramer(self, padding=0, padpc=0.05)
+        # cols += TextFrame(cols, text="Audio Parameters")
+
+        for metadata in ANALYSIS_METADATA:
+            cols += AudioTest(cols, metadata)
+
+
+class AudioTestScreen1(Frame):
+    @property
+    def title(self): return 'Audio Parameters Test Screen'    
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):   
+        super().__init__(platform, theme='hifi', background='background')
+
+
+        cols = ColFramer(self, padding=0, padpc=0.05)
+        r1 = RowFramer(cols, padding=0, padpc=0.05)
+        r2 = RowFramer(cols, padding=0, padpc=0.05)
+        r3 = RowFramer(cols, padding=0, padpc=0.05)
+        # eff_h = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
+
+        r1 += TextFrame(r1, update_fn=self.get_bass_str)
+        r1 += BarTest(r1, 0, orient='vert', update_fn=self.get_bass)
+
+        r2 += TextFrame(r2,  update_fn=self.get_treble_str)
+        r2 += BarTest(r2, 0, orient='vert', update_fn=self.get_treble)
+
+        r3 += TextFrame(r3, update_fn=self.get_bpm_str)
+        r3 += BarTest(r3, 0, orient='vert', update_fn=self.get_bpm)
+
+    def get_bass_str(self):
+        return "Bass\n%.2f" % self.get_bass()
+
+    def get_treble_str(self):
+        return "Treble\n%.2f" % self.get_treble()
+
+    def get_bpm_str(self):
+        return "BPM\n%.2f" % (self.get_bpm()*160)
+
+    def get_bass(self):
+        return self.platform.bass*15
+
+    def get_treble(self):
+        return  self.platform.treble*400
+
+    def get_bpm(self):
+        return  self.platform.bpm/160
 class OutlineGlowTestScreen(Frame):
     @property
     def title(self): return 'Outline Glow Effects Test'
@@ -452,3 +539,7 @@ class AmbientGlowTunerScreen(Frame):
         print("\n--- PRESET CODE ---")
         print(f"AmbientGlowStyle(colour='{g.colour}', radius={g.radius:.2f}, softness={g.softness:.2f}, opacity={g.opacity:.2f})")
         print("-------------------\n")
+
+
+
+

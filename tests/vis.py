@@ -18,6 +18,7 @@ from   VUscreens import *
 from   testscreens import *
 from   test_api_coverage import *
 from   test_advanced_visuals import *
+from   gltest import *
 from   pyvisualiser import ScreenController
 import platform
 
@@ -75,6 +76,8 @@ BASE_FRAMES = (TextFrame, PlayProgressFrame, ArtFrame, MetaImages, MetaData,\
 SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  SpectrumStereoSplitFrame,\
               SpectrumStereoOffsetFrame, VUMeterFrame1, VUMeterFrame2, VUMeterFrame3, VUMeterFrame4, VUMeterImageFrame)   
 
+GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
+
 # SCREENS = FULL_SCREENS+MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
 # SCREENS = (ProgressScreen, ArtistScreen,F4, TrackVUMeterScreen2)
 # SCREENS = (TrackVUMeterScreen2, VUImageScreen, VUScreen, VUVScreen, \
@@ -82,9 +85,12 @@ SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  Sp
 # SCREENS = (ShadowTestScreen, ) + FULL_SCREENS
 # SCREENS = VU_BAR_TEST_SCREENS + FULL_SCREENS
 # SCREENS= (F7, F8) + VU_BAR_TEST_SCREENS + FULL_SCREENS
-SCREENS = VU_METER_SCREENS #+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
-# SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 
+
+
+ #+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
+# SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
+SCREENS = (AudioTestScreen, )+GLSCREENS + (VUTestScreen1,  VUTestScreen2)
 
 
 """ 

@@ -1,5 +1,21 @@
 # pyvisualiser — UI & Effects Implementation Plan
 
+## Implementation Checklist
+
+- [x] Phase 1 — Formalise the Rendering Core
+- [x] Phase 2 — Background System
+- [x] Phase 3 — Unified Glow & Bloom System
+- [x] Phase 4 — Visualiser Effect Upgrades
+- [ ] Phase 5 — Album Art Integration
+- [ ] Phase 6 — Overlay Framework
+- [x] Phase 7 — Style System Completion
+- [ ] Phase 8 — Visualiser Profiles (Embedded HiFi Preamp & Desktop)
+- [ ] Phase 9 — Hardware Porting & Performance Validation (Mac to Pi 5)
+- [ ] Phase 10 — Packaging & API Hardening
+- [ ] Phase 11 — Comprehensive Test Suite
+- [ ] Phase 12 — Hero Screens
+- [ ] Phase 13 — Integration & Aesthetic Honing
+
 ## Objective
 
 Complete `pyvisualiser` as a:
@@ -284,52 +300,41 @@ Goal:
 
 ---
 
-# Phase 8 — Desktop Mode
+# Phase 8 — Visualiser Profiles
 
-## 8.1 Mode Configuration Layer
+## 8.1 Priority Profile: Embedded HiFi Preamp
 
-Add configuration flag:
+Define the configuration and scaling logic for the primary hardware target:
+- **Target Resolution**: 1280x400 (7.9" ultrawide screen).
+- **Aesthetic**: Premium, hardware-accurate rendering with cinematic lighting.
+- **Testing Flow**: Develop and test comprehensively on the Mac Mini, then migrate to the Raspberry Pi 5.
 
-    mode = "desktop" | "hardware"
+## 8.2 Future Profile: Desktop Visualiser
 
-Desktop mode adjustments:
+Define the configuration for a desktop widget mode:
+- **Aesthetic**: Floating widget, optional transparency, simplified background so it doesn't distract from desktop work.
+- **Adjustments**: Reduced glow radius, lower texture detail to save background GPU overhead.
+- **Workflow**: Runs independently alongside the user's daily desktop tasks.
 
-- Reduced texture detail
-- Reduced glow radius
-- Simplified background
-- Optional transparency
-- Adjusted scaling logic
-
-Validate on Mac before hardware deployment.
-
----
-
-# Phase 9 — Performance & Pi Readiness
-
-## 9.1 Profiling Harness
-
-Add profiling for:
-
-- Frame time per pass
-- FBO cost
-- Blur cost
-- Texture upload spikes
-- Album art processing
+Add runtime configuration support: `profile = "embedded" | "desktop"`
 
 ---
 
-## 9.2 Downsampling Strategy
+# Phase 9 — Hardware Porting & Performance Validation
 
-Ensure:
+## 9.1 The Mac Mini to Pi 5 Pipeline
 
-- Bloom pass at ½ or ¼ resolution
-- Album art blur low resolution
-- Noise layer lightweight
-- No redundant state changes
+Establish a clear staging strategy:
+1. **Mac Mini Development**: Build features, formalize aesthetics, and complete rigorous unit/visual testing on macOS.
+2. **Profiling Harness**: Profile the Mac implementation (Frame time per pass, FBO costs, Blur overhead) to establish a baseline.
+3. **Pi 5 Porting**: Deploy to the Raspberry Pi 5 and validate against the 60fps requirement for the 1280x400 form factor.
 
-Goal:
-- Stable 60fps on Pi 5
-- Controlled GPU cost
+## 9.2 Pi-Specific Optimisations
+
+Ensure the framework can seamlessly downgrade intensity for the Pi 5 if necessary:
+- Downsample bloom pass to ½ or ¼ resolution.
+- Enforce low-resolution for background album art blur.
+- Simplify noise layer and particle calculations.
 
 ---
 
@@ -361,6 +366,64 @@ Purpose:
 - Regression validation
 - Documentation reference
 - AI-assisted iteration playground
+
+---
+
+# Phase 11 — Comprehensive Test Suite
+
+## 11.1 Visualiser Test Harnesses
+
+Create dedicated test files for each major component family:
+
+    test/
+        VUscreens.py
+        spectrum_screens.py
+        metadata_screens.py
+        barvu_screens.py
+        gl_visualiser_screens.py
+
+Responsibilities:
+- Isolate each visualiser type for rapid iteration
+- Showcase all configuration options and edge cases
+- Serve as visual regression tests during refactoring
+
+---
+
+# Phase 12 — Hero Screens
+
+## 12.1 Flagship Visualisations
+
+Create:
+
+    examples/
+        hero_screens.py
+
+Design stunning "Hero" screens that exemplify the power of the `pyvisualiser` API (implementing a selection of the following concepts):
+- **Radial**: Circular spectrum surrounding central album art, flanked by dual glowing analogue VU meters.
+- **Horizon Line**: Expansive horizontal reflecting spectrum analyzer set against a deep starry background.
+- **Orbital**: Immersive planetary/orbital rings with glowing particles and a lower horizontal spectrum.
+- **Grid / Component Dashboard**: Structured layout featuring album art, dual VU meters, tracklist, and mini spectrum.
+- **Central Totem**: A vertical, mirrored cascading spectrum analyzer forming a dramatic central pyramid against a starfield.
+
+Goal:
+- Wow the user instantly.
+- Demonstrate premium, state-of-the-art aesthetics out-of-the-box.
+- Serve as the primary reference for defining beautiful Style profiles.
+
+---
+
+# Phase 13 — Integration & Aesthetic Honing
+
+## 13.1 Holistic Tuning
+
+Focus on the overall feel across all modules:
+- Ensure lighting effects (ambient glow, reactive peaks) behave consistently across all visualisers.
+- Hone bloom combinations and additive blending so screens look homogenous and deeply integrated.
+- Profile complex multi-pass composites to ensure smooth performance without dropping frames.
+- Standardize the `Style` dataclasses so that moving from a VU meter to a Spectrum feels like the same unified app.
+
+Goal:
+- Transform individual components into a cohesive, highly polished visual engine.
 
 ---
 

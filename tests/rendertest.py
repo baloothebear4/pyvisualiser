@@ -42,7 +42,7 @@ class MockFrame:
 
 class MockColours:
     def get(self, name):
-        # Return a visible color for testing
+        # Return a visible colour for testing
         if name == 'background': return (20, 20, 40)
         if name == 'red': return (255, 0, 0)
         return (100, 100, 100)
@@ -62,9 +62,9 @@ class SimpleTestPass(RenderPass):
             """,
             fragment_shader="""
                 #version 330
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    f_color = vec4(4.0, 0.0, 0.0, 1.0); // HDR RED (Should Glow)
+                    f_colour = vec4(4.0, 0.0, 0.0, 1.0); // HDR RED (Should Glow)
                 }
             """
         )
@@ -95,9 +95,9 @@ class GreenQuadPass(RenderPass):
             """,
             fragment_shader="""
                 #version 330
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    f_color = vec4(0.0, 3.0, 0.0, 1.0); // HDR Green
+                    f_colour = vec4(0.0, 3.0, 0.0, 1.0); // HDR Green
                 }
             """
         )
@@ -129,9 +129,9 @@ class BlueBarPass(RenderPass):
             """,
             fragment_shader="""
                 #version 330
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    f_color = vec4(0.0, 0.5, 5.0, 1.0); // HDR Blue/Cyan
+                    f_colour = vec4(0.0, 0.5, 5.0, 1.0); // HDR Blue/Cyan
                 }
             """
         )
@@ -161,9 +161,9 @@ class YellowCrossPass(RenderPass):
             """,
             fragment_shader="""
                 #version 330
-                out vec4 f_color;
+                out vec4 f_colour;
                 void main() {
-                    f_color = vec4(3.0, 3.0, 0.0, 1.0); // HDR Yellow
+                    f_colour = vec4(3.0, 3.0, 0.0, 1.0); // HDR Yellow
                 }
             """
         )
@@ -201,7 +201,7 @@ class RaymarchingPass(RenderPass):
             fragment_shader="""
                 #version 330
                 in vec2 v_uv;
-                out vec4 f_color;
+                out vec4 f_colour;
 
                 uniform float iTime;
                 uniform vec2 iResolution;
@@ -263,7 +263,7 @@ class RaymarchingPass(RenderPass):
                     
                     vec4 col = rm(ro,rd);
                     
-                    f_color = col;
+                    f_colour = col;
                 }
             """
         )
@@ -319,7 +319,7 @@ def run_test():
     platform.gfx_driver = MockDriver(render_context, compositor)
     
     glow = AmbientGlowStyle()
-    style = BackgroundStyle(base_color='background', ambient_glow=glow)
+    style = BackgroundStyle(colour='background', ambient_glow=glow)
     frame = MockFrame(platform)
     bg_base = BackgroundBase(frame, style)
 
