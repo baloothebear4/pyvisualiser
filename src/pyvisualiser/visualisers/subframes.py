@@ -37,11 +37,11 @@ class VU2chFrame(Frame):
         self.background = background
 
         if self.orient=='horz':
-            self += VUFrame(self, 'left',  align=('centre','top'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background, **kwargs)
-            self += VUFrame(self, 'right', align=('left','bottom'), scalers=(1.0, 0.5), orient=self.orient,flip=self.flip, background=self.background, **kwargs)
+            self += VUFrame(self, 'left',  align=('centre','top'), scalers=(1.0, 0.5), style=BarStyle(orient=self.orient, flip=self.flip), background=self.background, **kwargs)
+            self += VUFrame(self, 'right', align=('left','bottom'), scalers=(1.0, 0.5), style=BarStyle(orient=self.orient, flip=self.flip), background=self.background, **kwargs)
         else:     # Vertical
-            self += VUFrame(self, 'left', align=('left','middle'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None, **kwargs)
-            self += VUFrame(self, 'right', align=('right','bottom'), scalers=(0.5, 1.0), orient='vert',flip=self.flip,led_h=self.led_h, led_gap=self.led_gap,barsize_pc=self.barsize_pc, background=None, **kwargs)
+            self += VUFrame(self, 'left', align=('left','middle'), scalers=(0.5, 1.0), style=BarStyle(orient='vert', flip=self.flip, led_h=self.led_h, led_gap=self.led_gap),barsize_pc=self.barsize_pc, background=None, **kwargs)
+            self += VUFrame(self, 'right', align=('right','bottom'), scalers=(0.5, 1.0), style=BarStyle(orient='vert', flip=self.flip, led_h=self.led_h, led_gap=self.led_gap),barsize_pc=self.barsize_pc, background=None, **kwargs)
         # self.always_draw_background()
 
 class VUFlipFrame(Frame):
@@ -54,13 +54,13 @@ class VUFlipFrame(Frame):
         flip = (False, True) if flip else (True,False)
         if self.orient=='horz':
             cols = ColFramer(self)
-            cols += VUFrame(cols, 'left', orient=self.orient,flip=flip[0], tip=False,led_h=led_h, **kwargs)
-            cols += VUFrame(cols, 'right', orient=self.orient,flip=flip[1], tip=False,led_h=led_h, **kwargs)
+            cols += VUFrame(cols, 'left', style=BarStyle(orient=self.orient, flip=flip[0], tip=False, led_h=led_h), **kwargs)
+            cols += VUFrame(cols, 'right', style=BarStyle(orient=self.orient, flip=flip[1], tip=False, led_h=led_h), **kwargs)
 
         else:     # Vertical
             rows = RowFramer(self)
-            rows += VUFrame(rows, 'left', orient='vert',flip=flip[0],theme=self.theme,led_h=led_h, **kwargs )
-            rows += VUFrame(rows, 'right',orient='vert', flip=flip[1],theme=self.theme ,led_h=led_h, **kwargs)
+            rows += VUFrame(rows, 'left', style=BarStyle(orient='vert', flip=flip[0], led_h=led_h), theme=self.theme, **kwargs )
+            rows += VUFrame(rows, 'right',style=BarStyle(orient='vert', flip=flip[1], led_h=led_h), theme=self.theme, **kwargs)
         # self.always_draw_background()
 
 
@@ -81,7 +81,7 @@ class VUHorzFrame(Frame):
         if 'led_gap' not in vu_kwargs and 'segment_gap' not in vu_kwargs:
             vu_kwargs['segment_gap'] = 0
             
-        cols += VUFrame(cols, channel=channel, orient='horz', barsize_pc=0.8, tip=tip, **vu_kwargs)
+        cols += VUFrame(cols, channel=channel, barsize_pc=0.8, style=BarStyle(orient='horz', tip=tip), **vu_kwargs)
 
 
 
@@ -177,8 +177,8 @@ class SpectrumStereoFrame(Frame): #""" Horz Split screen - right flipped 'Apple 
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align, background={'colour':'background', 'per_frame_update':True})
 
-        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, theme='white', barw_min=10, bar_space=0.4, background=None)
-        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, theme='white', barw_min=10, bar_space=0.4, background=None)
+        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom'), bar_style=BarStyle(flip=True, led_gap=2, peak_h=0, radius=2), spectrum_style=SpectrumStyle(barw_min=10, bar_space=0.4), theme='white', background=None)
+        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','top'), bar_style=BarStyle(flip=False, led_gap=2, peak_h=0, radius=2), spectrum_style=SpectrumStyle(barw_min=10, bar_space=0.4), theme='white', background=None)
         
 
 class SpectrumStereoLRFrame(Frame): #""" Horz Split screen - LED Style right flipped  """
@@ -186,23 +186,23 @@ class SpectrumStereoLRFrame(Frame): #""" Horz Split screen - LED Style right fli
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align)
 
-        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','top'), flip=True, led_gap=1, peak_h=1, radius=2, theme='white', barw_min=12 )
-        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','bottom'), flip=False, led_gap=1, peak_h=1,radius=2, theme='red', barw_min=12 )
+        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','top'), bar_style=BarStyle(flip=True, led_gap=1, peak_h=1, radius=2), spectrum_style=SpectrumStyle(barw_min=12), theme='white' )
+        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','bottom'), bar_style=BarStyle(flip=False, led_gap=1, peak_h=1, radius=2), spectrum_style=SpectrumStyle(barw_min=12), theme='red' )
         
 
 class SpectrumStereoSplitFrame(Frame): #""" Horz Split screen - right flipped """
     # This is vertically aligned
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align, background={'colour':'background', 'per_frame_update':True})
-        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom'), led_gap=0, flip=True, barw_min=5, bar_space=0.5, tip=True )
-        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','top'), led_gap=0, barw_min=5, bar_space=0.5, tip=True )
+        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom'), bar_style=BarStyle(led_gap=0, flip=True, tip=True), spectrum_style=SpectrumStyle(barw_min=5, bar_space=0.5) )
+        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','top'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=5, bar_space=0.5) )
         
 
 class SpectrumStereoOffsetFrame(Frame):
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align,background={'colour':'background', 'per_frame_update':True})
-        self += SpectrumFrame(self, 'right', scalers=(1.0, 1.0), align=('left','top'), right_offset=2, barw_min=8, bar_space=1.5, theme='red', led_gap=0, tip=True, background=None)
-        self += SpectrumFrame(self, 'left', scalers=(1.0, 1.0), align=('left','bottom'), right_offset=0, barw_min=8, bar_space=1.5, theme='blue', led_gap=0, tip=True,background=None )
+        self += SpectrumFrame(self, 'right', scalers=(1.0, 1.0), align=('left','top'), right_offset=2, bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=8, bar_space=1.5), theme='red', background=None)
+        self += SpectrumFrame(self, 'left', scalers=(1.0, 1.0), align=('left','bottom'), right_offset=0, bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=8, bar_space=1.5), theme='blue',background=None )
 
 
 

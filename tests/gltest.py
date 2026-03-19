@@ -44,7 +44,7 @@ class GLmeshScreen(Frame):
             print(f"SpectrumMesh Strength: {self.spectrum_mesh.strength_multiplier:.2f}")
 
 
-SHADERS1 = ["supernova", "milkdrop","starvis"]#,"discosun"]# , "pinkball", "spiralclouds", "warping"]
+SHADERS1 = ["supernova", "milkdrop","starvis","liquidorb"]#,"discosun"]# , "pinkball", "spiralclouds", "warping"]
 SHADERS2 = [ "pinkball","kalidoscope","warping", "balatro"]# "spiralclouds", "",cloudflight]
 
 class GLTestScreen1(Frame):

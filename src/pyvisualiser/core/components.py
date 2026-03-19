@@ -12,6 +12,7 @@ v2.0 baloothebear4 Feb 2026     Major upgrade to port to OpenGL for speed and vi
 """
 from  pyvisualiser.core.framecore import Frame, Cache, Colour, get_asset_path
 from  pyvisualiser.styles.styles import *
+from pyvisualiser.styles.profiles import ProfileManager
 
 
 import pygame
@@ -48,27 +49,17 @@ class Bar(Frame):
         - peak lines
     """
     def __init__(self, parent, scalers=None, align=('centre', 'bottom'), theme=None, \
-                 box_size=(100,100), style=None, effects=None, \
-                 # Legacy/Individual params
-                 led_h=10, led_gap=4, peak_h=1, right_offset=0, \
-                 flip=False, radius=0, tip=False, orient='vert', col_mode=None, \
-                 segment_size=None, segment_gap=None, corner_radius=None, edge_softness=0.05, \
-                 # Effects params
-                 intensity_threshold=0.75, intensity_scale=2.5, intensity_blur=1.0, intensity_alpha=100):
+                 box_size=(100,100), style=None, effects=None):
 
         Frame.__init__(self, parent, align=align,theme=theme, scalers=scalers)
         self.resize( box_size )
 
-        if style is None:
-            style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, right_offset=right_offset,
-                             flip=flip, radius=radius, tip=tip, orient=orient, col_mode=col_mode,
-                             segment_size=segment_size, segment_gap=segment_gap, corner_radius=corner_radius, edge_softness=edge_softness)
-        self.style = style
-
-        if effects:
-            self.effects = effects
-        else:
-            self.effects = Effects(threshold=intensity_threshold, scale=intensity_scale, blur=intensity_blur, alpha=intensity_alpha)
+        profile = ProfileManager.get_profile()
+        self.style = style if style is not None else profile.get_style('bar')
+        if self.style is None:
+            self.style = BarStyle()
+        
+        self.effects = effects if effects is not None else profile.effects
         
         colour_range = self.h if self.style.col_mode == 'vert' else self.w
         self.colours = Colour(self.theme, colour_range)
@@ -732,9 +723,10 @@ class Text:
         self.parent   = parent
         self.z_order  = z_order
 
-        if style is None:
-            style = TextStyle()
-        self.style = style
+        profile = ProfileManager.get_profile()
+        self.style = style if style is not None else profile.get_style('text')
+        if self.style is None:
+             self.style = TextStyle()
 
         self.fontfile = get_asset_path('fonts', self.style.typeface)
 

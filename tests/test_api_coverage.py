@@ -46,7 +46,7 @@ class APICoverageScreen(Frame):
                        background={'colour':'dark', 'opacity':150}, colour='light')
         
         # 4. PlayProgressFrame: Test orientation, barsize
-        r1 += PlayProgressFrame(r1, barsize_pc=0.4, orient='horz', led_h=4, led_gap=1, 
+        r1 += PlayProgressFrame(r1, barsize_pc=0.4, orient='horz', bar_style=BarStyle(led_h=4, led_gap=1), 
                                 background={'colour':'mid', 'opacity':100})
 
         # --- ROW 2: Audio Visualisers (Bars & Spectrums) ---
@@ -54,12 +54,12 @@ class APICoverageScreen(Frame):
         
         # 1. VUFrame: Test new API (segments, glow, corner_radius)
         r2 += VUFrame(r2, channel='left', orient='vert', 
-                      segment_size=8, segment_gap=2, corner_radius=3, edge_softness=0.1, 
+                      style=BarStyle(style=BarStyle(segment_size=8, segment_gap=2, corner_radius=3, edge_softness=0.1)), 
                       intensity_threshold=0.6, intensity_scale=2.5, intensity_blur=0.8, intensity_alpha=100,
                       background='background', outline={'colour':'mid', 'width':1})
         
         # 2. SpectrumFrame: Test bar settings, peak_h
-        r2 += SpectrumFrame(r2, channel='mono', led_h=3, led_gap=1, 
+        r2 += SpectrumFrame(r2, channel='mono', bar_style=BarStyle(led_h=3, led_gap=1), 
                             peak_h=2, decay=0.3, background={'colour':'dark', 'opacity':200},
                             spectrum_style=SpectrumStyle(bar_space=0.2, barw_min=5),
                             effects=Effects(threshold=0.5, scale=3.0, blur=2.0, alpha=150))
@@ -115,6 +115,6 @@ class LEDtestScreen(Frame):
         # intensity_threshold=0.3, intensity_scale=1.2, intensity_alpha=200,intensity_blur=1.5
         col += SpectrumFrame(col,  'mono', effects=NeonGlow, bar_style=bars, spectrum_style=spectrum)
         # intensity_threshold=0.8, intensity_scale=1.5, intensity_alpha=200,intensity_blur=1.5)
-        col += VUFrame(col, 'mono', orient='vert', barsize_pc=1.0, led_h=20,led_gap=2,tip=False,effects=NeonGlow)
+        col += VUFrame(col, 'mono', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=20, led_gap=2, tip=False),effects=NeonGlow)
 
 

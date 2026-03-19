@@ -10,7 +10,8 @@ Mar 2026 Baloothebear4. v1.0
 from    pyvisualiser.core.framecore  import Frame, get_asset_path, Smoother, RowFramer, ColFramer
 from    pyvisualiser.core.components import Text, Line, Image, VUNeedleStyle, VUMeterStyle, VUMeterScale
 from    pyvisualiser.styles.presets  import Centred, PI
-from    pyvisualiser.styles.styles   import OutlineStyle, Effects
+from    pyvisualiser.styles.styles   import OutlineStyle, Effects, BarStyle
+from    pyvisualiser.styles.profiles import ProfileManager
 
 
 class VU:
@@ -70,14 +71,13 @@ class VUMeter(Frame):
     """
  
     def __init__(self, parent, channel, scalers=None, align=Centred, outline=None, square=False, background=None,
-                 style: VUMeterStyle = None, z_order=0, **kwargs):
+                 style: VUMeterStyle = None, z_order=0):
         
         # 1. Capture all non-style configuration parameters into self.config
         self.config = {
             'channel': channel,
             'scalers': scalers,
             'align': align,
-            'outline':outline,
             'outline': outline,
             'background': background,
             'square': square,
@@ -85,61 +85,10 @@ class VUMeter(Frame):
         }
 
         # 2. Resolve Style (VUMeterStyle)
-        # if style is None:
-        #     # Fallback to legacy arguments or class defaults
-        #     _endstops = endstops if endstops is not None else self.ENDSTOPS
-        #     _pivot = pivot if pivot is not None else self.PIVOT
-        #     _needle = needle if needle is not None else self.NEEDLE
-        #     _theme = theme # VUMeterStyle handles None by defaulting to 'meter1'
-        #     _marks = marks if marks is not None else self.MARKS
-        #     _arcs = arcs if arcs is not None else self.ARCS
-        #     _annotate = annotate if annotate is not None else self.ANNOTATE
-        if style is None:
-            # If no style object is passed, build one from kwargs for backward compatibility.
-            peakmeter = kwargs.get('peakmeter', False)
-            endstops = kwargs.get('endstops', (3 * PI / 4, 5 * PI / 4))
-            pivot = kwargs.get('pivot', -0.5)
-            bgdimage = kwargs.get('bgdimage')
-            needle = kwargs.get('needle')
-            theme = kwargs.get('theme', 'meter1')
-            decay = kwargs.get('decay', 0.3)
-            smooth = kwargs.get('smooth', 15)
-
-            # Scale-related legacy arguments
-            marks = kwargs.get('marks')
-            arcs = kwargs.get('arcs')
-            annotate = kwargs.get('annotate')
-            tick_w = kwargs.get('tick_w', 3)
-            ticklen = kwargs.get('ticklen', 0.8)
-            tick_pc = kwargs.get('tick_pc', 0.1)
-            scaleslen = kwargs.get('scaleslen', 0.9)
-            fonth = kwargs.get('fonth', 0.05)
-
-            # Ensure needle is a Style object
-            if isinstance(needle, dict):
-                _needle = VUNeedleStyle(**needle)
-            elif isinstance(needle, VUNeedleStyle):
-                _needle = needle
-            else:
-                _needle = VUNeedleStyle()
-
-            _scale = VUMeterScale(marks=marks, arcs=arcs, annotate=annotate,
-                                  tick_width=tick_w, tick_length=ticklen, tick_radius_pc=tick_pc,
-                                  scale_radius=scaleslen, font_height=fonth)
-
-            style = VUMeterStyle(endstops=endstops, pivot=pivot, needle=_needle, scale=_scale,
-                                 texture_path=bgdimage, theme=theme, show_peak=peakmeter,
-                                 decay=decay, smooth=smooth)
-
-        elif isinstance(style, dict):
-            # Allow passing style as a dictionary
-            style = VUMeterStyle(**style)
-
-        # Ensure scale is present if style was passed but scale was missing
-        if style.scale is None:
-            style.scale = VUMeterScale()
-            
-        self.style = style
+        profile = ProfileManager.get_profile()
+        self.style = style if style is not None else profile.get_style('vu_meter')
+        if self.style is None:
+            self.style = VUMeterStyle()
 
         # 3. Determine the channel/alignment for the parent Frame.__init__
         align_channel = channel if channel in ('left', 'right') else align[0]
@@ -152,8 +101,7 @@ class VUMeter(Frame):
                          background=self.config['background'],
                          square=self.config['square'],
                          outline=self.config['outline'],
-                         z_order=z_order,
-                         **kwargs)
+                         z_order=z_order)
 
         # 5. Initialize the frame layout using the configure() method
         self.configure()
@@ -331,31 +279,16 @@ class VUFrame(Frame):
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, \
                  barsize_pc=0.7, flip=False, outline=None,square=False, \
                  peak_h=1, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert', \
-                 # New API
-                 style=None, \
-                 segment_size=5, segment_gap=1, corner_radius=0, edge_softness=0.05, \
-                 effects=None, \
-                 intensity_threshold=0.8, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=20, \
-                 # Legacy args (for compatibility)
-                 led_h=None, led_gap=None, radius=None, softness=None, \
-                 bloom_threshold=None, bloom_intensity=None, bloom_softness=None, bloom_alpha=None, **kwargs):
+                 style=None, effects=None):
 
-        # Map legacy arguments to new API if present
-        if led_h is not None: segment_size = led_h
-        if led_gap is not None: segment_gap = led_gap
-        if radius is not None: corner_radius = radius
-        if softness is not None: edge_softness = softness
-        if bloom_threshold is not None: intensity_threshold = bloom_threshold
-        if bloom_intensity is not None: intensity_scale = bloom_intensity
-        if bloom_softness is not None: intensity_blur = bloom_softness
-        if bloom_alpha is not None: intensity_alpha = bloom_alpha
-
+        profile = ProfileManager.get_profile()
         if effects is None:
-            effects = Effects(threshold=intensity_threshold, scale=intensity_scale, blur=intensity_blur, alpha=intensity_alpha)
+            effects = profile.effects
 
         if style is None:
-            style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, orient=orient, 
-                             segment_size=segment_size, segment_gap=segment_gap, corner_radius=corner_radius, edge_softness=edge_softness)
+            style = profile.get_style('bar')
+            if style is None:
+                style = BarStyle(peak_h=peak_h, flip=flip, orient=orient)
 
         # 1. Capture all configuration parameters into self.config
         self.config = {
@@ -365,8 +298,6 @@ class VUFrame(Frame):
             'style': style, \
             'effects': effects
         }
-        # Add any remaining keyword arguments
-        self.config.update(kwargs)
 
         Frame.__init__(self, parent, scalers=scalers, align=align,theme=theme,background=background, outline=outline,square=square)
         self.configure()

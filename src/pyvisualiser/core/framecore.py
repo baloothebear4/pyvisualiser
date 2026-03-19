@@ -26,6 +26,7 @@ import os
 
 from pyvisualiser.styles.colour_palette import COLOUR_THEMES, purple
 from pyvisualiser.styles.presets import BackgroundDefault, PaletteDefault, FullScale, OutlineDefault, Centred
+from pyvisualiser.styles.profiles import ProfileManager
 
 
 PI = np.pi
@@ -33,7 +34,7 @@ PI = np.pi
 # from platform   import Platform         # used for Test purposes
 
 class Geometry():
-    def __init__(self, bounds=None, screen_wh=(1280,400), scalers=(1.0,1.0), align=Centred, square=False, outline_w=0, padding=0):
+    def __init__(self, bounds=None, screen_wh=None, scalers=(1.0,1.0), align=Centred, square=False, outline_w=0, padding=0):
         """
             bounds is list of the bottom left and upper right corners eg (0,0,64,32)
             screen_wh is the size of the actual display screen - needed for absolute coordinates
@@ -44,8 +45,8 @@ class Geometry():
             padding is pixels to the frame size to allow a blank space round the frame
         """
         self._abcd          = [0,0,0,0]
-        self._bounds        = [0,0, screen_wh[0]-1, screen_wh[1]-1] if bounds is None else bounds
-        self.screen_wh      = screen_wh
+        self.screen_wh      = screen_wh if screen_wh is not None else ProfileManager.get_profile().target_resolution
+        self._bounds        = [0,0, self.screen_wh[0]-1, self.screen_wh[1]-1] if bounds is None else bounds
         self.alignment      = align
         self.scalers        = scalers
         self.square         = square

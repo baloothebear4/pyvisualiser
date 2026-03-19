@@ -14,7 +14,7 @@
 """
 
 # from    displaydriver import make_font, scaleImage, scalefont
-from    pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer, get_asset_path
+from    pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer, get_asset_path, Smoother
 from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, Effects, BarStyle, SpectrumStyle, VUNeedleStyle, VUMeterStyle, VUMeterScale
 from    pyvisualiser.styles.presets  import Centred
 
@@ -456,7 +456,8 @@ class OscilogrammeBar(Frame):
             self.bar_gap = self.bar_gap+ gaptofill/self.bars
 
         self.current  = [ Smoother(1.0) for i in range(self.bars)]    #array of smoothers
-        self.bar      = Bar(self, align=('centre', 'middle'), box_size=(self.width, self.h), led_h=led_h, led_gap=led_gap, theme=theme, flip=flip, radius=radius, tip=tip, col_mode='horz')
+        bar_style = BarStyle(led_h=led_h, led_gap=led_gap, flip=flip, radius=radius, tip=tip, col_mode='horz')
+        self.bar      = Bar(self, align=('centre', 'middle'), box_size=(self.width, self.h), theme=theme, style=bar_style)
 
         # print("OscilogrammeBar.__init__> width=%s, reduce_by=%d, bars %s, bar_gap %d, barw %d, frame> %s" % (self.width, self.reduce_by, self.bars, self.bar_gap, self.barw, self.geostr()))
 

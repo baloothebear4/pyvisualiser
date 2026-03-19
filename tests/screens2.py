@@ -73,11 +73,11 @@ class Screen3(Frame):   # comprises volume on the left, spectrum on the right
         row2  = RowFramer(colframe, row_ratios=(5,0.3,1), padding=0.0)
         # col2  = ColFramer(row2,col_ratios=(1,6))
         # col2 += VUFlipFrame(row2, orient='vert', flip=True, led_gap=3, background='background')
-        row2 += SpectrumFrame(row2, 'mono', led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1)
+        row2 += SpectrumFrame(row2, 'mono', bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=1))
 
         row2 += PlayProgressFrame(row2)
         row2 += MetaData(row2, 'track', justify='centre')
-        # rowframe += SpectrumFrame(rowframe,  'mono', flip=False, led_gap=5, peak_h=3,radius=4, tip=True, barw_min=3, bar_space=1 )
+        # rowframe += SpectrumFrame(rowframe,  'mono', flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=1) )
         # subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
         row3  = RowFramer(colframe, row_ratios=(5,1), padding=0.0)
         row3 += MetaImages(row3, art_type='artist',outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 10})
@@ -102,7 +102,7 @@ class Screen4(Frame):
         cols += MetaImages(cols,  'album', outline={'colour':'mid','width':3, 'radius':10},padding=10,background={'opacity':0})
         rows  = RowFramer(cols, row_ratios=(3,1), padpc=0)
         rows += MetaDataFrame(rows, justify='left', background=back)
-        rows += SpectrumFrame(cols,channel='mono', led_gap=0, bar_space=4, background=back)
+        rows += SpectrumFrame(cols,channel='mono', bar_style=BarStyle(led_gap=0), spectrum_style=SpectrumStyle(bar_space=4), background=back)
 
 
 class Screen5(Frame):   # comprises volume on the left, spectrum on the right
@@ -126,12 +126,12 @@ class Screen5(Frame):   # comprises volume on the left, spectrum on the right
         # self += MetaDataFrame(self  , scalers=(0.3, 1.0), align=('centre','middle'))
         # # self += MetaImages(self  , scalers=(1.0,1.0),align=('centre','middle'), opacity=40)
         # # self += PlayProgressFrame(self  , scalers=(0.3, 0.05), align=('centre','bottom'))
-        # self += VUMeter(self  ,  'left', scalers=(0.3, 0.9), align=('left','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
-        # self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+        # self += VUMeter(self  ,  'left', scalers=(0.3, 0.9), align=('left','top'), style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE) #, background='mid')
+        # self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE) #,background='mid')
         cols = ColFramer(self, padpc=0.05)
-        cols += VUMeter(cols  ,  'left', square=False, pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE, background=BACK)
+        cols += VUMeter(cols  ,  'left', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE, background=BACK)
         cols += MetaDataFrame(cols,padding=0, background=None)#,outline=OUTLINE)
-        cols += VUMeter(cols  ,  'right', square=False, pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE, background=BACK)
+        cols += VUMeter(cols  ,  'right', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE, background=BACK)
 
 class Screen6(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
@@ -159,6 +159,6 @@ class Screen7(Frame):   # comprises volume on the left, spectrum on the right
 
         subframe += MetaImages(subframe, art_type='album', background=None)
         subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0), justify='left', background=None)
-        subframe += VU2chFrame(subframe, led_h=7, led_gap=2,barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None, effects=DreamEffect)
+        subframe += VU2chFrame(subframe, bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None, effects=DreamEffect)
 
         rows += Oscilogramme(rows, 'mono',background=None)

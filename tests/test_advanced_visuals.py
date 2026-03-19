@@ -69,8 +69,7 @@ class BarTest(Frame):
     def configure(self):
         self.barw   = self.abs_w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.abs_h * self.config['barsize_pc']   # width of the bar
         box         = (self.barw, self.h) if self.config['orient'] == 'vert' else (self.w, self.barw)
-        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, peak_h=self.config['peak_h'], flip=self.config['flip'], \
-                        orient=self.config['orient'], \
+        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, \
                         theme=self.theme, \
                         style=self.config['style'], \
                         effects=self.config['effects'])

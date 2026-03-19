@@ -1,3 +1,5 @@
+from pyvisualiser.core.components import Bar
+
 from pyvisualiser import *
 from pyvisualiser.styles.presets import *
 
@@ -55,14 +57,14 @@ class StereoSpectrumSplitScreen(Frame):
 """
     SpectrumFrame API:
     # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, theme='std', flip=False, \
-    #                 led_h=5, led_gap=1, peak_h=1, col_mode='h', radius=0, bar_space=0.5, barw_min=12, barw_max=20, tip=False, decay=DECAY):
+    #                 bar_style=BarStyle(led_h=5, led_gap=1), peak_h=1, col_mode='h', radius=0, bar_space=0.5, barw_min=12, barw_max=20, tip=False, decay=DECAY):
 """
 class MonoSpectrumScreen(Frame):
     """ Volume/Source on left - Stereo Spectrum overlaid """
     def __init__(self, platform):
         Frame.__init__(self, platform)
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
-        self += SpectrumFrame(self  , 'left', scalers=(1.0, 1.0), led_gap=0, barw_min=2, tip=True)
+        self += SpectrumFrame(self  , 'left', scalers=(1.0, 1.0), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=2))
         self.always_draw_background()
 
 class MonoSpectrumLEDScreen(Frame):
@@ -71,7 +73,7 @@ class MonoSpectrumLEDScreen(Frame):
         Frame.__init__(self, platform, outline={'width':5,'colour':'alert'}, theme='hifi', padding=30, background='background')
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
         col = ColFramer(self)
-        col += SpectrumFrame(col  , 'mono', scalers=(1.0, 1.0), peak_h=2, led_gap=3, led_h=4, barw_min=6, bar_space=0.2, background='dark')
+        col += SpectrumFrame(col  , 'mono', scalers=(1.0, 1.0), bar_style=BarStyle(peak_h=2, led_gap=3, led_h=4), spectrum_style=SpectrumStyle(barw_min=6, bar_space=0.2), background='dark')
         self.always_draw_background()
 
 
@@ -81,7 +83,7 @@ class MixedLEDScreen(Frame):
         Frame.__init__(self, platform, padding=50, background='dark', outline={'width':2,'colour':'alert'}, theme='hifi')
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
         cols = ColFramer(self, col_ratios=(4,1), background={'colour':'dark','opacity':20}, padding=0, outline={'width':4,'colour':'mid'})
-        cols += SpectrumFrame(cols, 'mono', peak_h=2, led_gap=3, led_h=5, barw_min=6, bar_space=0.2, theme='leds')
+        cols += SpectrumFrame(cols, 'mono', bar_style=BarStyle(peak_h=2, led_gap=3, led_h=5), spectrum_style=SpectrumStyle(barw_min=6, bar_space=0.2), theme='leds')
         cols += VU2chFrame(cols, orient='vert', flip=False, led_gap=3, led_h=5, background=None)
         self.always_draw_background()
 
@@ -93,9 +95,7 @@ class VUScreen(Frame):   # comprises volume on the left, spectrum on the right
         Frame.__init__(self, platform,background='background')
         # self += VolumeSourceFrame(self  , 0.4, 'right')
         self += VU2chHorzFrame(self,background=background,     # --- Add these extreme values ---
-            bloom_threshold=0.6,      # Bloom will start almost immediately
-            bloom_intensity=3.0,     # Bloom will be 10x the size of the LED
-            bloom_softness=0.9        # Bloom will be very diffuse)
+            effects=Effects(threshold=0.6, scale=3.0, blur=0.9)
         )
 
 class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -104,24 +104,24 @@ class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
         Frame.__init__(self, platform, background=back)
 
         # self += dbVolumeSourceFrame(self  , 0.5, 'right')
-        # self += SpectrumFrame(self  , 'right', (0.7, 1.0), align=('right','middle'), led_gap=0, barw_min=2, tip=True)
+        # self += SpectrumFrame(self  , 'right', (0.7, 1.0), align=('right','middle'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=2))
 
-        #  segment_size=5, segment_gap=1, corner_radius=0, edge_softness=0.05, \
+        #  style=BarStyle(style=BarStyle(segment_size=5, segment_gap=1, corner_radius=0, edge_softness=0.05)), \
         #  intensity_threshold=0.8, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=20, \
 
         cols = ColFramer(self)
         rows = RowFramer(cols)
         rows += VU2chFrame(rows, orient='horz', flip=True)
-        rows += VU2chFrame(rows, orient='horz', flip=False)
+        rows += VU2chFrame(rows, style=BarStyle(orient='horz', flip=False))
         row1 = RowFramer(cols)
-        row1 += VU2chFrame(row1, orient='vert', flip=True, segment_size=5, segment_gap=4, corner_radius=4, edge_softness=0.05)
-        row1 += VU2chFrame(row1, orient='vert', flip=False,segment_size=5, segment_gap=4, corner_radius=4, edge_softness=0.05)
+        row1 += VU2chFrame(row1, orient='vert', flip=True, style=BarStyle(segment_size=5, segment_gap=4, corner_radius=4, edge_softness=0.05))
+        row1 += VU2chFrame(row1, orient='vert', flip=False,style=BarStyle(segment_size=5, segment_gap=4, corner_radius=4, edge_softness=0.05))
         row2 = RowFramer(cols)
-        row2 += VUFlipFrame(row2, orient='horz', flip=True,led_h=5, led_gap=5,barsize_pc=0.7,intensity_threshold=0.6, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=80)
-        row2 += VUFlipFrame(row2, orient='horz', flip=False,led_h=5, led_gap=5,barsize_pc=0.7,intensity_threshold=0.6, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=80)
+        row2 += VUFlipFrame(row2, orient='horz', flip=True,bar_style=BarStyle(led_h=5, led_gap=5),barsize_pc=0.7,intensity_threshold=0.6, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=80)
+        row2 += VUFlipFrame(row2, orient='horz', flip=False,bar_style=BarStyle(led_h=5, led_gap=5),barsize_pc=0.7,intensity_threshold=0.6, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=80)
         row3 = RowFramer(cols)
-        row3 += VUFlipFrame(row3, orient='vert', flip=True,led_h=5, segment_size=10, segment_gap=1, corner_radius=0, edge_softness=0.05)
-        row3 += VUFlipFrame(row3, orient='vert', flip=False,led_h=5, segment_size=10, segment_gap=1, corner_radius=0, edge_softness=0.05)        
+        row3 += VUFlipFrame(row3, orient='vert', flip=True,led_h=5, style=BarStyle(segment_size=10, segment_gap=1, corner_radius=0, edge_softness=0.05))
+        row3 += VUFlipFrame(row3, orient='vert', flip=False,led_h=5, style=BarStyle(segment_size=10, segment_gap=1, corner_radius=0, edge_softness=0.05))        
 
 
 # class PlayerScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -169,9 +169,9 @@ class TestSpectrumScreen(Frame):   # comprises volume on the left, spectrum on t
         # self += Spectrum2chFrame(self  , (0.5,0.5), align=('left','top'))
         self += SpectrumStereoOffsetFrame(self  , scalers=(0.5,0.5), align=('left','bottom'))
         back = {'colour':'background', 'per_frame_update':False}
-        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','top'), peak_h=2, led_gap=2, led_h=4, barw_min=6, bar_space=0.2, theme='leds', background=back)
+        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','top'), bar_style=BarStyle(peak_h=2, led_gap=2, led_h=4), spectrum_style=SpectrumStyle(barw_min=6, bar_space=0.2), theme='leds', background=back)
         # #mono
-        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','bottom'), led_gap=0, barw_min=2, tip=True, background=back)
+        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','bottom'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=2), background=back)
 
 
 class TestVUScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -185,11 +185,11 @@ class TestVUScreen(Frame):   # comprises volume on the left, spectrum on the rig
         back = {'colour':'background', 'per_frame_update':True}
         Frame.__init__(self, platform, background=back)
         # self += VU2chFrame(self  , scalers=(0.2, 0.5), align=('left','top'), orient='vert')
-        # self += VU2chFrame(self  , scalers=(0.2, 1.0), align=('left','bottom'), orient='vert', flip=False)
-        self += VU2chFrame(self  ,  scalers=(0.25, 1.0), align=('left','top'), orient='vert', flip=False)
-        self += VUFlipFrame(self  ,  scalers=(0.25, 1.0), align=('right','bottom'), orient='vert', flip=True)
+        # self += VU2chFrame(self  , scalers=(0.2, 1.0), align=('left','bottom'), style=BarStyle(orient='vert', flip=False)\)
+        self += VU2chFrame(self  ,  scalers=(0.25, 1.0), align=('left','top'), style=BarStyle(orient='vert', flip=False))
+        self += VUFlipFrame(self  ,  scalers=(0.25, 1.0), align=('right','bottom'), style=BarStyle(orient='vert', flip=True))
         self += VU2chHorzFrame(self  ,  scalers=(0.5, 0.5), align=('centre','top'),tip=True)
-        self += VUFlipFrame(self  ,  scalers=(0.5, 0.5), align=('centre','bottom'), orient='horz', flip=False)
+        self += VUFlipFrame(self  ,  scalers=(0.5, 0.5), align=('centre','bottom'), style=BarStyle(orient='horz', flip=False))
 
 class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -212,12 +212,12 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         # self += MetaDataFrame(self  , scalers=(0.3, 1.0), align=('centre','middle'))
         # # self += MetaImages(self  , scalers=(1.0,1.0),align=('centre','middle'), opacity=40)
         # # self += PlayProgressFrame(self  , scalers=(0.3, 0.05), align=('centre','bottom'))
-        # self += VUMeter(self  ,  'left', scalers=(0.3, 0.9), align=('left','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #, background='mid')
-        # self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE) #,background='mid')
+        # self += VUMeter(self  ,  'left', scalers=(0.3, 0.9), align=('left','top'), style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE) #, background='mid')
+        # self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE) #,background='mid')
         cols = ColFramer(self, background={'colour':None,'per_frame_update':True})
-        cols += VUMeter(cols  ,  'left', square=False, pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE, background=BACK)
+        cols += VUMeter(cols  ,  'left', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE, background=BACK)
         cols += MetaDataFrame(cols,padding=2, background=BACK)#,outline=OUTLINE)
-        cols += VUMeter(cols  ,  'right', square=False, pivot=PIVOT, arcs={}, endstops=ENDSTOPS, needle=NEEDLE,outline=OUTLINE, background=BACK)
+        cols += VUMeter(cols  ,  'right', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE, background=BACK)
 
 
 
@@ -318,17 +318,17 @@ class BarParametersTestScreen(Frame):
         # 2. Blocky (Retro)
         r2 = ColFramer(rows, col_ratios=(1, 3))
         r2 += TextFrame(r2, text="Blocky (Retro)", align=('right', 'middle'))
-        r2 += VU2chHorzFrame(r2, segment_size=15, segment_gap=2, corner_radius=0, edge_softness=0.0)
+        r2 += VU2chHorzFrame(r2, style=BarStyle(segment_size=15, segment_gap=2, corner_radius=0, edge_softness=0.0))
 
         # 3. Round & Soft (Modern)
         r3 = ColFramer(rows, col_ratios=(1, 3))
         r3 += TextFrame(r3, text="Round & Soft", align=('right', 'middle'))
-        r3 += VU2chHorzFrame(r3, segment_size=8, segment_gap=4, corner_radius=4, edge_softness=0.1)
+        r3 += VU2chHorzFrame(r3, style=BarStyle(segment_size=8, segment_gap=4, corner_radius=4, edge_softness=0.1))
 
         # 4. Solid Bar (Analog)
         r4 = ColFramer(rows, col_ratios=(1, 3))
         r4 += TextFrame(r4, text="Solid (Analog)", align=('right', 'middle'))
-        r4 += VU2chHorzFrame(r4, segment_size=10, segment_gap=0, corner_radius=5, edge_softness=0.02)
+        r4 += VU2chHorzFrame(r4, style=BarStyle(segment_size=10, segment_gap=0, corner_radius=5, edge_softness=0.02))
 
 class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -383,11 +383,7 @@ class BloomImageTestScreen(Frame):
         
         cols += VU2chHorzFrame(cols, 
             background=vu_bg,
-            bloom_threshold=0.5,
-            bloom_intensity=2.0,
-            bloom_softness=0.8,
-            bloom_alpha=80, # Visible bloom
-            softness=0.1
+            effects=Effects(threshold=0.5, scale=2.0, blur=0.8, alpha=80)
         )
 
 class ShadowTestScreen(Frame):
@@ -439,7 +435,7 @@ class ShadowTestScreen(Frame):
 #----------- PlayProgress Test screens ---------------------------
 """
     def __init__(self, parent, scalers=None, align=None, barsize_pc=0.5, theme=None, flip=False, \
-                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background='background'): 
+                    bar_style=BarStyle(led_h=1, led_gap=0), radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background='background'): 
 """
 class ProgressScreen(Frame):
     @property
@@ -458,7 +454,7 @@ class ProgressScreen(Frame):
         rows = RowFramer(cols, row_ratios=(4,1,1),background='mid', padpc=0, padding=0, outline={'colour':'alert','width':0}) #, align=('centre','middle'))
 
         rows += MetaData(rows,  'track', colour='foreground', scalers=(1.0,1.0), outline={'colour':'alert','width':0})
-        rows += PlayProgressFrame(rows, led_h=3, led_gap=3)
+        rows += PlayProgressFrame(rows, bar_style=BarStyle(led_h=3, led_gap=3))
 
         rows += PlayProgressFrame(rows, orient='horz')
 
@@ -682,7 +678,7 @@ class F5(Frame):
         # colframe += TextFrame(colframe  , text='one big oneLB', scalers=(1.0,0.2), align=('left','top'), justify=('left', 'bottom'), background='mid', outline={'colour':'foreground','width':1}, padding =10)
         colframe += TextFrame(colframe  , text='twoCM', scalers=(1.0,1.0), align=('right','top'), justify=('centre', 'middle'), background='light', outline={'colour':'alert','width':1})
         # colframe += TextFrame(colframe  , text='threeRT', scalers=(1.0, 0.2), background='mid', justify=('right', 'top'), align=('centre','bottom'), outline={'colour':'foreground','width':1}, padding =10)
-        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), orient='horz', barsize_pc=1.0, led_gap=0,tip=True, background='dark')
+        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
         
  
         rowframe = RowFramer(colframe  , row_ratios=(1,3, 1),  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
@@ -706,7 +702,7 @@ class F5(Frame):
         # colframe = self
 
 
-        # colframe += VU2chFrame(colframe, scalers=(1.0, 1.0), background='light', align=('right','middle'), led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour':'foreground', 'width':1}, theme='std')
+        # colframe += VU2chFrame(colframe, scalers=(1.0, 1.0), background='light', align=('right','middle'), bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.1, outline={'colour':'foreground', 'width':1}, theme='std')
         # colframe += AlbumArtFrame(colframe, scalers=(1.0,1.0), outline={'colour':'foreground','width':30, 'radius':4, 'opacity':50},padding=0, background='mid')
         # colframe += ArtistArtFrame(colframe, scalers=(1.0,1.0), background='light', outline={'colour':'alert','width':1},padding=0)
 
@@ -754,9 +750,9 @@ class F6(Frame):
 
 
         colframe = ColFramer(self, col_ratios=(1,1,1), scalers=(1.0,1.0), background=None, outline={'colour':'foreground','width':1}, padding=10)
-        # colframe += VU2chFrame(colframe, scalers=(0.1, 1.0), align=('right','middle'), background='background',led_h=7, led_gap=2,barsize_pc=0.1, outline={'colour':'foreground', 'width':1}, theme='std')
+        # colframe += VU2chFrame(colframe, scalers=(0.1, 1.0), align=('right','middle'), background='background',bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.1, outline={'colour':'foreground', 'width':1}, theme='std')
         colframe += MetaDataFrame(colframe)
-        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), orient='vert', barsize_pc=1.0, led_gap=0,tip=True, background='dark')
+        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='vert', led_gap=0, tip=True), background='dark')
         # colframe += MetaImages(colframe, art_type='album', scalers=(1.0,1.0), outline={'colour':'foreground','width':30, 'radius':4, 'opacity':20},padding=0, background='mid')
         # colframe += MetaImages(colframe, art_type='artist', scalers=(1.0,1.0), background='light', outline={'colour':'alert','width':5},padding=0, opacity=100)
 
@@ -782,9 +778,9 @@ class F7(Frame):
         # self += TextFrame(self  , text='one', scalers=(0.33,1.0 ), background='mid', align=('left','middle'), outline={'colour':'alert','width':10}, padding =10)
         # self += TextFrame(self  , text='two', scalers=(0.33, 1.0), background='mid', align=('centre','middle'), outline={'colour':'alert','width':10}, padding =10)
         # self += TextFrame(self  , text='three', scalers=(0.33, 1.0), background='mid', align=('right','middle'), outline={'colour':'alert','width':10}, padding =10)
-        # col += SpectrumFrame(col,  'left', scalers=(1.0, 1.0), align=('left','top'), flip=False, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5,background='dark' )
+        # col += SpectrumFrame(col,  'left', scalers=(1.0, 1.0), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, bar_space=0.5),background='dark' )
         # self += VUHorzFrame(self, 'left',  scalers=(1.0, 0.5), align=('left','top') ,tip=False, background='mid')
-        col += VUFrame(col, 'left', align=('right','middle'), scalers=(1.0,1.0), orient='horz', barsize_pc=1.0, led_gap=0,tip=True, background='dark')
+        col += VUFrame(col, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
         # col += VUFrame(col  , 'right', scalers=(1.0, 1.0), align=('centre', 'top'), background='stream.png')
 
         print(self)  
@@ -802,8 +798,8 @@ class F8(Frame):   # comprises volume on the left, spectrum on the right
 
         cols = ColFramer(self, background='background')
         # spectrum = Frame(cols)
-        cols += SpectrumFrame(cols  ,  'mono', flip=False, led_gap=0, peak_h=1, radius=0, tip=True, barw_min=3, bar_space=2,background='background')
-        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=0, peak_h=1,radius=0, tip=True, barw_min=3, bar_space=2 )
+        cols += SpectrumFrame(cols  ,  'mono', flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=2),background='background')
+        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=2) )
         # cols += StereoSpectrumFrame(cols)
         # cols += MetaMiniSpectrumFrame(cols)
         artoutline = {'colour':'background', 'width':5}
@@ -826,10 +822,10 @@ class F9(Frame):   # comprises volume on the left, spectrum on the right
         # rows = RowFramer(self, row_ratios=(3,1), background='background')
 
         subframe = ColFramer(self, col_ratios=(1,1,1), padpc=0.1,padding=40, background={'image':'particles.jpg'})
-        subframe += VU2chFrame(subframe, led_h=7, led_gap=2,barsize_pc=1.0, outline={'colour':'foreground', 'width':5},\
+        subframe += VU2chFrame(subframe, bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=1.0, outline={'colour':'foreground', 'width':5},\
                                background={'colour':'mid','opacity':100})
         subframe += MetaImages(subframe, art_type='album', opacity=255)
         subframe += TextFrame(subframe  , text='Volume',  background={'colour':'dark','opacity':200}, \
                               justify=('right','middle'), outline={'colour':'foreground','width':1}, padding =0)
-        # led_h=5, led_gap=1,barsize_pc=0.7, theme=None
+        # bar_style=BarStyle(led_h=5, led_gap=1),barsize_pc=0.7, theme=None
         # subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0), justify='left', background='background')        

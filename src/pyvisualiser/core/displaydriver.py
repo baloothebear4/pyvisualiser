@@ -23,6 +23,7 @@ from    array import array
 from    .components import Outline
 from    .backgrounds import Background
 from    pyvisualiser.core.render import RenderPass, RenderContext, Compositor
+from    pyvisualiser.styles.profiles import ProfileManager
 
 
 """ Prevent image colour warnings: libpng warning: iCCP: known incorrect sRGB profile,"""
@@ -47,21 +48,18 @@ class PygameRenderer:
 
 class GraphicsDriverPi:
     """ Raspberry PI-4B Waveshare 7.9" DSI based platform """
-    H       = 400
-    W       = 1280
-    PANEL   = [W, H]   # h x w
-    FPS     = 48
     BACKGROUND_COLOR = (10, 10, 20)  # Dark Blue/Grey, a nice HiFi screen background    
-
 
     """
     Base class to manage all the graphics i/o functions
     """
     def __init__(self, events):
-        self.W      = GraphicsDriverPi.W
-        self.H      = GraphicsDriverPi.H
-        self.FPS    = GraphicsDriverPi.FPS
+        profile = ProfileManager.get_profile()
+        self.W      = profile.target_resolution[0]
+        self.H      = profile.target_resolution[1]
+        self.FPS    = profile.framerate
         self.events = events
+        self.PANEL  = [self.W, self.H]
 
         self.clock  = pygame.time.Clock()
         self.screen = self.init_display()
@@ -114,14 +112,14 @@ class GraphicsDriverPi:
         self._physical_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         actual_size = self._physical_screen.get_size()
         
-        # Create a virtual surface with our desired drawing dimensions (1280x400)
-        self.virtual_surface = pygame.Surface((GraphicsDriverPi.W, GraphicsDriverPi.H))
+        # Create a virtual surface with our desired drawing dimensions
+        self.virtual_surface = pygame.Surface((self.W, self.H))
         
         # Hide mouse cursor for a cleaner look.
         pygame.mouse.set_visible(False)
         
         # --- Create the Background Surface ---
-        self.background_surface = pygame.Surface(GraphicsDriverPi.PANEL)
+        self.background_surface = pygame.Surface(self.PANEL)
         self.background_surface.fill(GraphicsDriverPi.BACKGROUND_COLOR)
         self.background_surface = self.background_surface.convert()
 
@@ -241,19 +239,17 @@ class GraphicsDriverPi:
 
 class GraphicsDriverGL:
     """ OpenGL based platform using ModernGL """
-    H       = 400
-    W       = 1280
-    PANEL   = [W, H]   # h x w
-    FPS     = 60
     BACKGROUND_COLOR = (10, 10, 20)
 
     # The following methods were incorrectly placed inside Compositor during a previous refactor.
     # They are now correctly placed here, and the old __init__ has been removed.
     def __init__(self, events):
+        profile = ProfileManager.get_profile()
         self.events = events
-        self.W      = GraphicsDriverGL.W
-        self.H      = GraphicsDriverGL.H
-        self.FPS    = GraphicsDriverGL.FPS
+        self.W      = profile.target_resolution[0]
+        self.H      = profile.target_resolution[1]
+        self.FPS    = profile.framerate
+        self.PANEL  = [self.W, self.H]
 
         self.clock  = pygame.time.Clock()
         self.window = self.init_display()
@@ -292,19 +288,17 @@ class GraphicsDriverGL:
 
 class GraphicsDriverMac:
     """ Pygame based platform """
-    H       = 400
-    W       = 1280
-    PANEL   = [W, H]   # h x w
-    FPS     = 50
 
     """
     Base class to manage all the graphics i/o functions
     """
     def __init__(self, events):
+        profile = ProfileManager.get_profile()
         self.events = events
-        self.W      = GraphicsDriverMac.W
-        self.H      = GraphicsDriverMac.H
-        self.FPS    = GraphicsDriverMac.FPS
+        self.W      = profile.target_resolution[0]
+        self.H      = profile.target_resolution[1]
+        self.FPS    = profile.framerate
+        self.PANEL  = [self.W, self.H]
 
         self.screen = self.init_display()
         self.renderer = PygameRenderer(self.screen)
@@ -314,7 +308,7 @@ class GraphicsDriverMac:
 
     def init_display(self):
         pygame.init()   #create the drawing canvas
-        return pygame.display.set_mode(GraphicsDriverMac.PANEL)
+        return pygame.display.set_mode(self.PANEL)
 
     def draw_start(self, text=None):
         # self.screen.fill((0,0,0))       # erase whole screen

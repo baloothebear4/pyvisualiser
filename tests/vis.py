@@ -115,6 +115,9 @@ def machine():
         return MAC_PLATFORM
     
 if __name__ == "__main__":
+    from pyvisualiser.styles.profiles import ProfileManager
+    from pyvisualiser.styles.presets import EmbeddedHiFiProfile
+    ProfileManager.set_profile(EmbeddedHiFiProfile)
 
     visualiser = ScreenController(SCREENS, hw_platform=machine() )
 

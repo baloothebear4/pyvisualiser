@@ -63,9 +63,27 @@ VUBackground    = BackgroundStyle(colour='background', ambient_glow=VUGlow)
 # VU Meter presets (bar based)
 
 
-# Profiles are a collection of presets that have ano overall style eg desktop, hifi, jukebox
-HiFiProfile = {
-    'palette':      'hifi',                 # dark blue colour palette
-    'background':   BackgroundDefault,      # soft ambient glow
-    'bar':          BarStyle                # tbd
-}
+from .profiles import VisualiserProfile
+
+# Primary Hardware Profile
+EmbeddedHiFiProfile = VisualiserProfile(
+    name="Embedded HiFi Preamp",
+    target_resolution=(1280, 400),
+    fullscreen=True,
+    framerate=60,
+    default_palette='hifi',
+    effects=StrongEffect,
+    background_style=VUBackground,
+    vu_meter_style=VUMeterStyle(show_peak=True)  # Driven by default VU styles
+)
+
+# Desktop Widget Profile
+DesktopWidgetProfile = VisualiserProfile(
+    name="Desktop Visualiser Widget",
+    target_resolution=(800, 600),
+    fullscreen=False,
+    framerate=30,  # Lighter footprint for desktop
+    default_palette='std',
+    effects=Effects(scale=1.0, blur=0.5, alpha=100),
+    background_style=BackgroundStyle(colour='background', texture_opacity=0.0)
+)
