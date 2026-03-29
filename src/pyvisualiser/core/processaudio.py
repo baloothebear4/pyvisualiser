@@ -694,10 +694,11 @@ class AudioProcessor(AudioData):
             while bincount*BINBANDWIDTH <= band:
                 bincount    += 1
 
-            level = 20*np.log2((bins[startbin:bincount].mean() + 1e-7))
+            # Use standard audio dB calculation (log10) since bins are now normalised 0.0 - 1.0
+            level = 20*np.log10((bins[startbin:bincount].mean() + 1e-7))
             spectrumBands.append( self.normalise(level) )
             startbin = bincount
-            # print("PackFFT >", spectrumBands)
+        # print("PackFFT >", spectrumBands)
         return spectrumBands
 
     def normalise(self, level):
@@ -709,9 +710,12 @@ class AudioProcessor(AudioData):
             was (20 +level)/70 for preDAC HW
         """
         floor = -self.minC
-        scale = self.peakC + floor + 0.0001
-        # print("Normalise floor %f scale %f level %f" % (floor, scale, level))
-        return (floor + level)/(scale )
+        # Prevent zero division if peakC and minC converge
+        scale = max(0.001, self.peakC + floor)
+        
+        # Calculate percentage and clamp exactly to [0.0, 1.0]
+        pc = (floor + level) / scale
+        return max(0.0, min(1.0, pc))
 
     def printSpectrum(self, octave, intervalUpperF, left=True):
         FFACTOR = math.pow(2, 1.0/float(2*octave) )

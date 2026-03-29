@@ -14,6 +14,7 @@
 
 from   screens import *
 from   screens2 import *
+from   screens3 import *
 from   VUscreens import *
 from   testscreens import *
 from   test_api_coverage import *
@@ -30,7 +31,7 @@ import platform
 # TestVUScreen, TestVUImageScreen1, TestVUImageScreen2, TestVUMetersScreen, TestSpectrumScreen 
 
 # SCREENS = ( ColAlignedScreen, TrackVUMeterScreen21 )
-SCREENS = ( MinSpectrumArt, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
+ALLSCREENS = ( MinSpectrumArt, TrackScreen, TrackSpectrumScreen, TrackSpectrumScreen2,\
             TrackSpectrumScreen3, TrackSpectrumScreen4, \
             TrackOscScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, TrackVUMeterScreen, TrackVUMeterScreen2, \
             ArtMetaSpectrumScreen, MinSpectrumArt, ColAlignedScreen  )
@@ -90,7 +91,7 @@ GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
 
  #+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
-SCREENS = (AudioTestScreen, )+GLSCREENS + (VUTestScreen1,  VUTestScreen2)
+SCREENS = (H1,H2,H3) + (AudioTestScreen, )+GLSCREENS + (VUTestScreen1,  VUTestScreen2) +SPECTRUM_TEST_SCREENS
 
 
 """ 

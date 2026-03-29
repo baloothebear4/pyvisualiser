@@ -93,7 +93,7 @@ class BarStyle:
     orient: str = 'vert'
     tip: bool = False
     edge_softness: float = 0.0
-    col_mode: Optional[str] = None
+    colour_mode: Optional[str] = 'horz'
     segment_size: Optional[int] = None
     segment_gap: Optional[int] = None
     corner_radius: Optional[int] = None
@@ -103,13 +103,14 @@ class BarStyle:
         if self.segment_size is None: object.__setattr__(self, 'segment_size', self.led_h)
         if self.segment_gap is None: object.__setattr__(self, 'segment_gap', self.led_gap)
         if self.corner_radius is None: object.__setattr__(self, 'corner_radius', self.radius)
-        if self.col_mode is None: object.__setattr__(self, 'col_mode', self.orient)
+        if self.colour_mode is None: object.__setattr__(self, 'colour_mode', self.orient)
 
 @dataclass(frozen=True)
 class SpectrumStyle:
     bar_space: float = 0.5
     barw_min: int = 1
     barw_max: int = 20
+    decay: int = 0.4
 
 @dataclass(frozen=True)
 class OutlineStyle:

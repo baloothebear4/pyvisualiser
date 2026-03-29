@@ -61,7 +61,7 @@ class Bar(Frame):
         
         self.effects = effects if effects is not None else profile.effects
         
-        colour_range = self.h if self.style.col_mode == 'vert' else self.w
+        colour_range = self.h if self.style.colour_mode == 'vert' else self.w
         self.colours = Colour(self.theme, colour_range)
         
         self.gradient_surface = self._create_gradient_surface()

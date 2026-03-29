@@ -71,7 +71,7 @@ MetaData Frames
 class PlayProgressFrame(Frame):
     """ This creates a propgress bar that moves according to play progress with time elapsd and time to go calc """
     def __init__(self, parent, scalers=None, align=None, barsize_pc=0.5, theme=None, flip=False, outline=None,\
-                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background='background', z_order=10, **kwargs):
+                    led_h=1, led_gap=0, radius=0, barw_min=10, barw_max=400, tip=True, orient='horz', background=None, z_order=10, **kwargs):
 
         self.barsize_pc     = barsize_pc      # min widths
         self.barw_max       = barw_max      # max width
@@ -119,7 +119,7 @@ class PlayProgressFrame(Frame):
 class ArtFrame(Frame):
     # OUTLINE = { 'width' : 3, 'radius' : 0, 'colour_index' : 'foreground'}
     # def __init__(self, parent, update_fn=None, square=False, scalers=None, align=None, opacity=None, outline=None, padding=0, background=None):
-    def __init__(self, parent, update_fn=None, opacity=None, reflection=None, **kwargs):
+    def __init__(self, parent, update_fn=None, opacity=150, reflection=None, **kwargs):
 
         # Frame.__init__(self, parent, scalers=scalers, align=align, outline=outline, padding=padding, background=background, square=square)
         self.kwargs    = kwargs
@@ -141,7 +141,7 @@ class ArtFrame(Frame):
         #     self.configure()
         #     print("ArtFrame.update> re-create Image size", self.image_container.target_wh, self.wh)
 
-        if full or self.image_container.new_content_available(self.update_fn()):
+        if full or True: # Always draw in OpenGL pipeline to prevent flashing
             self.draw_background(True)
             self.image_container.draw(self.update_fn())
             return True
@@ -149,7 +149,7 @@ class ArtFrame(Frame):
             return False
 
 class MetaImages(ArtFrame):
-    def __init__(self, parent, art_type='album', opacity=None, reflection=None, **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
+    def __init__(self, parent, art_type='album', opacity=200, reflection=None, **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
 
         METAART_UPDATE = {  'album':  { 'update_fn': parent.platform.album_art,  'square' : True},
                             'artist': { 'update_fn': parent.platform.artist_art, 'square' : False} }
@@ -250,13 +250,14 @@ class Spectrum:
                 else:
                     self.octaves.append(freq_bin)
                     continue
-        # print("Spectrum.__init__> Selected spectrum: octave spacing=1/%d, num octaves %d" % (self.spacing, len(self.octaves)))
+        print("Spectrum.__init__> Selected spectrum: octave spacing=1/%d, num octaves %d, bar width %d" % (self.spacing, len(self.octaves),self.barw))
 
 
 
     def read(self, channel='left'):
         smoothedpeak = 0
-        fft = self.platform.packFFT(self.bar_freqs, self.channel)
+        fft = self.platform.packFFT(self.bar_freqs, channel)
+        # print("Spectrum.read> fft", fft)
 
         for i, target_height in enumerate(fft):
             if target_height > self.current[i].smoothed():
@@ -278,6 +279,8 @@ class Spectrum:
 
             self.peaks[i] *= (1- self.peak_decay)
 
+            # print("Spectrum.read> ", self.current[i].__str__())
+
 class SpectrumFrame(Frame, Spectrum):
     """
     Creates a spectrum analyser of the width and octave interval specified.
@@ -285,22 +288,19 @@ class SpectrumFrame(Frame, Spectrum):
     - channel 'left' or 'right' selects the audio channel and screen alignment
     """
 
-    def __init__(self, parent, channel, scalers=None, align=('left','bottom'), right_offset=0, theme=None, flip=False, outline=None, square=False, \
-                background='background', padding=0,\
+    def __init__(self, parent, channel, scalers=None, align=None, theme=None, flip=False, outline=None, square=False, \
+                background=None, padding=0,\
+                bar_style=None, spectrum_style=None, effects=None, \
+                # # OLd API
                 led_h=5, led_gap=1, peak_h=1, radius=0, tip=False, decay=Spectrum.DECAY, col_mode='vert', \
-                bar_space=0.5, barw_min=1, barw_max=20, \
-                # New API
-                bar_style=None, \
-                spectrum_style=None, \
-                effects=None, \
-                intensity_threshold=0.5, intensity_scale=2.5, intensity_blur=1.0, intensity_alpha=200, \
-                **kwargs):
+                bar_space=0.5, barw_min=1, barw_max=20, right_offset=0, \
+                intensity_threshold=0.5, intensity_scale=2.5, intensity_blur=1.0, intensity_alpha=200):
 
         if effects is None:
             effects = Effects(threshold=intensity_threshold, scale=intensity_scale, blur=intensity_blur, alpha=intensity_alpha)
 
         if bar_style is None:
-            bar_style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, radius=radius, tip=tip, col_mode=col_mode, flip=flip, right_offset=right_offset)
+            bar_style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, radius=radius, tip=tip, colour_mode=col_mode, flip=flip, right_offset=right_offset)
 
         if spectrum_style is None:
             spectrum_style = SpectrumStyle(bar_space=bar_space, barw_min=barw_min, barw_max=barw_max)
@@ -315,19 +315,19 @@ class SpectrumFrame(Frame, Spectrum):
             'spectrum_style': spectrum_style,
             'effects': effects,
             # Legacy args captured in style/spectrum_style now
-            'peak_h': peak_h,
-            'radius': radius,
-            'bar_space': bar_space,
-            'barw_min': barw_min,
-            'barw_max': barw_max,
-            'decay': decay
+            # 'peak_h': peak_h,
+            # 'radius': radius,
+            # 'bar_space': bar_space,
+            # 'barw_min': barw_min,
+            # 'barw_max': barw_max,
+            # 'decay': decay
 
         }
-        self.config.update(kwargs)
+        # self.config.update(kwargs)
         
         # Assign primary attributes used outside of Frame's geometry calculation
         self.channel        = self.config['channel']
-        self.col_mode       = self.config['bar_style'].col_mode
+        # self.col_mode       = self.config['bar_style'].col_mode
 
         # 2. Call the parent Frame.__init__. This establishes self.w and self.h.
         Frame.__init__(self, parent, 
@@ -358,17 +358,17 @@ class SpectrumFrame(Frame, Spectrum):
                           bar_space=cfg['spectrum_style'].bar_space, 
                           barw_min=cfg['spectrum_style'].barw_min, 
                           barw_max=cfg['spectrum_style'].barw_max, 
-                          decay=cfg['decay'])
+                          decay=cfg['spectrum_style'].decay)
         # The Spectrum init populates self.bars, self.barw, etc.
         
         # 3. Create the Bar object using the newly calculated dimensions
         # self.width, self.h are from Frame, self.barw is from Spectrum
-        self.bar = Bar(self, 
+        self.bar = Bar(self, align=('left', 'bottom'),
                        box_size=(self.width, self.h), # Ensure width/h are correct
                        style=cfg['bar_style'],
                        effects=cfg['effects'])
 
-        # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
+        print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
         # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
 
     def update_screen(self, full=True):
@@ -384,12 +384,11 @@ class SpectrumFrame(Frame, Spectrum):
         #     self.configure()
 
         self.read(self.channel)
-        self.draw_background(True)
         for i in range(len(self.current)):
             x = i * (self.barw + self.bar_gap)
-            colour_index = x if self.col_mode == 'horz' else None
+            colour_index = x if self.config['bar_style'].colour_mode == 'horz' else None
             self.bar.draw( x+self.config['bar_style'].right_offset, self.current[i].smoothed(), self.barw, self.peaks[i], colour_index=colour_index)
-        # print("SpectrumFrame.update> ", self.abs_rect())
+        # print("SpectrumFrame.update> ", self.abs_rect(), self.config['bar_style'].colour_mode)
         return True
         
 
@@ -430,7 +429,7 @@ class OscilogrammeBar(Frame):
     FRAME     = 1024  # Samples
     BAR_MAX   = 20    # Max width of a Bar
 
-    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), barsize_pc=1, theme='std', flip=False, background='background',\
+    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), barsize_pc=1, theme='std', flip=False, background=None,\
                     led_h=5, led_gap=0, col_mode='horz', radius=0, barw_min=4, tip=True, decay=DECAY,outline=None, square=False, z_order=0, **kwargs):
 
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, outline=outline,square=square,background=background, z_order=z_order)
@@ -467,14 +466,14 @@ class OscilogrammeBar(Frame):
 
     def update_screen(self, full):
         samples =  self.platform.reduceSamples( self.channel, self.reduce_by )
-        self.draw_background()
+        self.draw_background(True)
         for i in range(self.bars):
             # add the new sample
             target_height = min(1.0, samples[i])
             # print(target_height)
             if target_height > self.current[i].smoothed():
                 self.current[i].add(target_height)
-
+            
             # decay the existing ones
             if self.current[i].smoothed() < self.decay/100.0:
                 self.current[i].add(0.0)
@@ -491,7 +490,7 @@ class Oscilogramme(Frame):
     """
     Draw a frame of samples - scaling the number of samples is the trick to align the frame rate and the sample rate
     """
-    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None, background='background', z_order=0, **kwargs):
+    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), theme=None, background=None, z_order=0, **kwargs):
         self.channel = channel
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, z_order=z_order)
         self.configure()
@@ -566,7 +565,7 @@ class CircleModulator(Frame):
 """ A visualiser based on a circle display of spectrum lines """
 class Diamondiser(Frame, Spectrum):
     BARSPACE = 1
-    def __init__(self, parent, channel, scalers=None, theme=None, align=None, bar_space=BARSPACE,background='background', z_order=0, **kwargs):
+    def __init__(self, parent, channel, scalers=None, theme=None, align=None, bar_space=BARSPACE,background=None, z_order=0, **kwargs):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True, theme=theme,background=background, z_order=z_order)
         self.channel     = channel
         self.bar_space   = bar_space
@@ -582,12 +581,11 @@ class Diamondiser(Frame, Spectrum):
         self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=self.bar_space*2, tick_pc=self.centre_pc, centre_offset=0, \
                             radius=self.max_radius, colour='mid') \
                              for _ in range(self.bars)]
-        # print("Diamondiser.__init__>", self.bars, self.max_radius, self.geostr(), self.anglestr())
 
-    def update_screen(self, full, channel='left'):
+    def update_screen(self, full):
         self.read(self.channel)
         radius  = self.centre_pc
-        self.draw_background()
+        self.draw_background(True)
         for ray_index, ray in enumerate(self.rays):
             col = self.max_radius*(ray_index/self.bars)
             amp = radius*self.current[ray_index].smoothed() if self.current[ray_index].smoothed() > 0 else 0

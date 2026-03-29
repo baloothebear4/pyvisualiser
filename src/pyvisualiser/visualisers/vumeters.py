@@ -8,9 +8,9 @@ Mar 2026 Baloothebear4. v1.0
 '''
 
 from    pyvisualiser.core.framecore  import Frame, get_asset_path, Smoother, RowFramer, ColFramer
-from    pyvisualiser.core.components import Text, Line, Image, VUNeedleStyle, VUMeterStyle, VUMeterScale
+from    pyvisualiser.core.components import Text, Line, Image, Bar
 from    pyvisualiser.styles.presets  import Centred, PI
-from    pyvisualiser.styles.styles   import OutlineStyle, Effects, BarStyle
+from    pyvisualiser.styles.styles   import *
 from    pyvisualiser.styles.profiles import ProfileManager
 
 

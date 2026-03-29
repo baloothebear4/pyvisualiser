@@ -16,7 +16,7 @@ Subframes are combinations of base frames that come together for easier formatti
 from pyvisualiser.core.framecore            import Frame, RowFramer, ColFramer
 from pyvisualiser.visualisers.frames        import TextFrame, MetaDataFrame, PlayProgressFrame, SpectrumFrame, OscilogrammeBar, MetaImages
 from pyvisualiser.visualisers.vumeters      import VUFrame, VUMeter, VUMeterImageFrame
-from pyvisualiser.styles.styles             import VUNeedleStyle, VUMeterStyle, VUMeterScale, OutlineStyle
+from pyvisualiser.styles.styles             import *
 
 PI = 3.14152
 class VU2chFrame(Frame):
@@ -166,10 +166,9 @@ class Spectrum2chFrame(Frame): #""" Vert split - L/R """
     def __init__(self, parent, **kwargs) :
         Frame.__init__(self, parent, outline={'width':4,'colour':'light'}, **kwargs)
 
-        rows = ColFramer(self, background='background', scalers=(0.7, 0.7), padding=10, outline={'width':4,'colour':'light'})
+        rows = ColFramer(self, scalers=(0.7, 0.7), padding=10, outline={'width':4,'colour':'light'})
         rows += SpectrumFrame(rows, 'left'  )
         rows += SpectrumFrame(rows, 'right' )
-        rows.always_draw_background()
         
 
 class SpectrumStereoFrame(Frame): #""" Horz Split screen - right flipped 'Apple Style' """

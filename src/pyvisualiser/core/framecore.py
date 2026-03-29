@@ -619,9 +619,9 @@ class Frame(Geometry):
     # whether the background and outline is drawn depends on whether the frame update is per frame or per metadata change
     #
     def update_screen(self, full=False, **kwargs):
-        self.draw_outline(True)
+
         self.draw_background(True)
-        # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
+        self.draw_outline(True)        # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
         # Sort frames by z_order for drawing (lowest first)
         draw_list = sorted(self.frames, key=lambda x: x.z_order)
@@ -879,8 +879,8 @@ class Colour:
                 i = min(self.num_colours, (max(0, int(self.num_colours-colour_index))))
             else:
                 i = min(self.num_colours, (max(0, int(colour_index))))
-            # print("Screen.get_colour ", i, index)
-            return self.colours[int(i)]
+            c = self.colours[int(i)]
+            return [c[0], c[1], c[2], opacity]
         elif colour_index in COLOUR_THEMES[self.theme]:
             return list(COLOUR_THEMES[self.theme][colour_index])+[opacity]
         else:
@@ -936,7 +936,8 @@ class Smoother:
                 ave += v * inc
             return ave / (tot*0.9)  # this increased teh amplitude as the smoothing damps the range for VUs
 
-
+    def __str__(self):
+        return f"Smoother> max={self.FrameHeight}, size={self.size}, smoother={self.smoother}"  
 
 def get_asset_path(category: str, filename: str) -> str:
     """

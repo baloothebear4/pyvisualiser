@@ -300,7 +300,7 @@ Goal:
 
 ---
 
-# Phase 8 — Visualiser Profiles
+# Phase 8 — Visualiser Profiles & Layout design hierarchy
 
 ## 8.1 Priority Profile: Embedded HiFi Preamp
 
@@ -317,6 +317,76 @@ Define the configuration for a desktop widget mode:
 - **Workflow**: Runs independently alongside the user's daily desktop tasks.
 
 Add runtime configuration support: `profile = "embedded" | "desktop"`
+
+## 8.3 Profile Controls
+
+The complexity of styles and presets is daunting. I need real time interaction to be able to tune the effects and
+create the subtle layered type displays that make the visualisers professional and natural looking.  So each Profile 
+has a set of controls.  
+
+Each profile has a Look class that massively simplfied the parameter tuning and makes the artistic design much more intuitive:  foe example
+
+@dataclass
+class ProfileLook:
+    name: str
+    brightness: float = 1.0
+    contrast: float = 1.0
+    energy: float = 0.5
+    warmth: float = 0.5
+
+Which maps to :
+    energy → bloom + reactivity
+    warmth → colour palette
+    contrast → threshold
+
+And in the design mode where the visualiser is running on a Mac, with a keyboard to dynamically change parameters to achieve the
+real-time design I am after.  This needs a wrapper for the base @dataclasses:  eg
+
+class StyleController:
+    def __init__(self, style):
+        self.style = style
+        self.runtime = asdict(style)
+
+    def adjust(self, key, delta):
+        self.runtime[key] += delta
+
+This needs a control surface to make this work:
+class StyleController:
+    def __init__(self, style):
+        self.style = style
+        self.runtime = asdict(style)
+
+    def adjust(self, key, delta):
+        self.runtime[key] += delta        
+
+## 8.4 Lighting hierarchy
+
+The controls enable the effects to be balances across frames and also have a consistant visual look that is shared across
+one or more Screens through the Profile.  This is the target lighting hierarchy for rendering to ensure Text remains sharp:
+1 background gradient
+2 ambient particle layer
+3 main visualiser (spectrum / VU)
+4 highlight edges
+5 bloom pass
+6 light fog
+7 metadata UI
+
+This also introduces a LightingStyle class that is the vehicle for this sharing.   
+
+Refactor Effects into:
+class LightingResponse:
+    attack: float
+    decay: float
+    power: float
+
+class BloomStyle:
+    threshold: float
+    intensity: float
+    blur: float
+
+Replace boolean with optional styles so that blending is easier:
+Eg vignette: Union[VignetteStyle, bool] = False goes to
+vignette: Optional[VignetteStyle] = None
 
 ---
 

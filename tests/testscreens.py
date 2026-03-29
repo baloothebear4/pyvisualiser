@@ -21,7 +21,7 @@ from pyvisualiser.styles.presets import *
 class StereoSpectrumLRScreen(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
     def __init__(self, platform):
-        Frame.__init__(self, platform, theme='hifi', background='background')
+        Frame.__init__(self, platform, theme='hifi')
         self += Spectrum2chFrame(self, padding=30)
 
 
