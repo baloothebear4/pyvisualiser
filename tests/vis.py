@@ -89,9 +89,12 @@ GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
 
 
 
- #+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
+TEST_SCREENS2 = (AmbientGlowTunerScreen,OutlineGlowTestScreen,ProfileTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, \
+                 AudioTestScreen, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
-SCREENS = (H1,H2,H3) + (AudioTestScreen, )+GLSCREENS + (VUTestScreen1,  VUTestScreen2) +SPECTRUM_TEST_SCREENS
+HERO_SCREENS  = (H1,H2,H3)
+
+SCREENS =   HERO_SCREENS + TEST_SCREENS2 +GLSCREENS + SPECTRUM_TEST_SCREENS
 
 
 """ 

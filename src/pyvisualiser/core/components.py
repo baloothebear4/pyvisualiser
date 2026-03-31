@@ -251,6 +251,39 @@ class Bar(Frame):
                                              gradient_image=self.gradient_surface,
                                              texture_holder=self)
 
+            if self.effects.reflection:
+                ref_size = 0.3
+                ref_opacity = 0.5
+                if isinstance(self.effects.reflection, dict):
+                    ref_size = self.effects.reflection.get('size', ref_size)
+                    ref_opacity = self.effects.reflection.get('opacity', ref_opacity)
+                
+                ref_coords = (coords[0], coords[1] + coords[3], coords[2], coords[3] * ref_size)
+                
+                def fade_c(c):
+                    c_tuple = tuple(c)
+                    if len(c_tuple) > 3: return c_tuple[:3] + (c_tuple[3] * ref_opacity,)
+                    return c_tuple[:3] + (255 * ref_opacity,)
+
+                c_top_ref, c_bot_ref = fade_c(c_top), fade_c(c_bot)
+
+                self.platform.renderer.draw_rect(c_bot_ref, ref_coords, 
+                                                 border_radius=self.style.corner_radius, 
+                                                 softness=self.style.edge_softness,
+                                                 segments=(self.style.segment_size, self.style.segment_gap),
+                                                 gradient=(c_bot_ref, c_top_ref), 
+                                                 axis=1.0, # Top anchored
+                                                 level=ypc,
+                                                 gradient_image=self.gradient_surface,
+                                                 texture_holder=self)
+                                                 
+                if peak > 0.01:
+                    # Render inverted peak: peak goes from 0 to 1 means offset goes from abs_h down to 0
+                    p_offset_ref = self.abs_h + (peak * self.abs_h * ref_size)
+                    pcoords_ref = self.float_abs_rect(offset=(offset, p_offset_ref), wh=[w, self.style.peak_h])
+                    c_peak_ref = fade_c(self.colours.get(self.colours.num_colours * peak, False))
+                    self.platform.renderer.draw_rect(c_peak_ref, pcoords_ref, softness=self.style.edge_softness)
+
             pcoords = self.float_abs_rect( offset=(offset, self.abs_h*(1-peak)),  wh=[w, self.style.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 

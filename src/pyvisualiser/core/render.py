@@ -84,6 +84,9 @@ class RenderTarget:
         self.texture = self.ctx.texture((w, h), self.components, dtype=self.dtype)
         self.texture.repeat_x = False
         self.texture.repeat_y = False
+        # CRITICAL FIX: Bloom and Blur require Linear filtering to avoid blocky artifacts
+        # and to allow the 'spread' parameter to function smoothly.
+        self.texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
         
         self.fbo = self.ctx.framebuffer(color_attachments=[self.texture])
 
@@ -94,6 +97,9 @@ class RenderTarget:
 
     def use(self):
         self.fbo.use()
+        # CRITICAL FIX: The OpenGL viewport MUST match the FBO size for correct scaling.
+        # This allows 0.5x scale buffers to be used for bloom extraction and blur.
+        self.ctx.viewport = (0, 0, self.texture.width, self.texture.height)
 
     def clear(self, colour=(0,0,0,0)):
         self.fbo.clear(*colour)
@@ -195,9 +201,10 @@ class BlurPass(RenderPass):
                 // 5-tap Gaussian weights
                 uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 
+                uniform float spread = 1.0; 
+
                 void main() {
                     vec2 tex_offset = 1.0 / textureSize(image, 0); 
-                    float spread = 1.0; // Reduced spread for smoother blur (less blocky)
                     vec3 result = texture(image, v_uv).rgb * weight[0]; 
                     
                     if(horizontal) {
@@ -217,9 +224,11 @@ class BlurPass(RenderPass):
         )
         self.quad_vao = self.ctx.simple_vertex_array(self.prog, context.get_quad_buffer(), 'in_vert', 'in_uv')
 
-    def render(self, ping_pong: PingPongBuffer, **kwargs):
+    def render(self, ping_pong: PingPongBuffer, spread: float = 1.0, **kwargs):
         self.ctx.disable(moderngl.BLEND)
+        self.prog['spread'].value = spread
         
+        # print(f"BlurPass.render> iterations={self.iterations} spread={spread:.2f}")
         for _ in range(self.iterations):
             # Horizontal
             ping_pong.write.use()
@@ -259,17 +268,39 @@ class CompositePass(RenderPass):
                 uniform sampler2D scene;
                 uniform sampler2D bloom;
                 uniform float bloom_intensity;
+                uniform float vignette;
+                uniform float saturation;
+                uniform float warmth;
+                
                 in vec2 v_uv;
                 out vec4 f_colour;
+                
+                vec3 adjust_saturation(vec3 color, float value) {
+                    const vec3 luminosityWeighting = vec3(0.2126, 0.7152, 0.0722);
+                    float luminance = dot(color, luminosityWeighting);
+                    return mix(vec3(luminance), color, value);
+                }
+                
+                vec3 adjust_warmth(vec3 color, float value) {
+                    float temp = value * 2.0 - 1.0; 
+                    vec3 warm = vec3(temp * 0.2, temp * 0.1, -temp * 0.2); 
+                    return clamp(color + warm * length(color), 0.0, 1.0);
+                }
+
                 void main() {
                     vec4 hdrcolour = texture(scene, v_uv);
                     vec3 bloomcolour = texture(bloom, v_uv).rgb;
                     
-                    // Additive blending
                     vec3 result = hdrcolour.rgb + bloomcolour * bloom_intensity;
 
-                    // Removed Tone mapping and Gamma correction to prevent "fog" / washout.
-                    // The input scene is assumed to be sRGB-ish already, so we just add the bloom.
+                    result = adjust_saturation(result, saturation);
+                    result = adjust_warmth(result, warmth);
+
+                    if (vignette > 0.0) {
+                        float dist = distance(v_uv, vec2(0.5, 0.5));
+                        float vig = smoothstep(0.8, 0.2, dist * (1.0 + vignette));
+                        result *= (1.0 - (1.0 - vig) * vignette);
+                    }
 
                     f_colour = vec4(result, hdrcolour.a);
                 }
@@ -282,6 +313,8 @@ class CompositePass(RenderPass):
             output_target.use()
         else:
             self.ctx.screen.use()
+            # Set viewport to main screen size
+            self.ctx.viewport = (0, 0, self.context.width, self.context.height)
             
         # CRITICAL FIX: The final composite to the screen MUST use standard alpha blending
         # to correctly handle the transparency of the rendered scene.
@@ -294,6 +327,9 @@ class CompositePass(RenderPass):
         self.prog['scene'].value = 0
         self.prog['bloom'].value = 1
         self.prog['bloom_intensity'].value = intensity
+        if 'vignette' in self.prog: self.prog['vignette'].value = kwargs.get('vignette', 0.0)
+        if 'saturation' in self.prog: self.prog['saturation'].value = kwargs.get('saturation', 1.0)
+        if 'warmth' in self.prog: self.prog['warmth'].value = kwargs.get('warmth', 0.5)
         
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
 
@@ -439,6 +475,43 @@ class Compositor:
         2. (Future) Runs post-processing passes like blur and glow composite.
         3. Blits the final FBO to the screen (backbuffer).
         """
+        # --- Profile Mapping Layer ---
+        from pyvisualiser.styles.profiles import ProfileManager
+        controller = ProfileManager.get_controller()
+        controller.apply_profile(self)
+        
+        # 1. Access the controls through our shared singleton controller
+        controls = getattr(self, 'active_controls', None)
+        
+        # Extract individual perceptual parameters with robust defaults
+        vig = controls.vignette if controls else 0.0
+        sat = controls.saturation if controls else 1.0
+        wrm = controls.warmth if controls else 0.5
+        blo = controls.intensity if controls else self.bloom_intensity
+        thr = controls.threshold if controls else 1.0
+        sft = controls.softness if controls else 0.5
+        nrg = controls.energy if controls else 0.5
+        
+        # Calculate iterations for the current frame
+        iter_count = 1
+        if hasattr(self, 'blur_pass'):
+            # Convert perceptual softness (0..2) to iterations (1..8) AND spread (1..6)
+            # We use a more aggressive spread curve here for visible results.
+            self.blur_pass.iterations = max(1, int(1 + sft * 3.5))
+            iter_count = self.blur_pass.iterations
+            # Spread: 1.0 at softness 0.5, up to 6.0 at softness 2.0
+            self.blur_spread = max(1.0, 1.0 + (sft - 0.5) * 3.33)
+
+        # Debug print once every 60 frames (approx 1s at 60fps) to verify parameter flow
+        # if not hasattr(self, '_frame_count'): self._frame_count = 0
+        # self._frame_count += 1
+        # if self._frame_count % 60 == 0:
+        #     print(f"Renderer using: Intensity={blo:.2f}, Threshold={thr:.2f}, Energy={nrg:.2f}, Softness={sft:.2f} (Iters={iter_count})")
+            
+        # Apply extracted threshold to the glow pass IMMEDIATELY before use
+        if hasattr(self, 'glow_extraction_pass'):
+            self.glow_extraction_pass.threshold = thr
+
         # print("Compositor.render_frame> Start")
 
         # --- Pass 1: Geometry ---
@@ -473,10 +546,10 @@ class Compositor:
             return # STOP HERE
 
         # --- Pass 2: Post-Processing (Glow Extraction) ---
-        self.glow_extraction_pass.render(input_target=self.main_target, output_target=self.glow_buffer.read)
+        self.glow_extraction_pass.render(input_target=self.main_target, output_target=self.glow_buffer.read, energy=nrg)
 
         # --- Pass 3: Blur ---
-        self.blur_pass.render(ping_pong=self.glow_buffer)
+        self.blur_pass.render(ping_pong=self.glow_buffer, spread=getattr(self, 'blur_spread', 1.0))
 
         # --- Final Pass: Composite to Screen ---
         if self.debug_view == 'glow':
@@ -484,19 +557,14 @@ class Compositor:
             self.final_blit_pass.render(input_target=self.glow_buffer.read)
         else:
             if self.fxaa_enabled:
-                # Composite to intermediate buffer, then apply FXAA to screen
-                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, output_target=self.post_process_target, intensity=self.bloom_intensity)
+                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, output_target=self.post_process_target, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
                 self.fxaa_pass.render(input_target=self.post_process_target)
             else:
-                # Composite directly to screen
-                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, intensity=self.bloom_intensity)
+                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
 
         # Reset transient state for the next frame
         self.pre_passes = []
         self.debug_view = None
-        
-        # Reset threshold to default to prevent test settings leaking
-        self.glow_extraction_pass.threshold = 1.0
 
 
 class GlowExtractionPass(RenderPass):
@@ -522,12 +590,14 @@ class GlowExtractionPass(RenderPass):
                 #version 330
                 uniform sampler2D source_texture;
                 uniform float threshold;
+                uniform float energy;
                 in vec2 v_uv;
                 out vec4 f_colour;
                 void main() {
                     vec3 colour = texture(source_texture, v_uv).rgb;
                     vec3 bright_colour = max(vec3(0.0), colour - threshold);
-                    f_colour = vec4(bright_colour, 1.0);
+                    // Apply energy as a multiplier to boost the glow before blurring
+                    f_colour = vec4(bright_colour * energy * 4.0, 1.0);
                 }
             """
         )

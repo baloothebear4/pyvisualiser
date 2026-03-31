@@ -30,7 +30,7 @@ class TextFrame(Frame):
         - Y is the y scaler
     """
     def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, \
-                 colour='foreground', justify='centre', background='background', outline=None, padding=0, update_fn=None, z_order=0, **kwargs):
+                 colour='foreground', justify='centre', background=None, outline=None, padding=0, update_fn=None, z_order=0, **kwargs):
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline,padding=padding, z_order=z_order)
         self.colour         = colour
         self.wrap           = wrap
@@ -250,7 +250,7 @@ class Spectrum:
                 else:
                     self.octaves.append(freq_bin)
                     continue
-        print("Spectrum.__init__> Selected spectrum: octave spacing=1/%d, num octaves %d, bar width %d" % (self.spacing, len(self.octaves),self.barw))
+        # print("Spectrum.__init__> Selected spectrum: octave spacing=1/%d, num octaves %d, bar width %d" % (self.spacing, len(self.octaves),self.barw))
 
 
 
@@ -368,7 +368,7 @@ class SpectrumFrame(Frame, Spectrum):
                        style=cfg['bar_style'],
                        effects=cfg['effects'])
 
-        print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
+        # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
         # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
 
     def update_screen(self, full=True):

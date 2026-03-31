@@ -4,27 +4,25 @@ Mar 26. Baloothebear4 v1
 Collating all the classes that hold the styles of how visualisers work enables:
 - standardisation & consistency
 - use of presets
-- the ability to careful curate themes or overall profiles for finished visualisers
+- the ability to carefully curate themes or overall profiles for finished visualisers
 
 '''
 
 from dataclasses import dataclass, field
 from typing import Optional, Union, Any
 
+
+
 @dataclass(frozen=True)
-class Effects:
-    threshold: float = 0.75
-    scale: float = 2.5
-    blur: float = 1.0
-    alpha: int = 150
-    attack: float = 0.4
-    decay: float = 0.1
-    power: float = 2.0
-    inner_glow_scale: float = 0.2
-    outer_glow_scale_min: float = 0.5
-    outer_glow_scale_max: float = 0.5
-    outer_glow_alpha_mult: float = 0.6
-    outer_glow_blur_mult: float = 2.5
+class ReflectionStyle:
+    size: float = 0.5
+    opacity: float = 0.2    
+
+@dataclass(frozen=True)
+class TextStyle:
+    typeface: str = 'Inter/Inter-VariableFont_opsz,wght.ttf'
+    min_size: int = 18
+    max_lines: int = 1
 
 @dataclass(frozen=True)
 class TextStyle:
@@ -52,10 +50,10 @@ class AmbientGlowStyle:
 
 @dataclass(frozen=True)
 class ReactiveGlowStyle:
-    colour: str = 'alert'
+    colour: str = 'foreground'
     attack: float = 0.5
     decay: float = 0.1
-    threshold: float = 0.5
+    threshold: float = 0.2
 
 @dataclass(frozen=True)
 class PeakAccentStyle:
@@ -66,7 +64,7 @@ class PeakAccentStyle:
 
 @dataclass(frozen=True)
 class StarfieldStyle:
-    density: float = 0.0
+    density: float = 50.0
     speed: float = 0.5
 
 @dataclass(frozen=True)
@@ -81,6 +79,23 @@ class BackgroundStyle:
     reactive_glow: Union[ReactiveGlowStyle, bool] = False
     peak_accent: Union[PeakAccentStyle, bool] = False
     starfield: Union[StarfieldStyle, bool] = False
+
+@dataclass(frozen=True)
+class Effects:
+    threshold: float = 0.75
+    scale: float = 2.5
+    blur: float = 1.0
+    alpha: int = 150
+    attack: float = 0.4
+    decay: float = 0.1
+    power: float = 2.0
+    inner_glow_scale: float = 0.2
+    outer_glow_scale_min: float = 0.5
+    outer_glow_scale_max: float = 0.5
+    outer_glow_alpha_mult: float = 0.6
+    outer_glow_blur_mult: float = 2.5
+    reflection: Union[ReflectionStyle, bool] = False
+
 
 @dataclass(frozen=True)
 class BarStyle:
@@ -174,7 +189,7 @@ class VUMeterStyle:
     scale: VUMeterScale = field(default_factory=VUMeterScale)
     texture_path: Optional[str] = None
     texture_opacity: float = 1.0
-    theme: str = 'meter1'
+    theme: str = None
     show_peak: bool = False
     decay: float = DECAY
     smooth: int = SMOOTH

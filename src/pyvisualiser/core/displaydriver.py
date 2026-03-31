@@ -280,8 +280,52 @@ class GraphicsDriverGL:
         self.renderer.clear_batch()
 
     def draw_end(self):
+        if getattr(self, 'show_debug_hud', False):
+            self._render_debug_hud()
         self.compositor.render_frame()
         pygame.display.flip()
+
+    def _render_debug_hud(self):
+        from pyvisualiser.styles.profiles import ProfileManager
+        controller = ProfileManager.get_controller()
+        controls = controller.controls
+        selected = controller.selected_parameter
+        
+        # print(f"GraphicsDriverGL._render_debug_hud> id(controller)={id(controller)}")
+        
+        # Lazy font init
+        if not hasattr(self, '_hud_font'):
+            self._hud_font = pygame.font.SysFont('monaco', 18)
+            
+        def fmt(name, key, val):
+            prefix = "> " if name == selected else "  "
+            return f"{prefix}{name.capitalize()[:8]:<8} ({key}): {val:.2f}"
+
+        lines = [
+            f"--- Profile HUD (ID:{str(id(controller))[-4:]}) ---",
+            fmt('intensity', 'q/a', controls.intensity),
+            fmt('softness',  'w/s', controls.softness),
+            fmt('threshold', 'z/x', controls.threshold),
+            fmt('energy',    'e/d', controls.energy),
+            fmt('warmth',    'c/v', controls.warmth),
+            fmt('saturation','b/n', controls.saturation),
+            fmt('vignette',  't/g', controls.vignette),
+            fmt('sharpness', 'y/h', controls.sharpness),
+            f"  Presets : 1/2/3",
+            f"  Navigate: UP/DN/L/R"
+        ]
+        
+        y = 10
+        # Draw background shadow plate
+        bg_surface = pygame.Surface((240, len(lines)*20 + 10), pygame.SRCALPHA)
+        bg_surface.fill((0, 0, 0, 180))
+        self.renderer.blit(bg_surface, (5, 5))
+        
+        for line in lines:
+            color = (255, 255, 255) if line.startswith(">") else (200, 255, 200)
+            text_surface = self._hud_font.render(line, True, color)
+            self.renderer.blit(text_surface, (10, y))
+            y += 20
 
 
 
@@ -361,6 +405,10 @@ class GraphicsDriver:
 
     def area_drawn(self):
         return self.gfx_driver.ave_area_pc    
+
+    def toggle_debug_hud(self):
+        driver = self.gfx_driver
+        driver.show_debug_hud = not getattr(driver, 'show_debug_hud', False)
 
     def clear_screen(self):
         self.screen.fill((0,0,0))       # erase whole screen    

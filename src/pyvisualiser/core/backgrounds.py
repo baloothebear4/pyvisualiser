@@ -257,27 +257,31 @@ class BackgroundLighting:
         self.last_update = now
 
         # 1. Reactive Glow (General Volume)
-        if self.style.reactive_glow:
+        rg = self.style.reactive_glow
+        if rg:
+            if not isinstance(rg, ReactiveGlowStyle): rg = ReactiveGlowStyle()
             target = 0.0
             if hasattr(audio_processor, 'vu'):
                 vu = audio_processor.vu['mono']
-                if vu > self.style.reactive_glow.threshold:
-                    target = (vu - self.style.reactive_glow.threshold) / (1.0 - self.style.reactive_glow.threshold)
+                if vu > rg.threshold:
+                    # Normalize target based on threshold
+                    target = (vu - rg.threshold) / max(0.001, (1.0 - rg.threshold))
             
             # Smooth transition
-            if target > self.reactive_intensity:
-                self.reactive_intensity += (target - self.reactive_intensity) * self.style.reactive_glow.attack
-            else:
-                self.reactive_intensity += (target - self.reactive_intensity) * self.style.reactive_glow.decay
+            rate = rg.attack if target > self.reactive_intensity else rg.decay
+            self.reactive_intensity += (target - self.reactive_intensity) * rate
 
         # 2. Peak Accent (Beat Detection / High Energy)
-        if self.style.peak_accent:
+        pa = self.style.peak_accent
+        if pa:
+            if not isinstance(pa, PeakAccentStyle): pa = PeakAccentStyle()
             # Simple beat detection logic: if VU is very high
             target_peak = 0.0
-            if hasattr(audio_processor, 'vu') and audio_processor.vu['mono'] > 0.8:
+            if hasattr(audio_processor, 'vu') and audio_processor.vu['mono'] > pa.threshold:
                 target_peak = 1.0
             
-            self.peak_intensity += (target_peak - self.peak_intensity) * 0.2 # Fast attack/decay for beats
+            rate = pa.attack if target_peak > self.peak_intensity else pa.decay
+            self.peak_intensity += (target_peak - self.peak_intensity) * rate
 
 
 class BackgroundSurface:
@@ -461,15 +465,6 @@ class BackgroundRenderPass(RenderPass):
             self.ctx.viewport = self.viewport
             # self.ctx.scissor = self.viewport # DEBUG: Disable Scissor to test FBO write access
 
-        # DEBUG: Clear to MAGENTA. If you see Magenta, the FBO is writable and the Pass is running.
-        # If you see Blue, the clear is being masked or ignored.
-        # print(f"  BackgroundRenderPass> Clearing FBO {self.ctx.fbo.size} to MAGENTA (Scissor Disabled)")
-        # self.ctx.clear(1.0, 0.0, 1.0, 1.0)
-
-        # --- START DEBUGGING ---
-        # print(f"\n--- BG Pass Render (Viewport: {self.viewport}) ---")
-        # --- END DEBUGGING ---
-
         self.prog['u_time'].value = time.time() - self.start_time
 
         # We need a way to resolve theme colours to RGB floats (0-1).
@@ -492,58 +487,59 @@ class BackgroundRenderPass(RenderPass):
             self.prog['u_texture'].value = 0
             self.prog['u_has_texture'].value = False
 
-        # --- START DEBUGGING ---
-        # print(f"  Vignette Strength: {vignette_strength_val:.2f}, Noise Strength: {noise_strength_val:.2f}, Ambient Opacity: {ambient_opacity_val:.2f}")
-        # print(f"  Reactive Intensity: {reactive_intensity_val:.2f}, Peak Intensity: {peak_intensity_val:.2f}")
-        # print(f"  Has Texture: {has_texture_val}, Base colour: {colour_val}")
-        # --- END DEBUGGING ---
-
         # Vignette
-        if self.style.vignette:
-            self.prog['u_vignette_strength'].value = float(self.style.vignette.strength)
-            self.prog['u_vignette_radius'].value = float(self.style.vignette.radius)
-            self.prog['u_vignette_softness'].value = float(self.style.vignette.softness)
+        v = self.style.vignette
+        if v:
+            if not isinstance(v, VignetteStyle): v = VignetteStyle()
+            self.prog['u_vignette_strength'].value = float(v.strength)
+            self.prog['u_vignette_radius'].value = float(v.radius)
+            self.prog['u_vignette_softness'].value = float(v.softness)
         else:
             self.prog['u_vignette_strength'].value = 0.0
-            vignette_strength_val = 0.0
 
         # Noise
-        if self.style.noise:
-            self.prog['u_noise_strength'].value = float(self.style.noise.strength)
+        n = self.style.noise
+        if n:
+            if not isinstance(n, NoiseStyle): n = NoiseStyle()
+            self.prog['u_noise_strength'].value = float(n.strength)
         else:
             self.prog['u_noise_strength'].value = 0.0
-            noise_strength_val = 0.0
 
         # Ambient Glow
-        if self.style.ambient_glow:
-            self.prog['u_ambient_colour'].value = resolver(self.style.ambient_glow.colour)
-            self.prog['u_ambient_opacity'].value = float(self.style.ambient_glow.opacity)
-            self.prog['u_ambient_radius'].value = float(self.style.ambient_glow.radius)
-            self.prog['u_ambient_softness'].value = float(self.style.ambient_glow.softness)
+        ag = self.style.ambient_glow
+        if ag:
+            if not isinstance(ag, AmbientGlowStyle): ag = AmbientGlowStyle()
+            self.prog['u_ambient_colour'].value = resolver(ag.colour)
+            self.prog['u_ambient_opacity'].value = float(ag.opacity)
+            self.prog['u_ambient_radius'].value = float(ag.radius)
+            self.prog['u_ambient_softness'].value = float(ag.softness)
         else:
             self.prog['u_ambient_opacity'].value = 0.0
-            ambient_opacity_val = 0.0
 
         # Reactive Glow
-        if self.style.reactive_glow:
-            self.prog['u_reactive_colour'].value = resolver(self.style.reactive_glow.colour)
+        rg = self.style.reactive_glow
+        if rg:
+            if not isinstance(rg, ReactiveGlowStyle): rg = ReactiveGlowStyle()
+            self.prog['u_reactive_colour'].value = resolver(rg.colour)
             self.prog['u_reactive_intensity'].value = self.lighting.reactive_intensity
         else:
             self.prog['u_reactive_intensity'].value = 0.0
-            reactive_intensity_val = 0.0
 
         # Peak Accent
-        if self.style.peak_accent:
-            self.prog['u_peak_accent_colour'].value = resolver(self.style.peak_accent.colour)
+        pa = self.style.peak_accent
+        if pa:
+            if not isinstance(pa, PeakAccentStyle): pa = PeakAccentStyle()
+            self.prog['u_peak_accent_colour'].value = resolver(pa.colour)
             self.prog['u_peak_intensity'].value = self.lighting.peak_intensity
         else:
             self.prog['u_peak_intensity'].value = 0.0
-            peak_intensity_val = 0.0
 
         # Starfield
-        if self.style.starfield:
-            self.prog['u_starfield_density'].value = float(self.style.starfield.density)
-            self.prog['u_starfield_speed'].value = float(self.style.starfield.speed)
+        sf = self.style.starfield
+        if sf:
+            if not isinstance(sf, StarfieldStyle): sf = StarfieldStyle()
+            self.prog['u_starfield_density'].value = float(sf.density)
+            self.prog['u_starfield_speed'].value = float(sf.speed)
         else:
             self.prog['u_starfield_density'].value = 0.0
 
@@ -570,8 +566,8 @@ class BackgroundBase:
             print("BackgroundBase> Error: OpenGL Backgrounds require GraphicsDriverGL.")
             return
 
-        self.lighting = BackgroundLighting(style)
-        self.surface = BackgroundSurface(style, self.engine.render_context)
+        self.lighting    = BackgroundLighting(style)
+        self.surface     = BackgroundSurface(style, self.engine.render_context)
         self.render_pass = BackgroundRenderPass(self.engine.render_context, style, self.surface, self.lighting)
         
         # Inject colour resolver into render pass
@@ -587,8 +583,7 @@ class BackgroundBase:
 
     def update(self):
         # Update lighting state based on audio
-        if hasattr(self.frame.platform, 'audio_available') and self.frame.platform.audio_available:
-            self.lighting.update(self.frame.platform)
+        self.lighting.update(self.frame.platform)
 
     def draw(self):
         # Register the render pass with the compositor for this frame

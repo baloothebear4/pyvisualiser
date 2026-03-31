@@ -162,3 +162,48 @@ class Screen7(Frame):   # comprises volume on the left, spectrum on the right
         subframe += VU2chFrame(subframe, bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None, effects=DreamEffect)
 
         rows += Oscilogramme(rows, 'mono',background=None)
+
+
+class ProfileTestScreen(Frame):
+    @property
+    def title(self): return 'Profile Controls Tuning'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        # A dark background makes bloom and vignette most obvious
+        Frame.__init__(self, platform, theme='std', background=None, padding=20)
+
+        rows = RowFramer(self, row_ratios=(1, 4), padding=10)
+
+        text = "PROFILE CONTROLS TEST MENU\nPress 1(Luxury), 2(Neon), 3(Minimal). Press 'L' for HUD."
+        rows += TextFrame(rows, text=text, colour='light', align=('centre', 'middle'))
+
+        cols = ColFramer(rows, padding=10)
+        # Spectrum Frame with thick bars and reflections to test Bloom / Softness
+        bar_style = BarStyle(led_gap=2, peak_h=3, radius=1, tip=True, flip=False, colour_mode='vert')
+        spectrum_style = SpectrumStyle(barw_min=8, bar_space=0.5, barw_max=25)
+        effects = Effects(reflection=ReflectionStyle(size=0.4, opacity=0.3))
+        
+        spectrum_wrapper = RowFramer(cols, padding=10)
+        spectrum_wrapper += SpectrumFrame(spectrum_wrapper, 'mono', bar_style=bar_style, spectrum_style=spectrum_style, effects=effects)
+        
+        # Meta Images to show album art interactions with Depth, Sharpness, Vignette
+        cols += MetaImages(cols, art_type='album', align=('centre','middle'), outline=OutlineStyle(colour='light', width=4, glow_intensity=1.0, softness=0.5))
+
+        # Bottom VU Meter for bright static elements
+        meter_style = VUMeterStyle(pivot=-0.5, endstops=(3*PI/4, 5*PI/4), needle=VUNeedleStyle(width=4, colour='light', length=0.8, radius_pc=1.0))
+        cols += VUMeter(cols, 'left', square=False, style=meter_style, background=None)
+# @dataclass(frozen=True)
+# class VUMeterStyle:
+#     endstops: tuple = (3*PI/4, 5*PI/4)
+#     pivot: float = -0.5
+#     needle: VUNeedleStyle = field(default_factory=VUNeedleStyle)
+#     scale: VUMeterScale = field(default_factory=VUMeterScale)
+#     texture_path: Optional[str] = None
+#     texture_opacity: float = 1.0
+#     theme: str = 'meter1'
+#     show_peak: bool = False
+#     decay: float = DECAY
+#     smooth: int = SMOOTH

@@ -101,11 +101,49 @@ class ScreenController:
             self.activeScreen = 'exit'
 
     def keyEvents(self, key):
-        if self.activeScreen in self.screens:
+        from pyvisualiser.styles.profiles import ProfileManager
+        from pyvisualiser.styles.presets import LUXURY_PROFILE, NEON_PROFILE, MINIMAL_PROFILE
+
+        controller = ProfileManager.get_controller()
+        # print(f"ScreenController.keyEvents> key={key} id(controller)={id(controller)}")
+
+        # Keyboard Control Layer Mappings
+        if key == ord('1'): controller.controls = LUXURY_PROFILE
+        elif key == ord('2'): controller.controls = NEON_PROFILE
+        elif key == ord('3'): controller.controls = MINIMAL_PROFILE
+
+        # --- HUD Navigation and Adjustment (New) ---
+        elif key == K_UP:    controller.select_prev()
+        elif key == K_DOWN:  controller.select_next()
+        elif key == K_LEFT:  controller.adjust(None, -0.1)
+        elif key == K_RIGHT: controller.adjust(None, 0.1)
+
+        # --- Standard Mappings (Using constants for robustness) ---
+        elif key == K_q: controller.adjust('intensity', 0.1)
+        elif key == K_a: controller.adjust('intensity', -0.1)
+        elif key == K_w: controller.adjust('softness', 0.1)
+        elif key == K_s: controller.adjust('softness', -0.1)
+        elif key == K_e: controller.adjust('energy', 0.1)
+        elif key == K_d: controller.adjust('energy', -0.1)
+        elif key == K_r: controller.adjust('depth', 0.1)
+        elif key == K_f: controller.adjust('depth', -0.1)
+        elif key == K_t: controller.adjust('vignette', 0.1)
+        elif key == K_g: controller.adjust('vignette', -0.1)
+        elif key == K_y: controller.adjust('sharpness', 0.1)
+        elif key == K_h: controller.adjust('sharpness', -0.1)
+        elif key == K_z: controller.adjust('threshold', 0.1)
+        elif key == K_x: controller.adjust('threshold', -0.1)
+        elif key == K_c: controller.adjust('warmth', 0.1)
+        elif key == K_v: controller.adjust('warmth', -0.1)
+        elif key == K_b: controller.adjust('saturation', 0.1)
+        elif key == K_n: controller.adjust('saturation', -0.1)
+        elif key == K_l: self.platform.toggle_debug_hud()
+
+        elif self.activeScreen in self.screens:
             self.screens[self.activeScreen].handle_key(key)
 
         else: 
-            print("ScreenController.screenEvents: unknown event", e)
+            print("ScreenController.keyEvents: unknown event", key)
 
     """ Main execution loop """
     
@@ -122,41 +160,53 @@ class ScreenController:
         while(self.activeScreen != 'exit'):
             self.events.Control('check_keys')
             
-            if self.activeScreen != 'exit' and self.platform.is_audio_available():  # The code is reentrant, hence multiple test for exit condition  
+            if self.activeScreen != 'exit':  
 
-                # instument the real-time audio processing to see where the time bottlenecks are
-                start_time = time.perf_counter()
+                # 1. Drain all pending audio frames from the queue (non-blocking)
+                #    If there's multiple chunks, process them to catch up.
+                audio_processed_ms = 0.0
+                start_audio = time.perf_counter()
+                
+                # is_audio_available() grabs one chunk off the queue and updates mono/left/right structures
+                # Because audio buffer comes in chunks like 2048 at 44.1kHz (21 FPS),
+                # we only want to process what has arrived, but draw regardless to preserve smooth 60fps UI decay
+                did_audio_update = False
+                while self.platform.is_audio_available():
+                    self.platform.process() 
+                    self.platform.data_available = False # Reset the flag
+                    self.audioready = 0
+                    did_audio_update = True
+                    
+                processing_time_ms = (time.perf_counter() - start_audio) * 1000
 
-                # perform the audio processing
-                self.platform.process() 
-                self.platform.data_available = False # Reset the flag
-                self.audioready = 0
-                processing_time_ms = (time.perf_counter() - start_time) * 1000
-
+                # 2. Draw and Render the Frame
+                start_draw = time.perf_counter()
+                
                 # build and update the display
-                screen    = self.screens[self.activeScreen]
+                screen = self.screens[self.activeScreen]
                 title = screen.title + " > " + type(screen).__name__ if hasattr(screen, 'title') else type(screen).__name__
                 self.events.Control('loop_start', text=title)
 
                 screen.update_screen(full=self.full_update)
-                drawing_time_ms = ((time.perf_counter() - start_time) * 1000) - processing_time_ms
+                drawing_time_ms = (time.perf_counter() - start_draw) * 1000
 
                 self.events.Control('loop_end')
-                render_time_ms = ((time.perf_counter() - start_time ) * 1000 ) - drawing_time_ms
+                render_time_ms = ((time.perf_counter() - start_draw) * 1000) - drawing_time_ms
                 
+                # 3. Rest to maintain target lock FPS (e.g 60Hz)
                 self.platform.regulate_fps()
-                self.full_update    = False  # Only draw what has changed
+                self.full_update = False  # Only draw what has changed
 
-                # analyse the loop time, only display every 2 seconds       
+                # 4. Telemetry
                 if loop_count % self.platform.FPS == 0:
                     loop_time = processing_time_ms + drawing_time_ms + render_time_ms
                     
                     if loop_time > CRITICAL_LOOPTIME: 
-                        print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.2f%%" % (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
-                    elif self.platform.clock.get_fps() < self.platform.FPS:
-                        print("Controller.run> loop time: %.2fms, audio processing %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
-                        pass
-                        # All good
+                        print("Controller.run> **WARNING** loop time %.2fms exceeds capture time %.2fms, audio %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.2f%%" % 
+                              (loop_time, CRITICAL_LOOPTIME, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
+                    elif self.platform.clock.get_fps() < self.platform.FPS * 0.9:
+                        print("Controller.run> loop time: %.2fms, audio %.2fms, draw %.2fms, render %.2fms, %.2ffps, %.1f%%" % 
+                              (loop_time, processing_time_ms, drawing_time_ms, render_time_ms, self.platform.clock.get_fps(), self.platform.area_drawn()) )
                     loop_count = 0
                 loop_count += 1
 
@@ -218,12 +268,20 @@ class EventHandler:
             self.events.Screen('exit')
 
         elif key == K_LEFT:
-            self.platform.clear_screen()
-            self.events.Screen('previous')
+            if getattr(self.platform, 'show_debug_hud', False):
+                # Pass to HUD adjustment
+                if self.key_handler: self.key_handler(key)
+            else:
+                self.platform.clear_screen()
+                self.events.Screen('previous')
 
         elif key == K_RIGHT:
-            self.platform.clear_screen()
-            self.events.Screen('next')
+            if getattr(self.platform, 'show_debug_hud', False):
+                # Pass to HUD adjustment
+                if self.key_handler: self.key_handler(key)
+            else:
+                self.platform.clear_screen()
+                self.events.Screen('next')
 
         elif key == 114:  #R key pressed
             self.track_rotate = not self.track_rotate
