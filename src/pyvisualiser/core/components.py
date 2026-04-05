@@ -138,14 +138,12 @@ class Bar(Frame):
 
             # --- Bloom Logic (Vertical Flip=True, Grows Down) ---
             # 1. Calculate Raw Target Intensity
-            if ypc > self.effects.threshold:
-                range_above = max(0.001, 1.0 - self.effects.threshold)
-                excess_ratio = (ypc - self.effects.threshold) / range_above
-                excess_ratio = max(0.0, min(1.0, excess_ratio))
-                # Power curve for "heat up" effect
-                alpha_ratio = excess_ratio ** self.effects.power
-            else:
-                alpha_ratio = 0.0
+            # Soft-threshold transition to prevent popping
+            bloom_start = self.effects.threshold - 0.05
+            alpha_ratio = 0.0
+            if ypc > bloom_start:
+                excess = (ypc - bloom_start) / max(0.001, 1.0 - bloom_start)
+                alpha_ratio = max(0.0, min(1.0, excess)) ** self.effects.power
 
             # 2. Temporal Smoothing (Attack/Release)
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
@@ -155,7 +153,8 @@ class Bar(Frame):
                 # jitter = random.uniform(0.98, 1.02)
                 current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
-                bloom_h = (ypc - self.effects.threshold) * self.abs_h
+                y_val = max(ypc, self.effects.threshold)
+                bloom_h = (y_val - self.effects.threshold) * self.abs_h
                 bloom_y = coords[1] + self.effects.threshold * self.abs_h
                 
                 c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
@@ -176,6 +175,7 @@ class Bar(Frame):
                 c_outer_thresh = c_thresh[:3] + [current_alpha * 0.6]
                 self.platform.renderer.draw_rect(c_outer_thresh, b_rect_outer, softness=self.effects.blur * self.effects.outer_glow_blur_mult, gradient=(c_outer_thresh, c_outer_tip), axis=1.0, level=10.0, additive=True)
 
+            # print("Bar.draw (flip)> colour_index ", colour_index, c_top, c_bot)
             # Draw the main segmented bar
             self.platform.renderer.draw_rect(c_top, coords, 
                                              border_radius=self.style.corner_radius, 
@@ -205,13 +205,12 @@ class Bar(Frame):
                 c_top = c_bot = self.colours.get(colour_index)
 
             # --- Bloom Logic (Standard Vertical) ---
-            if ypc > self.effects.threshold:
-                range_above = max(0.001, 1.0 - self.effects.threshold)
-                excess_ratio = (ypc - self.effects.threshold) / range_above
-                excess_ratio = max(0.0, min(1.0, excess_ratio))
-                alpha_ratio = excess_ratio ** self.effects.power
-            else:
-                alpha_ratio = 0.0
+            # Soft-threshold transition to prevent popping
+            bloom_start = self.effects.threshold - 0.05
+            alpha_ratio = 0.0
+            if ypc > bloom_start:
+                excess = (ypc - bloom_start) / max(0.001, 1.0 - bloom_start)
+                alpha_ratio = max(0.0, min(1.0, excess)) ** self.effects.power
 
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
 
@@ -219,8 +218,9 @@ class Bar(Frame):
                 # jitter = random.uniform(0.98, 1.02)
                 current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
-                bloom_h = (ypc - self.effects.threshold) * self.abs_h
-                bloom_y = coords[1] + (1.0 - ypc) * self.abs_h
+                y_val = max(ypc, self.effects.threshold)
+                bloom_h = (y_val - self.effects.threshold) * self.abs_h
+                bloom_y = coords[1] + (1.0 - y_val) * self.abs_h
                 
                 c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
                 c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
@@ -241,6 +241,7 @@ class Bar(Frame):
                 
                 self.platform.renderer.draw_rect(c_outer_tip, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_tip, c_outer_thresh), axis=1.0, level=10.0, additive=True)
 
+            # print("Bar.draw > colour_index ", colour_index, c_top, c_bot)
             self.platform.renderer.draw_rect(c_top, coords, 
                                              border_radius=self.style.corner_radius, 
                                              softness=self.style.edge_softness,
@@ -303,13 +304,12 @@ class Bar(Frame):
                 c_left = c_right = self.colours.get(colour_index)
 
             # --- Bloom Logic (Horizontal Flip=True, Grows Left) ---
-            if ypc > self.effects.threshold:
-                range_above = max(0.001, 1.0 - self.effects.threshold)
-                excess_ratio = (ypc - self.effects.threshold) / range_above
-                excess_ratio = max(0.0, min(1.0, excess_ratio))
-                alpha_ratio = excess_ratio ** self.effects.power
-            else:
-                alpha_ratio = 0.0
+            # Soft-threshold transition to prevent popping
+            bloom_start = self.effects.threshold - 0.05
+            alpha_ratio = 0.0
+            if ypc > bloom_start:
+                excess = (ypc - bloom_start) / max(0.001, 1.0 - bloom_start)
+                alpha_ratio = max(0.0, min(1.0, excess)) ** self.effects.power
 
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
 
@@ -317,8 +317,9 @@ class Bar(Frame):
                 # jitter = random.uniform(0.98, 1.02)
                 current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
-                bloom_w = (ypc - self.effects.threshold) * self.abs_w
-                bloom_x = coords[0] + (1.0 - ypc) * self.abs_w
+                y_val = max(ypc, self.effects.threshold)
+                bloom_w = (y_val - self.effects.threshold) * self.abs_w
+                bloom_x = coords[0] + (1.0 - y_val) * self.abs_w
                 
                 c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]
                 c_thresh = list(self.colours.get(self.effects.threshold * self.colours.num_colours)[:3]) + [current_alpha]
@@ -362,13 +363,12 @@ class Bar(Frame):
                 c_left = c_right = self.colours.get(colour_index)
 
             # --- Bloom Logic (Horizontal Flip=False, Grows Right) ---
-            if ypc > self.effects.threshold:
-                range_above = max(0.001, 1.0 - self.effects.threshold)
-                excess_ratio = (ypc - self.effects.threshold) / range_above
-                excess_ratio = max(0.0, min(1.0, excess_ratio))
-                alpha_ratio = excess_ratio ** self.effects.power
-            else:
-                alpha_ratio = 0.0
+            # Soft-threshold transition to prevent popping
+            bloom_start = self.effects.threshold - 0.05
+            alpha_ratio = 0.0
+            if ypc > bloom_start:
+                excess = (ypc - bloom_start) / max(0.001, 1.0 - bloom_start)
+                alpha_ratio = max(0.0, min(1.0, excess)) ** self.effects.power
 
             smoothed_ratio = self._get_smoothed_bloom(offset, alpha_ratio)
 
@@ -376,7 +376,8 @@ class Bar(Frame):
                 # jitter = random.uniform(0.98, 1.02)
                 current_alpha = self.effects.alpha * smoothed_ratio #* jitter
                 
-                bloom_w = (ypc - self.effects.threshold) * self.abs_w
+                y_val = max(ypc, self.effects.threshold)
+                bloom_w = (y_val - self.effects.threshold) * self.abs_w
                 bloom_x = coords[0] + self.effects.threshold * self.abs_w
                 
                 c_tip = list(self.colours.get(ypc * self.colours.num_colours)[:3]) + [current_alpha]

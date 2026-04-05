@@ -22,9 +22,11 @@ TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumSc
 
 """
 
-from    pyvisualiser.visualisers.frames import *
-from    pyvisualiser.visualisers.subframes import *
-from    pyvisualiser.core.framecore import Frame, ColFramer, RowFramer
+from pyvisualiser.visualisers.vumeters import *
+from pyvisualiser.visualisers.metadata import *
+from pyvisualiser.visualisers.spectrum import *
+
+from pyvisualiser.core.framecore import Frame, ColFramer, RowFramer
 
 
 """

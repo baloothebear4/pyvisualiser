@@ -19,7 +19,7 @@ from .core.displaydriver import *
 
 # Visualiser imports
 # Note: Since you're moving frames.py and screens.py, update these paths:
-from .visualisers.subframes import *
+
 from .visualisers.advanced_frames import *
 
 # From the core subdirectory
@@ -28,9 +28,9 @@ from .core.framecore import Frame, ColFramer, RowFramer
 from .core.screenhandler import ScreenController, Platform
 
 # From the visualisers subdirectory
-# (Assuming frames.py and subframes.py are in src/pyvisualiser/visualisers/)
-from .visualisers.frames import *
-from .visualisers.subframes import *
+from pyvisualiser.visualisers.vumeters import *
+from pyvisualiser.visualisers.metadata import *
+from pyvisualiser.visualisers.spectrum import *
 
 from .styles.styles import *
 from .styles.presets import *

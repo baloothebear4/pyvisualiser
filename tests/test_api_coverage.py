@@ -108,10 +108,10 @@ class LEDtestScreen(Frame):
         #  Col one is a stack of horz bars
         #  Col two is a stack of vert bars
 
-        col = ColFramer(self, padding=0, col_ratios=(10,1), padpc=0.1)
+        col = ColFramer(self, padding=0, col_ratios=(10,6), padpc=0.0)
 
         bars = BarStyle(led_gap=5, peak_h=3,radius=0, tip=False)
-        spectrum = SpectrumStyle(barw_min=15, bar_space=0.5)
+        spectrum = SpectrumStyle(barw_min=19, bar_space=0.1, decay=0.2)
         # intensity_threshold=0.3, intensity_scale=1.2, intensity_alpha=200,intensity_blur=1.5
         col += SpectrumFrame(col,  'mono', effects=NeonGlow, bar_style=bars, spectrum_style=spectrum)
         # intensity_threshold=0.8, intensity_scale=1.5, intensity_alpha=200,intensity_blur=1.5)

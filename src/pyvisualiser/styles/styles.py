@@ -68,6 +68,10 @@ class StarfieldStyle:
     speed: float = 0.5
 
 @dataclass(frozen=True)
+class CloudStyle:
+    radius: float = 0.0 #percent of the screen this covers, approx 
+
+@dataclass(frozen=True)
 class BackgroundStyle:
     colour: str = 'background'
     texture_path: Optional[str] = None
@@ -79,6 +83,7 @@ class BackgroundStyle:
     reactive_glow: Union[ReactiveGlowStyle, bool] = False
     peak_accent: Union[PeakAccentStyle, bool] = False
     starfield: Union[StarfieldStyle, bool] = False
+    cloud: Union[CloudStyle, bool] = False
 
 @dataclass(frozen=True)
 class Effects:
@@ -122,10 +127,12 @@ class BarStyle:
 
 @dataclass(frozen=True)
 class SpectrumStyle:
-    bar_space: float = 0.5
-    barw_min: int = 1
-    barw_max: int = 20
+    bar_space: float = 2
+    barw_min: int = 2
+    barw_max: int = 50
     decay: int = 0.4
+    flip: bool = False #plots highs on left, lows on right
+
 
 @dataclass(frozen=True)
 class OutlineStyle:
@@ -174,7 +181,7 @@ class VUMeterScale:
     tick_width: int = TICK_W
     tick_length: float = TICKLEN
     tick_radius_pc: float = TICK_PC
-    scale_radius: float = 0.9
+    scale_radius: float = SCALESLEN
     font_height: float = FONTH
 
 DECAY     = 0.4
@@ -184,7 +191,7 @@ PI = 3.14152
 @dataclass(frozen=True)
 class VUMeterStyle:
     endstops: tuple = (3*PI/4, 5*PI/4)
-    pivot: float = -0.5
+    pivot: float = PIVOT
     needle: VUNeedleStyle = field(default_factory=VUNeedleStyle)
     scale: VUMeterScale = field(default_factory=VUMeterScale)
     texture_path: Optional[str] = None

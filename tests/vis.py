@@ -12,6 +12,12 @@
 
 """
 
+from pyvisualiser.visualisers.vumeters import *
+from pyvisualiser.visualisers.metadata import *
+from pyvisualiser.visualisers.spectrum import *
+from pyvisualiser.visualisers.oscillogramme import *
+
+
 from   screens import *
 from   screens2 import *
 from   screens3 import *
@@ -89,12 +95,12 @@ GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
 
 
 
-TEST_SCREENS2 = (AmbientGlowTunerScreen,OutlineGlowTestScreen,ProfileTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, \
-                 AudioTestScreen, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
+TEST_SCREENS2 = (BackgroundEffectsScreen0, BackgroundEffectsScreen1, BackgroundEffectsScreen2, AmbientGlowTunerScreen,OutlineGlowTestScreen,ProfileTestScreen, \
+                 AudioTestScreen, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 HERO_SCREENS  = (H1,H2,H3)
 
-SCREENS =   HERO_SCREENS + TEST_SCREENS2 +GLSCREENS + SPECTRUM_TEST_SCREENS
+SCREENS =   HERO_SCREENS + TEST_SCREENS2 + GLSCREENS + SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+VU_TEST_SCREENS
 
 
 """ 

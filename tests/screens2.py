@@ -10,7 +10,12 @@
 """
 
 
-from pyvisualiser import *
+from pyvisualiser.visualisers.vumeters import *
+from pyvisualiser.visualisers.metadata import *
+from pyvisualiser.visualisers.spectrum import *
+from pyvisualiser.visualisers.oscillogramme import *
+from pyvisualiser.core.framecore import Frame, ColFramer, RowFramer
+
 PI = 3.14159265358979323846
 
 """
@@ -159,7 +164,7 @@ class Screen7(Frame):   # comprises volume on the left, spectrum on the right
 
         subframe += MetaImages(subframe, art_type='album', background=None)
         subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0), justify='left', background=None)
-        subframe += VU2chFrame(subframe, bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None, effects=DreamEffect)
+        # subframe += VU2chFrame(subframe, bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.2, outline={'colour':'foreground', 'width':0},background=None, effects=None)
 
         rows += Oscilogramme(rows, 'mono',background=None)
 

@@ -16,68 +16,7 @@ import moderngl, time
 import pygame
 import numpy as np
 
-class ParticleSystem:
-    def __init__(self, frame, config):
-        self.frame = frame
-        self.count = config.get('count', 50)
-        self.colour = config.get('colour', 'light')
-        self.speed = config.get('speed', 1.0)
-        self.size  = config.get('size', 2)
-        self.softness = config.get('softness', 0.5)
-        self.react_to_music = config.get('react_to_music', True)
-        self.particles = []
-        
-        for _ in range(self.count):
-            self.particles.append(self._reset_particle(start_random=True))
-            
-    def _reset_particle(self, start_random=False):
-        w, h = self.frame.abs_wh
-        x = random.randint(0, int(w))
-        y = random.randint(0, int(h)) if start_random else 0 # Start at bottom
-        
-        # Float up with some drift
-        vx = (random.random() - 0.5) * self.speed
-        vy = (random.random() * self.speed) + 0.5
-        
-        life = random.randint(50, 200)
-        return [x, y, vx, vy, life, life] # x, y, vx, vy, life, max_life
 
-    def draw(self):
-        w, h = self.frame.abs_wh
-        origin_x, origin_y = self.frame.abs_origin()
-        
-        col = self.frame.colours.get(self.colour)
-        
-        speed_mult = 1.0
-        if self.react_to_music and hasattr(self.frame.platform, 'vu'):
-            vu = self.frame.platform.vu['mono']
-            # Scale speed between 1x and 4x based on volume
-            speed_mult = 1.0 + (vu * 3.0)
-
-        for p in self.particles:
-            # Update (Frame coords: 0,0 is bottom-left)
-            p[0] += p[2] * speed_mult
-            p[1] += p[3] * speed_mult
-            p[4] -= 1
-            
-            # Reset if out of bounds or dead
-            if p[1] > h or p[4] <= 0 or p[0] < 0 or p[0] > w:
-                new_p = self._reset_particle()
-                p[:] = new_p[:] # Update in place
-            
-            # Draw
-            alpha = int(255 * (p[4] / p[5]))
-            if len(col) == 3:
-                draw_col = list(col) + [alpha]
-            else:
-                draw_col = list(col[:3]) + [alpha]
-                
-            # Convert Frame (Bottom-Left) to Pygame/GL (Top-Left) for drawing
-            draw_x = origin_x + p[0]
-            draw_y = origin_y + (h - p[1])
-            
-            rect = (draw_x, draw_y, self.size, self.size)
-            self.frame.platform.renderer.draw_rect(draw_col, rect, softness=self.softness)
 
 class Background:
 
@@ -246,6 +185,7 @@ class BackgroundLighting:
         self.style = style
         self.reactive_intensity = 0.0
         self.peak_intensity = 0.0
+        self.cloud_intensity = 0.0
         self.last_update = time.time()
 
     def update(self, audio_processor):
@@ -282,6 +222,13 @@ class BackgroundLighting:
             
             rate = pa.attack if target_peak > self.peak_intensity else pa.decay
             self.peak_intensity += (target_peak - self.peak_intensity) * rate
+
+        # 3. Clouds (Slow changing linked to overall volume)
+        cl = self.style.cloud
+        if cl:
+            if not isinstance(cl, CloudStyle): cl = CloudStyle()
+            # Simple beat detection logic: if VU is very high
+            self.cloud_intensity = audio_processor.vu['mono'] * 1.0
 
 
 class BackgroundSurface:
@@ -373,8 +320,34 @@ class BackgroundRenderPass(RenderPass):
                 uniform float u_starfield_density;
                 uniform float u_starfield_speed;
 
+                // Cloud
+                uniform float u_cloud_intensity;
+                uniform bool u_cloud_enabled;
+
+
                 float random(vec2 st) {
                     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+                }
+
+                // simple smooth noise
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+                }
+
+                float noise(vec2 p){
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+
+                    float a = hash(i);
+                    float b = hash(i + vec2(1.0, 0.0));
+                    float c = hash(i + vec2(0.0, 1.0));
+                    float d = hash(i + vec2(1.0, 1.0));
+
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+
+                    return mix(a, b, u.x) +
+                        (c - a)* u.y * (1.0 - u.x) +
+                        (d - b) * u.x * u.y;
                 }
 
                 void main() {
@@ -440,6 +413,41 @@ class BackgroundRenderPass(RenderPass):
                                 colour.rgb += vec3(star * n);
                             }
                         }
+                    }
+                    // 8. Cloud moving shape in centre of screen
+                    if (u_cloud_enabled) {
+                        vec2 uv = v_uv;
+
+                        vec2 center = uv - 0.5;
+                        float dist = length(center);
+                        float vignette = 1.0 - smoothstep(0.3, 0.9, dist);
+
+                        float t = u_time * 0.05;
+
+                        float n = noise(uv * 4.0 + vec2(t, t*0.3));
+                        float n2 = noise(uv * 2.0 - vec2(t*0.2, t*0.5));
+
+                        float blend = mix(n, n2, 0.5);
+
+                        // contrast shaping and base intensity for debug visibility
+                        float brightness = pow(blend, 1.5);
+                        brightness = brightness * 0.99 + 0.15;
+
+                        // audio boost
+                        float audio = pow(u_cloud_intensity, 0.5);
+                        brightness += audio * 0.05;
+
+                        // colour
+                        vec3 col1 = vec3(0.2, 0.4, 0.8);
+                        vec3 col2 = vec3(0.25, 0.70, 0.9);
+                        //vec3 col1 = vec3(0.02, 0.04, 0.08);
+                        //vec3 col2 = vec3(0.25, 0.10, 0.05);
+                        vec3 cloud_rgb = mix(col1, col2, blend);
+
+                        cloud_rgb *= brightness * vignette;
+
+                        // Layer the cloud over the base colour
+                        colour.rgb = mix(colour.rgb, cloud_rgb, 0.8);
                     }
 
                     f_colour = colour;
@@ -543,6 +551,21 @@ class BackgroundRenderPass(RenderPass):
         else:
             self.prog['u_starfield_density'].value = 0.0
 
+        # Cloud
+        cloud = self.style.cloud
+        if cloud:
+            if not isinstance(cloud, CloudStyle): cloud = CloudStyle()
+            if 'u_cloud_intensity' in self.prog:
+                self.prog['u_cloud_intensity'].value = self.lighting.cloud_intensity
+            if 'u_cloud_enabled' in self.prog:
+                self.prog['u_cloud_enabled'].value = True
+        else:
+            if 'u_cloud_intensity' in self.prog:
+                self.prog['u_cloud_intensity'].value = 0.0
+            if 'u_cloud_enabled' in self.prog:
+                self.prog['u_cloud_enabled'].value = False
+
+
         # print(f"  BackgroundRenderPass> Drawing Quad... Program: {self.prog.glo}")
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
         # print("  BackgroundRenderPass> Draw complete.")
@@ -608,3 +631,67 @@ class BackgroundBase:
             
             self.render_pass.viewport = viewport
             self.engine.compositor.add_pre_pass(self.render_pass)
+
+
+class ParticleSystem:
+    def __init__(self, frame, config):
+        self.frame = frame
+        self.count = config.get('count', 50)
+        self.colour = config.get('colour', 'light')
+        self.speed = config.get('speed', 1.0)
+        self.size  = config.get('size', 2)
+        self.softness = config.get('softness', 0.5)
+        self.react_to_music = config.get('react_to_music', True)
+        self.particles = []
+        
+        for _ in range(self.count):
+            self.particles.append(self._reset_particle(start_random=True))
+            
+    def _reset_particle(self, start_random=False):
+        w, h = self.frame.abs_wh
+        x = random.randint(0, int(w))
+        y = random.randint(0, int(h)) if start_random else 0 # Start at bottom
+        
+        # Float up with some drift
+        vx = (random.random() - 0.5) * self.speed
+        vy = (random.random() * self.speed) + 0.5
+        
+        life = random.randint(50, 200)
+        return [x, y, vx, vy, life, life] # x, y, vx, vy, life, max_life
+
+    def draw(self):
+        w, h = self.frame.abs_wh
+        origin_x, origin_y = self.frame.abs_origin()
+        
+        col = self.frame.colours.get(self.colour)
+        
+        speed_mult = 1.0
+        if self.react_to_music and hasattr(self.frame.platform, 'vu'):
+            vu = self.frame.platform.vu['mono']
+            # Scale speed between 1x and 4x based on volume
+            speed_mult = 1.0 + (vu * 3.0)
+
+        for p in self.particles:
+            # Update (Frame coords: 0,0 is bottom-left)
+            p[0] += p[2] * speed_mult
+            p[1] += p[3] * speed_mult
+            p[4] -= 1
+            
+            # Reset if out of bounds or dead
+            if p[1] > h or p[4] <= 0 or p[0] < 0 or p[0] > w:
+                new_p = self._reset_particle()
+                p[:] = new_p[:] # Update in place
+            
+            # Draw
+            alpha = int(255 * (p[4] / p[5]))
+            if len(col) == 3:
+                draw_col = list(col) + [alpha]
+            else:
+                draw_col = list(col[:3]) + [alpha]
+                
+            # Convert Frame (Bottom-Left) to Pygame/GL (Top-Left) for drawing
+            draw_x = origin_x + p[0]
+            draw_y = origin_y + (h - p[1])
+            
+            rect = (draw_x, draw_y, self.size, self.size)
+            self.frame.platform.renderer.draw_rect(draw_col, rect, softness=self.softness)            

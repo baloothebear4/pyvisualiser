@@ -10,7 +10,7 @@ from pyvisualiser.visualisers.glvisualisers import *
 from pyvisualiser.styles.presets import *
 from pyvisualiser.styles.styles  import *
 from pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer
-from pyvisualiser.visualisers.frames import MetaDataFrame, PlayProgressFrame, TextFrame
+from pyvisualiser.visualisers.metadata import MetaDataFrame, PlayProgressFrame, TextFrame
 
 
 class GLmeshScreen(Frame):

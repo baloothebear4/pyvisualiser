@@ -2,8 +2,10 @@ from pyvisualiser.core.components import Bar
 
 from pyvisualiser import *
 from pyvisualiser.styles.presets import *
-
-
+from pyvisualiser.visualisers.vumeters import *
+from pyvisualiser.visualisers.metadata import *
+from pyvisualiser.visualisers.spectrum import *
+from pyvisualiser.visualisers.oscillogramme import *
 
 
 
@@ -132,6 +134,35 @@ class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
 # 
 
 
+class ArtistMetaDataFrame(Frame):
+    def __init__(self, parent, scalers=None, align=None,tip=False, theme=None, justify='centre'):
+        super().__init__(parent, scalers=scalers, align=align, theme=theme)
+        self.justify = justify
+        self.create()
+
+    def create(self):  #reentrant so scaling works properly when sizing columns & rows
+        rows = RowFramer(self)
+        rows += MetaImages(rows)
+        rows += MetaDataFrame(rows)
+
+
+
+
+class MetaMiniSpectrumFrame(Frame):
+    def __init__(self, parent, justify='centre', **kwargs):
+        super().__init__(parent, **kwargs)
+        self.justify = justify
+        self.create()
+
+    def create(self):  #reentrant so scaling works properly when sizing columns & rows
+        rowframe    = RowFramer(self)
+        rowframe   += MetaDataFrame(rowframe, scalers=(1.0, 1.0), justify=self.justify)
+        rowframe   += SpectrumFrame(rowframe,'mono', scalers=(1.0, 0.3), align=('centre','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )
+
+
+
+
+
 
 """
 Test Code
@@ -202,7 +233,7 @@ class TrackVUMeterScreen2(Frame):   # comprises volume on the left, spectrum on 
         back = {'image':'artist', 'per_frame_update':False, 'opacity': 100}
         Frame.__init__(self, platform, background=back, theme= 'meter1', padding=30)
   
-        NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
+        NEEDLE    = VUNeedleStyle(width=  4,colour='foreground', length=0.8, radius_pc= 1.0 )
         ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
         PIVOT     = -0.5
         OUTLINE   = {'colour':'foreground', 'width':5, 'opacity': 255, 'radius': 10}

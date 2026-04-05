@@ -13,6 +13,7 @@ from    pyvisualiser.core.framecore import ListNext
 from    pygame.locals import *   # this pulls down all the K_* constants
 import  time
 from    events import Events
+import  numpy as np
 
 # from    screens import *
 
@@ -24,13 +25,57 @@ EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )
 class MetaData(Roon):
     pass
 
+class HWInterface():
+    """ Base class for Hardware Interface """
+    def __init__(self):
+        self._volume_pc        = 40.0
+        self.audio_source     = "Roon"
+        self.audio_sample_rate    = "44.1kHz 16bit"
+        self.audio_format     = "flac"
+        
+
+    def volume(self, format='percent'):
+        if format == 'db':
+            return "%.1fdB" % self.volume_db
+        else:
+            return "%d" % self.volume_pc
+        
+    @property
+    def volume_pc(self):
+        #in time a call to the base HW is needed to read the actual volume setting
+        return self._volume_pc
+
+    @volume_pc.setter
+    def a(self, val):
+        if val >= 0 and val <= 100:
+            self.volume_pc = int(val)
+        else:
+            raise ValueError('set.volume_pc > value exceed bounds ', val)        
+
+    @property
+    def volume_db(self):
+        return 20*np.log10(self.volume_pc)
+
+
+    def source(self):
+        #in time a call to the base HW is needed to read the actual volume setting
+        return self.audio_source
+    
+    def sample_rate(self):
+        #in time a call to the base HW is needed to read the actual volume setting
+        return self.audio_sample_rate
+    
+    def format(self):
+        #in time a call to the base HW is needed to read the actual volume setting
+        return self.audio_format    
+
 """ HW Platform providing display, audio and physical controls """
-class Platform(AudioProcessor, MetaData, GraphicsDriver):
+class Platform(AudioProcessor, MetaData, GraphicsDriver, HWInterface):
     def __init__(self, events, hw_platform):
         GraphicsDriver.__init__(self, events, gfx=hw_platform['gfx'])
         AudioProcessor.__init__(self, events, device=hw_platform['loopback'])
         MetaData.__init__(self, events, maxwh=self.wh, target_name=hw_platform['roon_zone'])
-
+        HWInterface.__init__(self)
 
     def stop(self):
         print("Platform.stop> shutting down...")

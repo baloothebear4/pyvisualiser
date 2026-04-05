@@ -595,7 +595,13 @@ class GlowExtractionPass(RenderPass):
                 out vec4 f_colour;
                 void main() {
                     vec3 colour = texture(source_texture, v_uv).rgb;
-                    vec3 bright_colour = max(vec3(0.0), colour - threshold);
+                    
+                    // Soft-knee extraction to prevent sudden popping of bloom
+                    float brightness = max(max(colour.r, colour.g), colour.b);
+                    float knee = 0.15; // Range of transition
+                    float soft = smoothstep(threshold - knee, threshold + knee, brightness);
+                    vec3 bright_colour = max(vec3(0.0), colour - (threshold - knee)) * soft;
+
                     // Apply energy as a multiplier to boost the glow before blurring
                     f_colour = vec4(bright_colour * energy * 4.0, 1.0);
                 }
@@ -610,4 +616,6 @@ class GlowExtractionPass(RenderPass):
         input_target.texture.use(location=0)
         self.prog['source_texture'].value = 0
         self.prog['threshold'].value = self.threshold
+        if 'energy' in self.prog:
+            self.prog['energy'].value = kwargs.get('energy', 0.5)
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)

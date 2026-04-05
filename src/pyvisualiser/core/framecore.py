@@ -629,7 +629,7 @@ class Frame(Geometry):
             # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
 
             f.draw_outline(True)
-            # f.draw_background(full)
+            f.draw_background(full)
             f.update_screen(full, **kwargs)  #: self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
 
 
