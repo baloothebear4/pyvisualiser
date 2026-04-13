@@ -232,15 +232,20 @@ class Roon(RoonMetaData):
         server        = self.discover.first()
         self.discover.stop()
 
-        RoonMetaData.__init__(self, RoonApi(self.appinfo, token, server[0], server[1], True), maxwh)
-        self.set_target_zone(target_name)
+        try:
+            RoonMetaData.__init__(self, RoonApi(self.appinfo, token, server[0], server[1], True), maxwh)
+            self.set_target_zone(target_name)
 
-        # get all zones (as dict)
-        print("Roon.__init__>> Connecting with server for metadata on output>>>", target_name)
-        # print(self.roon.host)
-        # print(self.roon.core_name)
-        # print(self.roon.core_id)
-        self.roon.register_state_callback(self.roon_callback) # , id_filter=[self.target_zone_id])
+            # get all zones (as dict)
+            print("Roon.__init__>> Connecting with server for metadata on output>>>", target_name)
+            # print(self.roon.host)
+            # print(self.roon.core_name)
+            # print(self.roon.core_id)
+            self.roon.register_state_callback(self.roon_callback) # , id_filter=[self.target_zone_id])
+        except Exception as e:
+            RoonMetaData.__init__(self, None, maxwh)
+            print(f"\n Roon failed to initialise: {e}") 
+
 
     def metadata_stop(self):
         self.roon.stop()

@@ -85,7 +85,7 @@ SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  Sp
 
 GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
 
-# SCREENS = FULL_SCREENS+MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
+MANY_SCREENS = FULL_SCREENS+MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
 # SCREENS = (ProgressScreen, ArtistScreen,F4, TrackVUMeterScreen2)
 # SCREENS = (TrackVUMeterScreen2, VUImageScreen, VUScreen, VUVScreen, \
 #                    TestVUScreen)+ART_SCREENS+GEO_TEST_SCREENS
@@ -98,9 +98,9 @@ GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
 TEST_SCREENS2 = (BackgroundEffectsScreen0, BackgroundEffectsScreen1, BackgroundEffectsScreen2, AmbientGlowTunerScreen,OutlineGlowTestScreen,ProfileTestScreen, \
                  AudioTestScreen, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
-HERO_SCREENS  = (H1,H2,H3)
+HERO_SCREENS  = (H1,H2,H3,H4,H5)
 
-SCREENS =   HERO_SCREENS + TEST_SCREENS2 + GLSCREENS + SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+VU_TEST_SCREENS
+SCREENS =   HERO_SCREENS + ART_SCREENS + TEST_SCREENS2 + GLSCREENS + SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)+FULL_SCREENS#+GEO_TEST_SCREENS
 
 
 """ 

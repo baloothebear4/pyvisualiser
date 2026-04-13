@@ -70,7 +70,7 @@ class BarTest(Frame):
         self.barw   = self.abs_w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.abs_h * self.config['barsize_pc']   # width of the bar
         box         = (self.barw, self.h) if self.config['orient'] == 'vert' else (self.w, self.barw)
         self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, \
-                        theme=self.theme, \
+                         \
                         style=self.config['style'], \
                         effects=self.config['effects'])
 
@@ -78,14 +78,14 @@ class BarTest(Frame):
         self.update_fn = self.config['update_fn']
         # print("VUFrame._configure> box=%s, flip=%d, orient %s, frame> %s" % (box, self.config['flip'], self.config['orient'], self.geostr()))
 
-    def update_screen(self, full):
+    def update_screen(self):
 
         if self.update_fn is not None:
             height = self.update_fn()
             peaks  = height
         else:
             height, peaks = self.level, self.level
-        self.draw_background(True)
+        # self.draw_background(True)
         self.bar.draw( 0, height, self.barw, peaks)
         return True
 class AdvancedVisualsScreen(Frame):
@@ -155,18 +155,21 @@ class BackgroundEffectsScreen0(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        cloud_style = CloudStyle(radius=1.0)
+        cloud_style = CloudStyle(opacity=0.5)
         vignette=VignetteStyle(strength=1.0, radius=0.2, softness=0.8)
-        s1 = BackgroundStyle(colour='mid', theme='std', vignette=vignette)
-        s0 = BackgroundStyle(colour='background', theme='std', ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.7, radius=0.5, softness=0.5))
-        s2 = BackgroundStyle(colour='mid', theme='std', cloud=True)
-        super().__init__(platform, theme='std', background=s2)
+
+        edge = EdgeLightStyle(enabled=True, intensity=0.5, width=0.5, softness=2.0,audio_reactivity=0.0)
+
+        s1 = BackgroundStyle(colour='mid', vignette=vignette)
+        s0 = BackgroundStyle(colour='background', ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.7, radius=0.5, softness=0.5))
+        s2 = BackgroundStyle(colour='background', cloud=cloud_style, edge_light=edge)
+        super().__init__(platform, theme='hifi', background=s2)
         
         outline=OutlineStyle(colour='mid', width=3, radius=10)
         # Layout
-        rows = RowFramer(self, padding=20, padpc=0.02, outline=outline)
-        top = ColFramer(rows, padding=10, padpc=0.02)
-        bot = ColFramer(rows, padding=10, padpc=0.02   )
+        # rows = RowFramer(self, padding=20, padpc=0.02, outline=outline)
+        # top = ColFramer(rows, padding=10, padpc=0.02)
+        # bot = ColFramer(rows, padding=10, padpc=0.02   )
         
         # Define a safe peak accent style to prevent colour errors
 
@@ -178,17 +181,17 @@ class BackgroundEffectsScreen0(Frame):
         # self += TextFrame(top, background=s1, outline=outline ,text="Vignette (Strong)")
         
         # # 2. Noise (TR)
-        # s2 = BackgroundStyle(colour='mid', theme=self.theme, noise=NoiseStyle(strength=0.2, speed=0.5), peak_accent=peak_style)
+        # s2 = BackgroundStyle(colour='mid',  noise=NoiseStyle(strength=0.2, speed=0.5), peak_accent=peak_style)
         # # f2 = Frame(top, background=s2)
         # top += TextFrame(top, background=s2, outline=outline ,text="Noise (Heavy)", colour='light')
         
         # # 3. Ambient Glow (BL)
-        # s3 = BackgroundStyle(colour='dark', theme=self.theme, ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.8, radius=0.5, softness=0.2))
+        # s3 = BackgroundStyle(colour='dark',  ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.8, radius=0.5, softness=0.2))
         # # f3 = Frame(bot, background=s3)
         # bot += TextFrame(bot, background=s3, outline=outline ,text="Ambient Glow (Pulse)", colour='foreground')
         
         # # 4. Reactive Glow (BR)
-        # s4 = BackgroundStyle(colour='dark', theme=self.theme, reactive_glow=ReactiveGlowStyle(colour='light', attack=0.1, decay=0.1, threshold=0.0))
+        # s4 = BackgroundStyle(colour='dark',  reactive_glow=ReactiveGlowStyle(colour='light', attack=0.1, decay=0.1, threshold=0.0))
         # # f4 = Frame(bot, background=s4)
         # bot += TextFrame(bot, background=s4, outline=outline, text="Reactive Glow (Audio)", colour='light')
 
@@ -202,8 +205,8 @@ class BackgroundEffectsScreen1(Frame):
     def __init__(self, platform):
         peak_style = PeakAccentStyle(colour='alert')
         vignette=VignetteStyle(strength=1.0, radius=0.2, softness=0.8)
-        s1 = BackgroundStyle(colour='mid', theme='std', vignette=vignette)
-        s0 = BackgroundStyle(colour='background', theme='std', ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.7, radius=0.5, softness=0.5))
+        s1 = BackgroundStyle(colour='mid', vignette=vignette)
+        s0 = BackgroundStyle(colour='background', ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.7, radius=0.5, softness=0.5))
         super().__init__(platform, theme='std', background=s0)
         
         outline={'colour':'mid', 'width':3, 'radius':5}
@@ -221,17 +224,17 @@ class BackgroundEffectsScreen1(Frame):
         top += TextFrame(top, background=s1, outline=outline ,text="Vignette (Strong)")
         
         # 2. Noise (TR)
-        s2 = BackgroundStyle(colour='mid', theme=self.theme, noise=NoiseStyle(strength=0.2, speed=0.5), peak_accent=peak_style)
+        s2 = BackgroundStyle(colour='mid',noise=NoiseStyle(strength=0.2, speed=0.5), peak_accent=peak_style)
         # f2 = Frame(top, background=s2)
         top += TextFrame(top, background=s2, outline=outline ,text="Noise (Heavy)", colour='light')
         
         # 3. Ambient Glow (BL)
-        s3 = BackgroundStyle(colour='dark', theme=self.theme, ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.8, radius=0.5, softness=0.2))
+        s3 = BackgroundStyle(colour='dark', ambient_glow=AmbientGlowStyle(colour='foreground', opacity=0.8, radius=0.5, softness=0.2))
         # f3 = Frame(bot, background=s3)
         bot += TextFrame(bot, background=s3, outline=outline ,text="Ambient Glow (Pulse)", colour='foreground')
         
         # 4. Reactive Glow (BR)
-        s4 = BackgroundStyle(colour='dark', theme=self.theme, reactive_glow=ReactiveGlowStyle(colour='light', attack=0.1, decay=0.1, threshold=0.0))
+        s4 = BackgroundStyle(colour='dark', reactive_glow=ReactiveGlowStyle(colour='light', attack=0.1, decay=0.1, threshold=0.0))
         # f4 = Frame(bot, background=s4)
         bot += TextFrame(bot, background=s4, outline=outline, text="Reactive Glow (Audio)", colour='light')
 
@@ -256,22 +259,22 @@ class BackgroundEffectsScreen2(Frame):
         tex = 'metal.jpg'
         
         # 1. Texture + Vignette
-        s1 = BackgroundStyle(colour='foreground', theme=self.theme, texture_path=tex, texture_opacity=0.1, vignette=VignetteStyle(strength=1.8, radius=0.2))
+        s1 = BackgroundStyle(colour='foreground', texture_path=tex, texture_opacity=0.1, vignette=VignetteStyle(strength=1.8, radius=0.2))
         # f1 = Frame(top, background=s1)
         top += TextFrame(top, background=s1, text="Tex + Vignette", colour='light')
         
         # 2. Texture + Noise
-        s2 = BackgroundStyle(colour='background', theme=self.theme, texture_path=tex, texture_opacity=0.1, noise=NoiseStyle(strength=0.15))
+        s2 = BackgroundStyle(colour='background',  texture_path=tex, texture_opacity=0.1, noise=NoiseStyle(strength=0.15))
         # f2 = Frame(top, background=s2)
         top += TextFrame(top, background=s2, text="Tex + Noise", colour='light')
         
         # 3. Texture + Ambient
-        s3 = BackgroundStyle(colour='foreground', theme=self.theme, texture_path=tex, texture_opacity=0.9, ambient_glow=AmbientGlowStyle(colour='mid', opacity=0.8))
+        s3 = BackgroundStyle(colour='foreground',  texture_path=tex, texture_opacity=0.9, ambient_glow=AmbientGlowStyle(colour='mid', opacity=0.8))
         # f3 = Frame(bot, background=s3)
         bot += TextFrame(bot, background=s3, text="Tex + Ambient", colour='light')
         
         # 4. Texture + Reactive
-        s4 = BackgroundStyle(colour='dark', theme=self.theme, texture_path=tex, texture_opacity=0.1, starfield=StarfieldStyle(density=50, speed=0.5))
+        s4 = BackgroundStyle(colour='dark',  texture_path=tex, texture_opacity=0.1, starfield=StarfieldStyle(density=50, speed=0.5))
         # f4 = Frame(bot, background=s4)
         bot += TextFrame(bot, background=s4, text="Tex + Stars", colour='light')
 
@@ -306,14 +309,14 @@ class GlowTestScreen(Frame):
                                     scalers=(1.0, 0.1), align=('centre', 'top'), colour='light')
         self += self.text_frame
 
-    def update_screen(self, full=False, **kwargs):
+    def update_screen(self, **kwargs):
         # Tell the compositor to render the glow buffer for debugging
         if hasattr(self.platform, 'compositor'):
             # self.platform.compositor.debug_view = 'glow'
             # Lower threshold so standard bright colours (max 1.0) trigger the glow for testing
             self.platform.compositor.glow_extraction_pass.threshold = 0.5
         
-        super().update_screen(full, **kwargs)
+        super().update_screen(**kwargs)
 
 
 class BarEffectsTestScreen(Frame):
@@ -574,10 +577,10 @@ class AmbientGlowTunerScreen(Frame):
             # Force update of text
             self.info_display.textcomp.text = self.tuner.get_display_text()
 
-    def update_screen(self, full=False, **kwargs):
+    def update_screen(self, **kwargs):
         # Update text content
         self.info_display.textcomp.text = self.tuner.get_display_text()
-        super().update_screen(full, **kwargs)
+        super().update_screen(**kwargs)
 
     def print_preset(self):
         g = self.glow_style

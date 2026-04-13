@@ -88,9 +88,8 @@ class OscilogrammeBar(Frame):
     def width(self):
         return self.bars * (self.bar_gap+self.barw)
 
-    def update_screen(self, full):
+    def update_screen(self):
         samples =  self.platform.reduceSamples( self.channel, self.reduce_by )
-        self.draw_background(True)
         for i in range(self.bars):
             # add the new sample
             target_height = min(1.0, samples[i])
@@ -124,11 +123,11 @@ class Oscilogramme(Frame):
         self.resolution = 256 # Limit resolution for performance
         
 
-    def update_screen(self, full):
+    def update_screen(self):
         # Limit resolution to avoid excessive draw calls (e.g. max 256 segments)
         reduceby = max(1, self.platform.framesize // self.resolution)
         samples =  self.platform.reduceSamples( self.channel, reduceby, rms=False )
-        self.draw_background(True)
+        # self.draw_background(True)
         self.lines.draw_mod_line(samples, colour='foreground')
         return True
         
@@ -150,10 +149,10 @@ class CircleModulator(Frame):
 
         # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
 
-    def update_screen(self, full):
+    def update_screen(self):
         hpf_freq = 1000
         lpf_freq = 1500
-        self.draw_background(True)
+        # self.draw_background(True)
 
         height, peaks = self.VU.read()
         samples = self.platform.reduceSamples( self.channel, self.platform.framesize//(self.w//2), rms=False )  # reduce the dataset quite a bit

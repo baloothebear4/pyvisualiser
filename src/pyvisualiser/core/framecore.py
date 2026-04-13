@@ -618,33 +618,33 @@ class Frame(Geometry):
     # update the screen with the frame contents
     # whether the background and outline is drawn depends on whether the frame update is per frame or per metadata change
     #
-    def update_screen(self, full=False, **kwargs):
+    def update_screen(self, **kwargs):
 
-        self.draw_background(True)
-        self.draw_outline(True)        # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
+        self.draw_background()
+        self.draw_outline()        # print("Frame.update> #frames=%d, full update %s" % (len(self.frames), full))
 
         # Sort frames by z_order for drawing (lowest first)
         draw_list = sorted(self.frames, key=lambda x: x.z_order)
         for f in draw_list:
-            # print("Frame.draw> ", f._need_to_redraw, type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
+            # print("Frame.draw> ", type(f).__name__, "has draw ", hasattr(f, 'draw'), "has undraw ", hasattr(f, 'undraw'))
 
-            f.draw_outline(True)
-            f.draw_background(full)
-            f.update_screen(full, **kwargs)  #: self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
+            f.draw_outline()
+            f.draw_background()
+            f.update_screen(**kwargs)  #: self.platform.dirty_mgr.add(tuple(f.abs_rect()))   #<---- fix this in due course
 
 
 
-    def draw_background(self, full=True):
+    def draw_background(self):
         # print("Frame.draw_background", type(self).__name__, full, self.abs_background())
-        self.background_frame.draw(full)
+        self.background_frame.draw()
 
-    def always_draw_background(self, full=True):
+    def always_draw_background(self):
         # print("Frame.draw_background", type(self).__name__, full, self.abs_background())
-        self.background_frame.per_frame_update(full)
+        self.background_frame.per_frame_update()
 
-    def draw_outline(self, full=True):
-        if self.outline_frame is not None and full: # --> need to draw it everytime else the background erases it
-            self.outline_frame.draw()
+    def draw_outline(self):
+        # if self.outline_frame is not None and full: # --> need to draw it everytime else the background erases it
+        self.outline_frame.draw()
             # print("Frame.draw_outline> ", full, type(self).__name__, self.abs_background())
 
     def handle_key(self, key):

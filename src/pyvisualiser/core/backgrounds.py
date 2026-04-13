@@ -17,59 +17,27 @@ import pygame
 import numpy as np
 
 
-
 class Background:
-
-    BACKGROUND_DEFAULT    = {'colour':'background', 'image': 'particles.jpg', 'opacity': 255, \
-                             'glow': False} 
-    # BACKGROUND_IMAGE_PATH = '../backgrounds'
-
 
     # background is a Str with a colour index eg 'background' or a Dict with the {path, opacity} for an image
     def __init__(self, frame, background=None):
         self.frame            = frame
         self.background_image = None
         self.background_base  = None
-        self.background       = {'colour':None}
-        self.BACKGROUND_ART   = {  'album':  { 'update_fn': frame.platform.album_art,  'square' : False},
-                                   'artist': { 'update_fn': frame.platform.artist_art, 'square' : False} }
-        
-        self.background_base = None
+        self.background       = background
 
         # print("Background.__init__>", background, self.frame.colours.is_colour(self.background))
 
         if background is None:
-            self.background       = None #Background.BACKGROUND_DEFAULT['colour']
+            self.background       = None #Do nothing there is no background
 
-        # --- NEW: OpenGL Background Style Support ---
+        # --- OpenGL Background Style Support ---
         elif isinstance(background, BackgroundStyle):
             self.background_base = BackgroundBase(frame, background)
-            self.background = {'type': 'opengl'}
-            
 
-        elif isinstance(background, dict) and 'image' in background:
-            self.background.update(background)
-            self.make_image()
-            
-        elif isinstance(background, dict) and any(key in background for key in ('colour','opacity','glow','particles')):
-            self.background.update(background)
-            # if 'per_frame_update' not in self.background:   self.background.update({'per_frame_update': Background.BACKGROUND_DEFAULT['per_frame_update']}) 
-            if 'opacity'          not in self.background:   self.background.update({'opacity': Background.BACKGROUND_DEFAULT['opacity']})   
-            if 'glow'             not in self.background:   self.background.update({'glow': Background.BACKGROUND_DEFAULT['glow']})
-
-            if 'particles' in self.background:
-                self.particle_system = ParticleSystem(self.frame, self.background['particles'])
-                self.background['per_frame_update'] = True
-
-
-        # its a filename with no parameters ie a shortcut
-        elif background.lower().endswith(('.jpg', '.png')):
-            self.background.update({'image': background}) 
-            self.make_image()
-
-        # its a colour
+        # its a old API so default to new
         else:
-            self.background.update({'colour':background, 'opacity': Background.BACKGROUND_DEFAULT['opacity']})
+            self.background_base = BackgroundBase(frame, BackgroundStyle())
 
         # print("Background.__init__> background is", self.background, self.frame.framestr())
 
@@ -88,88 +56,22 @@ class Background:
 
 
     def per_frame_update(self, condition=True):
-        if self.background is not None: 
-            self.background['per_frame_update']=condition
-        else:
-            # print("Background.per_frame_update> None background", self.background, self.frame.framestr() )  
-            pass
+        pass
 
 
     def is_per_frame_update(self):
-        if self.background is None:
-            return True
-        else:
-            return self.background['per_frame_update']
+        return True
 
     def is_opaque(self):
-        if self.background is None:
-            return True  #if there is no background this is opaque!
-        else:
-            return self.background['opacity']<255
+        return
 
-    def draw(self, perform_update=True):
+    def draw(self):
         if self.background is None: return
         
-        # --- NEW: OpenGL Background Drawing ---
-        if self.background_base:
-            self.background_base.update()
-            self.background_base.draw()
-            return
+        # --- OpenGL Background Drawing ---
+        self.background_base.update()
+        self.background_base.draw()
 
-        # print("Background.draw> LEGACY background draw", self.background, self.frame.framestr())
-
-        if self.background.get('glow'):
-            # Draw glow using OpenGL renderer
-            rect_coords = self.frame.abs_background()
-            c_name = self.background.get('colour')
-            if c_name is None: c_name = 'background'
-            
-            colour = self.frame.colours.get(c_name)
-            # Increase opacity for visibility and use additive blending
-            opacity = self.background.get('opacity', 255) * 0.8
-            
-            if len(colour) == 3:
-                glow_col = list(colour) + [opacity]
-            else:
-                glow_col = list(colour)
-                glow_col[3] = opacity
-            
-            self.frame.platform.renderer.draw_rect(glow_col, rect_coords, softness=1.5, additive=True)
-
-        if self.background_image is None:
-            if self.background['colour'] is None: return
-
-            # 1. Get the coordinates and dimensions of the area to fill
-            rect_coords = self.frame.abs_background()  # Should be (x, y, w, h)
-            rect_w, rect_h = rect_coords[2:]
-
-            colour = self.frame.colours.get(self.background['colour'])
-            
-            # Use the renderer to draw the rect directly with opacity
-            # We need to append the opacity to the colour tuple if it's not already there
-            if len(colour) == 3:
-                colour = list(colour) + [self.background['opacity']]
-            elif len(colour) == 4:
-                colour = list(colour)
-                colour[3] = self.background['opacity']
-            
-            shadow = self.background.get('shadow')
-            self.frame.platform.renderer.draw_rect(colour, rect_coords, shadow=shadow)
-
-            if hasattr(self, 'particle_system'):
-                self.particle_system.draw()
-
-        else:
-            if self.background['image'] in ('artist', 'album'):
-                image_ref = self.update_fn()
-            else:
-                image_ref =None
-
-            self.background_image.draw(image_data=image_ref, coords=self.frame.abs_background()[:2]) 
-
-            # print("Background.draw> ", self.background )  
-
-        # print("Background.draw> draw ", perform_update, self.background['per_frame_update'], self.background, self.frame.framestr() )  
   
     def __str__(self):
         return str(self.background)
@@ -223,12 +125,12 @@ class BackgroundLighting:
             rate = pa.attack if target_peak > self.peak_intensity else pa.decay
             self.peak_intensity += (target_peak - self.peak_intensity) * rate
 
-        # 3. Clouds (Slow changing linked to overall volume)
-        cl = self.style.cloud
-        if cl:
-            if not isinstance(cl, CloudStyle): cl = CloudStyle()
+        # 3. Clouds & Edge (Slow changing linked to overall volume)
+        au = self.style.cloud or self.style.edge_light
+        if au:
+            # if not isinstance(cl, CloudStyle): cl = CloudStyle()
             # Simple beat detection logic: if VU is very high
-            self.cloud_intensity = audio_processor.vu['mono'] * 1.0
+            self.audio_vu = audio_processor.vu['mono'] * 1.0
 
 
 class BackgroundSurface:
@@ -287,8 +189,8 @@ class BackgroundRenderPass(RenderPass):
                 out vec4 f_colour;
 
                 uniform vec3 u_colour;
+                uniform float u_colour_opacity;
                 uniform float u_time;
-
                 // Texture
                 uniform bool u_has_texture;
                 uniform sampler2D u_texture;
@@ -322,8 +224,17 @@ class BackgroundRenderPass(RenderPass):
 
                 // Cloud
                 uniform float u_cloud_intensity;
+                uniform float u_cloud_opacity;
                 uniform bool u_cloud_enabled;
 
+                // Panel Edge Lighting
+                uniform vec3  u_edge_colour;
+                uniform float u_edge_intensity;
+                uniform float u_edge_width;
+                uniform float u_edge_softness;
+                uniform float u_edge_audio_reactivity;
+                uniform float u_aspect_ratio;
+                uniform float u_audio_vu;
 
                 float random(vec2 st) {
                     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
@@ -350,8 +261,25 @@ class BackgroundRenderPass(RenderPass):
                         (d - b) * u.x * u.y;
                 }
 
+                //Edge lighting
+                float edge_mask(vec2 uv) {
+
+                    vec2 d = min(uv, 1.0 - uv);
+                    d.x *= u_aspect_ratio;
+                    
+                    float edge_dist = min(d.x, d.y);
+
+                    float edge = smoothstep(u_edge_width*0.1, 0.0, edge_dist);
+
+                    edge = pow(edge, u_edge_softness);
+
+                    return edge;
+                }
+
                 void main() {
-                    vec4 colour = vec4(u_colour, 1.0);
+
+                    // 0. Base colour
+                    vec4 colour = vec4(u_colour, u_colour_opacity);
                     
                     // 1. Texture Layer
                     if (u_has_texture) {
@@ -372,6 +300,7 @@ class BackgroundRenderPass(RenderPass):
                         // Smoothstep for soft falloff
                         float glow = 1.0 - smoothstep(u_ambient_radius - u_ambient_softness, u_ambient_radius + u_ambient_softness, dist);
                         colour.rgb = mix(colour.rgb, u_ambient_colour, glow * u_ambient_opacity);
+                        colour = mix(colour, vec4(u_ambient_colour, 1.0), glow * u_ambient_opacity);
                     }
 
                     // 4. Reactive Glow (Pulsing from center)
@@ -379,6 +308,8 @@ class BackgroundRenderPass(RenderPass):
                         float dist = distance(v_uv, vec2(0.5, 0.5));
                         float glow = 1.0 - smoothstep(0.0, 0.6, dist); // Fixed radius for now
                         colour.rgb += u_reactive_colour * glow * u_reactive_intensity;
+                        float layer_a = glow * u_reactive_intensity;
+                        colour.a = max(colour.a, layer_a);
                     }
 
                     // 5. Peak Accent (Flash)
@@ -387,6 +318,7 @@ class BackgroundRenderPass(RenderPass):
                         float peak_dist = distance(v_uv, vec2(0.5, 0.5));
                         float peak_glow = (1.0 - smoothstep(0.05, 0.2, peak_dist)) * u_peak_intensity;
                         colour.rgb += u_peak_accent_colour * peak_glow;
+                        colour.a = max(colour.a, peak_glow);
                     }
 
                     // 6. Vignette (Darken edges)
@@ -415,9 +347,9 @@ class BackgroundRenderPass(RenderPass):
                         }
                     }
                     // 8. Cloud moving shape in centre of screen
-                    if (u_cloud_enabled) {
-                        vec2 uv = v_uv;
+                    if (u_cloud_opacity > 0.0) {
 
+                        vec2 uv = v_uv;
                         vec2 center = uv - 0.5;
                         float dist = length(center);
                         float vignette = 1.0 - smoothstep(0.3, 0.9, dist);
@@ -431,34 +363,57 @@ class BackgroundRenderPass(RenderPass):
 
                         // contrast shaping and base intensity for debug visibility
                         float brightness = pow(blend, 1.5);
-                        brightness = brightness * 0.99 + 0.15;
-
+                        brightness = brightness * 0.6 + 0.15;
+                        
                         // audio boost
-                        float audio = pow(u_cloud_intensity, 0.5);
+                        float audio = pow(u_audio_vu, 0.5);
                         brightness += audio * 0.05;
 
                         // colour
-                        vec3 col1 = vec3(0.2, 0.4, 0.8);
-                        vec3 col2 = vec3(0.25, 0.70, 0.9);
-                        //vec3 col1 = vec3(0.02, 0.04, 0.08);
-                        //vec3 col2 = vec3(0.25, 0.10, 0.05);
-                        vec3 cloud_rgb = mix(col1, col2, blend);
 
+                        // static colours used for test
+                        //vec3 col1 = vec3(0.2, 0.4, 0.8);
+                        //vec3 col2 = vec3(0.25, 0.70, 0.9);
+                        // dynamic colours based off the base colour
+                        vec3 col1 = max(u_colour * 4, vec3(0.01));
+                        vec3 col2 = u_colour * 25 + 0.05;
+                        float shaped = pow(blend, 1.4);
+                        vec3 cloud_rgb = mix(col1, col2, shaped);
                         cloud_rgb *= brightness * vignette;
 
                         // Layer the cloud over the base colour
-                        colour.rgb = mix(colour.rgb, cloud_rgb, 0.8);
+                        colour.rgb = mix(colour.rgb, cloud_rgb, u_cloud_opacity);
+
                     }
 
+                    // 9. Panel Edge Lighting
+                    if (u_edge_intensity > 0.0) {
+
+                        float edge = edge_mask(v_uv);
+                        
+                        // subtle audio influence
+                        float audio = pow(u_audio_vu, 0.5);
+                        float audio_boost = 1.0 + audio * u_edge_audio_reactivity;
+
+                        // match your "overdriven" pipeline
+                        // vec3 edge_col = u_edge_colour * 20.0 + 0.05;
+                        vec3 edge_col = mix(u_colour, vec3(1.0), 0.7);  // push toward white
+                        edge_col = edge_col * 1.0 + 0.05;
+
+                        colour.rgb += edge_col * edge * u_edge_intensity * audio_boost;
+                    }
+
+
                     f_colour = colour;
-                    
-                    // DEBUG: Force Red if vignette is active to verify draw
-                    // if (u_vignette_strength > 0.9) f_colour = vec4(1.0, 0.0, 0.0, 1.0); 
-                    // f_colour = vec4(1.0, 0.0, 0.0, 1.0); // DEBUG: FORCE RED TO VERIFY GEOMETRY
+
                 }
             """
         )
         self.quad_vao = self.ctx.simple_vertex_array(self.prog, context.get_quad_buffer(), 'in_vert', 'in_uv')
+        
+        # Initialize aspect ratio to 1.0 as a safe default
+        if 'u_aspect_ratio' in self.prog:
+            self.prog['u_aspect_ratio'].value = 1.0
 
     def render(self, **kwargs):
         # Ensure standard blending is used for background, preventing additive bleed from previous frames
@@ -471,6 +426,10 @@ class BackgroundRenderPass(RenderPass):
         if self.viewport:
             original_viewport = self.ctx.viewport
             self.ctx.viewport = self.viewport
+
+            vw, vh = self.viewport[2], self.viewport[3]
+            if 'u_aspect_ratio' in self.prog:
+                self.prog['u_aspect_ratio'].value = float(vw / vh)
             # self.ctx.scissor = self.viewport # DEBUG: Disable Scissor to test FBO write access
 
         self.prog['u_time'].value = time.time() - self.start_time
@@ -482,6 +441,9 @@ class BackgroundRenderPass(RenderPass):
         # Base colour
         base_rgb = resolver(self.style.colour)
         self.prog['u_colour'].value = base_rgb
+        if 'u_colour_opacity' in self.prog:
+            op = float(self.style.colour_opacity) if self.style.colour is not None else 0.0
+            self.prog['u_colour_opacity'].value = op
 
         # Texture
         if self.surface.texture:
@@ -556,14 +518,28 @@ class BackgroundRenderPass(RenderPass):
         if cloud:
             if not isinstance(cloud, CloudStyle): cloud = CloudStyle()
             if 'u_cloud_intensity' in self.prog:
-                self.prog['u_cloud_intensity'].value = self.lighting.cloud_intensity
-            if 'u_cloud_enabled' in self.prog:
-                self.prog['u_cloud_enabled'].value = True
+                self.prog['u_audio_vu'].value = self.lighting.audio_vu
+            if 'u_cloud_opacity' in self.prog:
+                self.prog['u_cloud_opacity'].value = cloud.opacity
+
         else:
             if 'u_cloud_intensity' in self.prog:
                 self.prog['u_cloud_intensity'].value = 0.0
-            if 'u_cloud_enabled' in self.prog:
-                self.prog['u_cloud_enabled'].value = False
+            if 'u_cloud_opacity' in self.prog:
+                self.prog['u_cloud_opacity'].value = 0.0
+
+        # Panel Edge lighting
+        edge_style = self.style.edge_light
+
+        if edge_style:
+
+            self.prog['u_edge_intensity'].value = edge_style.intensity
+            self.prog['u_edge_width'].value = edge_style.width
+            self.prog['u_edge_softness'].value = edge_style.softness
+            self.prog['u_edge_audio_reactivity'].value = edge_style.audio_reactivity
+            self.prog['u_audio_vu'].value = self.lighting.audio_vu
+        else:
+            self.prog['u_edge_intensity'].value = 0.0
 
 
         # print(f"  BackgroundRenderPass> Drawing Quad... Program: {self.prog.glo}")

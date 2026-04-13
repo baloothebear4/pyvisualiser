@@ -39,7 +39,7 @@ class EchoWaveFrame(Frame):
         if len(self.wave_history) > self.history_size:
             self.wave_history.pop()
 
-    def update_screen(self, full=False):
+    def update_screen(self):
         # Get raw samples (int16)
         waveform = self.platform.samples[self.channel]
         self.update_history(waveform)
@@ -137,7 +137,7 @@ class KaleidoscopeFrame(Frame):
             
         return tentacles
 
-    def update_screen(self, full=False):
+    def update_screen(self):
         fft_data = self.platform.bins[self.channel]
         
         # Calculate bass energy (approx first 10% of bins)
@@ -146,7 +146,7 @@ class KaleidoscopeFrame(Frame):
         
         self.current_tentacles = self.calculate_tentacles(fft_data, bass_energy)
         
-        self.draw_background(True)
+        # self.draw_background(True)
         
         base_colour = self.colours.get('foreground')
         cx, cy = self.abs_centre()
@@ -249,7 +249,7 @@ class PulseOrbFrame(Frame):
                 new_particles.append(p)
         self.particles = new_particles
 
-    def update_screen(self, full=False):
+    def update_screen(self):
         amplitude = self.platform.vu[self.channel]
         peak = self.platform.peak.get(self.channel, amplitude)
         self.smoothing_amp = (self.smoothing_amp * 0.9) + (amplitude * 0.1)
@@ -264,7 +264,7 @@ class PulseOrbFrame(Frame):
         cx, cy = self.abs_centre()
         self.update_physics(amplitude, peak, pulse_radius, cx, cy, orb_col_idx)
         
-        self.draw_background(True)
+        # self.draw_background(True)
 
         colour_core = list(self.colours.get(orb_col_idx)[:3]) + [255]
         colour_glow = list(self.colours.get(orb_col_idx)[:3]) + [100]
@@ -336,7 +336,7 @@ class SpectrumWaveFrame(Frame):
         if len(self.wave_history) > self.history_size:
             self.wave_history.pop()
 
-    def update_screen(self, full=False):
+    def update_screen(self):
         # Recalculate if width has changed
         if len(self.bar_freqs) > self.w * 1.2 or len(self.bar_freqs) < self.w / 2:
             self._calculate_bar_freqs()
@@ -344,7 +344,7 @@ class SpectrumWaveFrame(Frame):
         spectrum_data = self.platform.packFFT(self.bar_freqs, self.channel)
         self.update_history(spectrum_data)
         
-        self.draw_background(True)
+        # self.draw_background(True)
 
         rect = self.abs_rect()
         bottom_y = rect[1] + rect[3]
@@ -427,7 +427,7 @@ class FreqWaveFrame(Frame):
                 result.append(data[idx])
         return result
 
-    def update_screen(self, full=False):
+    def update_screen(self):
         # 1. Get Data
         if self.mode == 'rms':
             val = self.platform.vu[self.channel]
@@ -444,7 +444,7 @@ class FreqWaveFrame(Frame):
         if len(self.history) > max_items:
             self.history = self.history[-max_items:]
 
-        self.draw_background(True)
+        # self.draw_background(True)
 
         if len(self.history) < 2: return True
 

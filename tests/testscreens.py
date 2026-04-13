@@ -385,10 +385,10 @@ class ArtistScreen(Frame):   # comprises volume on the left, spectrum on the rig
                 'artist' : {'colour':'mid',   'align': ('centre','top'), 'scalers': (1.0, 1.0)} }
  
         cols = ColFramer(self, background='dark')
-        cols += MetaImages(cols, art_type='album', outline={'colour':'mid', 'width':7, 'opacity': 100, 'radius': 0})
+        cols += MetaImages(cols, art_type='album', outline=None)#{'colour':'mid', 'width':7, 'opacity': 100, 'radius': 0})
         cols += MetaDataFrame(cols, background='dark')
         # cols += VUFlipFrame(cols, background='dark',orient='horz',outline={'colour':'mid', 'width':50, 'opacity': 100, 'radius': 0})
-        cols += VUFlipFrame(cols, background='dark',orient='vert',outline={'colour':'mid', 'width':20, 'opacity': 100, 'radius': 0})
+        cols += VUFlipFrame(cols, background='dark',orient='vert',outline=None)#{'colour':'mid', 'width':20, 'opacity': 100, 'radius': 0})
         # cols.always_draw_background()
         print(self)
 
@@ -546,7 +546,7 @@ class ColAlignedScreen(Frame):
         # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour':'foreground','width':3})
         # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour':'alert'})
         # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')
-        print(self)
+        # print(self)
 
 class RowAlignedScreen(Frame):
     @property
@@ -556,27 +556,25 @@ class RowAlignedScreen(Frame):
     def type(self): return 'Test'
 
     def __init__(self, platform):
-        super().__init__(platform, theme='hifi', outline={'width':1,'colour':'foreground'})
+        super().__init__(platform, theme='hifi' )#, outline={'width':1,'colour':'foreground'})
         # print("SubFrame> ", self.geostr())
-        self.create()
-
-    def create(self):
         
         # self += TextFrame(self  , scalers=(0.6,0.6), align=('centre','middle'), text='centre', background='dark', outline={'width':10,'colour':'alert'})
         # print(self)
 
-        rowframe = RowFramer(self, scalers=(1.0,1.0), align=('centre','middle'), background='dark', padpc=0,outline={'colour':'alert','width':1}) #, align=('centre','middle'))
+        out = OutlineStyle(width=10,colour='alert')
+        rowframe = RowFramer(self, scalers=(1.0,1.0), padding=10, background=BackgroundStyle(colour='dark'),outline=out  ) #, align=('centre','middle'))
         # print("ColAlignedScreen.create> colframe", colframe.framestr())
-        rowframe += TextFrame(rowframe  , text='left', scalers=(1.0, 1.0), background='light', outline={'colour':'alert','width':1})
-        rowframe += TextFrame(rowframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background='mid', outline={'colour':'alert','width':1})
-        rowframe += MetaData(rowframe,  'track', colour='foreground', scalers=(1.0,1.0), outline={'colour':'alert','width':1})
+        rowframe += TextFrame(rowframe  , text='left', scalers=(1.0, 1.0), background=BackgroundStyle(colour='light'), outline=out)
+        rowframe += TextFrame(rowframe  , text='mid on a very long string that needs to be even longer askjdhfkjahsdlfkjhalskjdhflkajshdflkjashdflkj', wrap=True, background=BackgroundStyle(colour='mid'), outline=out)
+        rowframe += MetaData(rowframe,  'track', colour='foreground', outline=out)
 
         # rowframe = RowFramer(colframe  ,  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
 
         # rowframe += Frame(rowframe  ,   scalers=(1.0,1.0), background='mid', outline={'colour':'foreground','width':3})
         # rowframe += TextFrame(rowframe  , text='rhs', background='light', outline={'colour':'alert'})
         # rowframe += Frame(rowframe  ,  scalers=(1.0, 1.0), background='foreground')        
-        print(self)
+        # print(self)
 
 
 # Test harness to get outline, background and frame geo correct:
@@ -615,9 +613,7 @@ class F2(Frame):
     def __init__(self, platform):
         super().__init__(platform, theme='hifi', outline={'width':20,'colour':'alert'}, padding=20)
         # print("SubFrame> ", self.geostr())
-        self.create()
 
-    def create(self):
         self += Frame(self, scalers=(0.3,0.3), align=('centre','bottom'), background='light', outline={'colour':'foreground','width':5})
         self += Frame(self, scalers=(0.3,0.3), align=('right','bottom'), background='mid', outline={'colour':'foreground','width':5})
         self += Frame(self, scalers=(0.3,0.3), align=('left','top'), background='light', outline={'colour':'foreground','width':5})
@@ -626,7 +622,7 @@ class F2(Frame):
         self += Frame(self, scalers=(0.3,0.3), align=('right','middle'), background='mid', outline={'colour':'foreground','width':5})
 
 
-        print(self)
+        # print(self)
 
 class F3(Frame):
     @property
@@ -638,15 +634,12 @@ class F3(Frame):
     def __init__(self, platform):
         super().__init__(platform, theme='hifi', outline={'width':20,'colour':'foreground'}, padding=30)
         # print("SubFrame> ", self.geostr())
-        self.create()
 
-    def create(self):
         # self += Frame(self, scalers=(0.5,0.333), align=('centre','middle'), background='light', outline={'colour':'alert','width':5}, padding =20)
         # self += Frame(self, scalers=(0.5,0.333), align=('centre','bottom'), background='mid', outline={'colour':'alert','width':5},padding = 10)
         self += TextFrame(self  , text='one', scalers=(0.33,1.0 ), background='mid', align=('left','middle'), outline={'colour':'alert','width':10}, padding =10)
         self += TextFrame(self  , text='two', scalers=(0.33, 1.0), background='mid', align=('centre','middle'), outline={'colour':'alert','width':10}, padding =10)
         self += TextFrame(self  , text='three', scalers=(0.33, 1.0), background='mid', align=('right','middle'), outline={'colour':'alert','width':10}, padding =10)
-                # self += f
 
 
         print(self)

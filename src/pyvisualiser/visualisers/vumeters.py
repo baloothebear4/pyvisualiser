@@ -198,7 +198,7 @@ class VUMeter(Frame):
         # The Line objects should also add themselves to self.frames.    
         # print("VUMeter.configure>", self.__str__())
 
-    def update_screen(self, full):
+    def update_screen(self):
         # self.draw_background(True)
         if self.path is None:
             self.drawVUBackground()
@@ -315,14 +315,14 @@ class VUFrame(Frame):
         self.VU     = VU(self.platform, self.config['channel'], self.config['decay'])
         # print("VUFrame._configure> box=%s, flip=%d, orient %s, frame> %s" % (box, self.config['flip'], self.config['orient'], self.geostr()))
 
-    def update_screen(self, full):
+    def update_screen(self):
         # barw   = self.w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.h * self.config['barsize_pc']  
         # if barw != self.barw:
         #     self.bar.resize( (self.barw, self.h) if self.config['orient'] == 'vert' else (self.w, self.barw))
         #     self.barw = barw
 
         height, peaks = self.VU.read()
-        self.draw_background(True)
+        # self.draw_background(True)
         self.bar.draw( 0, height, self.barw, peaks)
         # print("VUFrame.update>")
         return True

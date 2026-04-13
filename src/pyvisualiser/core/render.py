@@ -284,7 +284,7 @@ class CompositePass(RenderPass):
                 vec3 adjust_warmth(vec3 color, float value) {
                     float temp = value * 2.0 - 1.0; 
                     vec3 warm = vec3(temp * 0.2, temp * 0.1, -temp * 0.2); 
-                    return clamp(color + warm * length(color), 0.0, 1.0);
+                    return max(color + warm * length(color), 0.0);
                 }
 
                 void main() {
@@ -316,10 +316,10 @@ class CompositePass(RenderPass):
             # Set viewport to main screen size
             self.ctx.viewport = (0, 0, self.context.width, self.context.height)
             
-        # CRITICAL FIX: The final composite to the screen MUST use standard alpha blending
-        # to correctly handle the transparency of the rendered scene.
-        self.ctx.enable(moderngl.BLEND)
-        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        # DISABLE BLENDING: This is a full-screen quad pass. Enabling blending 
+        # without clearing the target FBO causes every frame to accumulate,
+        # leading to the "grey washout" effect.
+        self.ctx.disable(moderngl.BLEND)
         
         scene_target.texture.use(location=0)
         bloom_target.texture.use(location=1)
@@ -331,6 +331,62 @@ class CompositePass(RenderPass):
         if 'saturation' in self.prog: self.prog['saturation'].value = kwargs.get('saturation', 1.0)
         if 'warmth' in self.prog: self.prog['warmth'].value = kwargs.get('warmth', 0.5)
         
+        self.quad_vao.render(moderngl.TRIANGLE_STRIP)
+
+class ToneMappingPass(RenderPass):
+    """
+    Applies Reinhard Tone Mapping and sRGB Gamma Correction.
+    Converts HDR color space to LDR for final display.
+    """
+    def __init__(self, context: 'RenderContext'):
+        super().__init__(context)
+        self.prog = self.ctx.program(
+            vertex_shader="""
+                #version 330
+                in vec2 in_vert;
+                in vec2 in_uv;
+                out vec2 v_uv;
+                void main() {
+                    gl_Position = vec4(in_vert, 0.0, 1.0);
+                    v_uv = in_uv;
+                }
+            """,
+            fragment_shader="""
+                #version 330
+                uniform sampler2D tex;
+                uniform float exposure;
+                uniform float gamma;
+                in vec2 v_uv;
+                out vec4 f_colour;
+
+                void main() {
+                    vec4 color = texture(tex, v_uv);
+                    vec3 hdr = color.rgb * exposure;
+                    
+                    // Reinhard Tone Mapping (Compresses 0..inf to 0..1)
+                    vec3 mapped = hdr / (hdr + vec3(1.0));
+                    
+                    // sRGB Gamma Correction (Linear to Gamma space)
+                    vec3 srgb = pow(mapped, vec3(1.0 / gamma));
+                    
+                    f_colour = vec4(srgb, color.a);
+                }
+            """
+        )
+        self.quad_vao = self.ctx.simple_vertex_array(self.prog, context.get_quad_buffer(), 'in_vert', 'in_uv')
+
+    def render(self, input_target: 'RenderTarget', output_target: 'RenderTarget' = None, exposure=1.0, gamma=2.2, **kwargs):
+        if output_target:
+            output_target.use()
+        else:
+            self.ctx.screen.use()
+            self.ctx.viewport = (0, 0, self.context.width, self.context.height)
+
+        self.ctx.disable(moderngl.BLEND)
+        input_target.texture.use(location=0)
+        self.prog['tex'].value = 0
+        self.prog['exposure'].value = float(exposure)
+        self.prog['gamma'].value = float(gamma)
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
 
 class FXAAPass(RenderPass):
@@ -428,6 +484,8 @@ class Compositor:
         self.main_target = RenderTarget(context.ctx, context.size, scale=1.0, dtype='f2')
         # Ping-Pong buffer for glow/blur (Half resolution)
         self.glow_buffer = PingPongBuffer(context.ctx, context.size, scale=0.5, dtype='f2')
+        # HDR target for composition before tone mapping
+        self.hdr_composite_target = RenderTarget(context.ctx, context.size, scale=1.0, dtype='f2')
         
         # Intermediate target for post-processing (e.g. before FXAA)
         self.post_process_target = RenderTarget(context.ctx, context.size, scale=1.0, dtype='f1')
@@ -443,9 +501,12 @@ class Compositor:
         self.post_passes.append(self.glow_extraction_pass)
         self.blur_pass = BlurPass(context, iterations=4)
         self.composite_pass = CompositePass(context)
+        self.tone_mapping_pass = ToneMappingPass(context)
         self.fxaa_pass = FXAAPass(context)
         
         self.bloom_intensity = 0.8 # Slightly reduce default intensity
+        self.exposure = 1.0
+        self.gamma = 2.2
         self.fxaa_enabled = True
         
         self.debug_view = None # Can be 'glow'
@@ -462,6 +523,7 @@ class Compositor:
         self.context.resize(size)
         self.main_target.resize(size)
         self.glow_buffer.resize(size)
+        self.hdr_composite_target.resize(size)
         self.post_process_target.resize(size)
         for p in self.passes:
             p.resize(size)
@@ -537,14 +599,6 @@ class Compositor:
         for p in self.passes:
             p.render()
 
-        # --- DEBUG VIEW: Pre-Pass Output ---
-        # If enabled, this will immediately draw the main_target to the screen
-        # after the pre-passes have run, bypassing all post-processing.
-        if self.debug_view == 'pre_pass_output':
-            self.final_blit_pass.render(input_target=self.main_target)
-            self.pre_passes = [] # Reset for next frame
-            return # STOP HERE
-
         # --- Pass 2: Post-Processing (Glow Extraction) ---
         self.glow_extraction_pass.render(input_target=self.main_target, output_target=self.glow_buffer.read, energy=nrg)
 
@@ -561,7 +615,22 @@ class Compositor:
                 self.fxaa_pass.render(input_target=self.post_process_target)
             else:
                 self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
-
+            # 1. Composite Scene and Bloom into HDR Target
+            # self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, 
+            #                            output_target=self.hdr_composite_target, intensity=blo, 
+            #                            vignette=vig, saturation=sat, warmth=wrm)
+            
+            # if self.fxaa_enabled:
+            #     # 2. Tone Map HDR -> LDR buffer (Essential for proper color and FXAA quality)
+            #     self.tone_mapping_pass.render(input_target=self.hdr_composite_target, 
+            #                                   output_target=self.post_process_target, 
+            #                                   exposure=self.exposure, gamma=self.gamma)
+            #     # 3. Apply FXAA to Screen
+            #     self.fxaa_pass.render(input_target=self.post_process_target)
+            # else:
+            #     # 2. Tone Map directly to Screen
+            #     self.tone_mapping_pass.render(input_target=self.hdr_composite_target, exposure=self.exposure, gamma=self.gamma)
+                
         # Reset transient state for the next frame
         self.pre_passes = []
         self.debug_view = None

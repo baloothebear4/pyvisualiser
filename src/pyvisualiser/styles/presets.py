@@ -21,9 +21,9 @@ PaletteDefault = 'std'
 
 # Effects Presets
 #
-StrongEffect    = Effects(threshold=0.75, scale=2.5, blur=1.0, alpha=150, attack=0.4, decay=0.1)
+StrongEffect    = Effects(threshold=0.75, scale=2.5, blur=3.0, alpha=150, attack=0.4, decay=0.1)
 DreamEffect     = Effects(threshold=0.75, scale=3.0, blur=3.0, alpha=150, attack=0.4, decay=0.1)
-NeonGlow        = Effects(threshold=0.1, scale=2.0, blur=0.5, alpha=220, attack=0.8, decay=0.1, power=1.0)
+NeonGlow        = Effects(threshold=0.1, scale=2.0, blur=0.5, alpha=150, attack=0.8, decay=0.1, power=1.0)
 
 # Background Presets
 BackgroundDefault  = None #BackgroundStyle(ambient_glow=AmbientGlowStyle(colour='foreground', opacity=1.0, radius=0.5, softness=0.5))

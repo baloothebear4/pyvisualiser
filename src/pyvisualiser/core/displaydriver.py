@@ -772,8 +772,8 @@ class GeometryPass(RenderPass):
         # Gradient colors
         if gradient:
             c_start, c_end = gradient
-            rs, gs, bs = [c/255.0 for c in c_start[:3]]
-            re, ge, be = [c/255.0 for c in c_end[:3]]
+            rs, gs, bs = [pow(c/255.0, 2.2) for c in c_start[:3]]
+            re, ge, be = [pow(c/255.0, 2.2) for c in c_end[:3]]
             
             if abs(axis) < 1.5: # Vertical Gradient (Top -> Bottom)
                 c_tl = c_tr = (rs, gs, bs)
@@ -858,7 +858,7 @@ class GeometryPass(RenderPass):
         xbr, ybr = to_gl(x_br, y_br)
 
         # Color and params
-        r, g, b = [c/255.0 for c in color[:3]]
+        r, g, b = [pow(c/255.0, 2.2) for c in color[:3]]
         a = (color[3]/255.0) if len(color) > 3 else 1.0
         
         # Params: width (length of line), height (thickness), radius (0 for square ends), stroke (0 for filled)

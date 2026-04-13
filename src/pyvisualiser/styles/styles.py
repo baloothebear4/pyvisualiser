@@ -69,14 +69,22 @@ class StarfieldStyle:
 
 @dataclass(frozen=True)
 class CloudStyle:
-    radius: float = 0.0 #percent of the screen this covers, approx 
+    opacity: float = 0.0 #percent of the screen this covers, approx 
+
+@dataclass(frozen=True)
+class EdgeLightStyle:
+    enabled: bool = False
+    intensity: float = 0.3        # overall strength
+    width: float = 0.15           # how far it reaches into screen
+    softness: float = 2.0         # falloff curve
+    audio_reactivity: float = 0.2 # subtle coupling
 
 @dataclass(frozen=True)
 class BackgroundStyle:
     colour: str = 'background'
+    colour_opacity: float = 1.0
     texture_path: Optional[str] = None
     texture_opacity: float = 0.5
-    theme: str = 'std'
     vignette: Union[VignetteStyle, bool] = False
     noise: Union[NoiseStyle, bool] = False
     ambient_glow: Union[AmbientGlowStyle, bool] = False
@@ -84,6 +92,7 @@ class BackgroundStyle:
     peak_accent: Union[PeakAccentStyle, bool] = False
     starfield: Union[StarfieldStyle, bool] = False
     cloud: Union[CloudStyle, bool] = False
+    edge_light: Union[EdgeLightStyle, bool] = False
 
 @dataclass(frozen=True)
 class Effects:

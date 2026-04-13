@@ -26,30 +26,41 @@ class TextFrame(Frame):
         - Y is the y scaler
     """
     def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, \
-                 colour='foreground', justify='centre', background=None, outline=None, padding=0, update_fn=None, z_order=0, **kwargs):
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, background=background, outline=outline,padding=padding, z_order=z_order)
+                 colour='foreground', justify='centre', background=None, outline=None, padding=0, update_fn=None, z_order=0):
+        
+        self.parent         = parent
+        self.theme          = theme
+        self.background     = background
+        self.outline        = outline
+        self.padding        = padding
+        self.z_order        = z_order
+        self.scalers        = scalers
+        self.alignment      = align
         self.colour         = colour
         self.wrap           = wrap
         self.reset          = reset
         self.text           = text
         self.justify        = justify
         self.update_fn      = update_fn
+        Frame.__init__(self, self.parent, scalers=self.scalers, align=self.alignment, theme=self.theme, \
+                       background=self.background, outline=self.outline,padding=self.padding, z_order=self.z_order)
+
         self.configure()
 
     def configure(self):
+
         # print("TextFrame.configure>", self.text, self.background_frame.background, self.geostr())
         self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour=self.colour, wrap=self.wrap, justify=self.justify, z_order=self.z_order)
         # self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour_index=self.colour_index, wrap=self.wrap)
 
-    def update_screen(self, full, text=None, colour=None, fontmax=None):
+    def update_screen(self, text=None, colour=None, fontmax=None):
 
         if self.update_fn is not None: text = self.update_fn()
 
         # print("TextFrame.update ", text, self.geostr())
         # print("TextFrame.draw ", full, text, colour, full, self.geostr())
-        self.draw_background(True) # clear whats there -- not needed for
+        # self.draw_background(True) # clear whats there -- not needed for
         self.textcomp.draw(text=text, colour=colour, fontmax=fontmax)
-        return self.abs_rect()
         
     @property
     def width(self):
@@ -90,7 +101,7 @@ class PlayProgressFrame(Frame):
         box = (self.barw, self.h) if self.orient == 'vert' else (self.w-self.text_width, self.barw)
         self.boxbar      = Box(self, align=('centre', 'middle'), theme=self.theme, box=box, radius=10)
 
-    def update_screen(self, full):
+    def update_screen(self):
         # check is parent has resized
         box = (self.barw, self.h) if self.orient == 'vert' else (self.w-self.text_width, self.barw)
         if self.boxbar.wh != box:
@@ -108,11 +119,8 @@ class PlayProgressFrame(Frame):
 
         self.elapsed.draw(elapsed, colour='light')
         self.remaining.draw(remaining, colour='light')
-            # print("PlayProgressFrame>", elapsed, remaining)
-        #     return True
-        # else:
-            # return False
-            # no need to redraw
+        # print("PlayProgressFrame>", elapsed, remaining)
+ 
 
 '''
 Control, Source & Quality metadata
@@ -122,7 +130,7 @@ Control, Source & Quality metadata
 '''
 
 class MetaData(TextFrame):
-    def __init__(self, parent, metadata_type='artist', **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
+    def __init__(self, parent, metadata_type='artist', justify=('centre','middle'),**kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
 
         METADATA_UPDATE = { 'track': parent.platform.track,
                             'album' :parent.platform.album,
@@ -136,7 +144,7 @@ class MetaData(TextFrame):
         if  metadata_type  in METADATA_UPDATE: 
 
             update_fn = METADATA_UPDATE[metadata_type]
-            TextFrame.__init__(self, parent, update_fn= update_fn, **kwargs) 
+            TextFrame.__init__(self, parent, update_fn= update_fn, justify=justify,  **kwargs) 
 
             # print("MetaDataFrame.configure>", self.metadata_type, self.wh, self.framestr() )
         else:
@@ -183,24 +191,14 @@ class ArtFrame(Frame):
         self.configure()
 
     def configure(self):    
-        self.frames = []
         self.image_container = Image(self, opacity=self.opacity, reflection=self.reflection)  
 
-    def update_screen(self, full):
-        # Check if parent Frame has changed size
-        # if self.wh != self.image_container.target_wh:
-        #     self.configure()
-        #     print("ArtFrame.update> re-create Image size", self.image_container.target_wh, self.wh)
+    def update_screen(self):
+         self.image_container.draw(self.update_fn())
 
-        if full or True: # Always draw in OpenGL pipeline to prevent flashing
-            self.draw_background(True)
-            self.image_container.draw(self.update_fn())
-            return True
-        else:
-            return False
 
 class MetaImages(ArtFrame):
-    def __init__(self, parent, art_type='album', opacity=200, reflection=None, **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
+    def __init__(self, parent, art_type='album', opacity=1.0, reflection=None, **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
 
         METAART_UPDATE = {  'album':  { 'update_fn': parent.platform.album_art,  'square' : True},
                             'artist': { 'update_fn': parent.platform.artist_art, 'square' : False} }
@@ -208,7 +206,7 @@ class MetaImages(ArtFrame):
         if  art_type  in METAART_UPDATE: 
 
             update_fn = METAART_UPDATE[art_type]['update_fn']
-            ArtFrame.__init__(self, parent, update_fn= update_fn, opacity=opacity, reflection=reflection, square=METAART_UPDATE[art_type]['square'],  **kwargs) 
+            ArtFrame.__init__(self, parent, update_fn= update_fn, opacity=opacity*255, reflection=reflection, square=METAART_UPDATE[art_type]['square'],  **kwargs) 
 
             # print("MetaImages.__init__>", art_type, self.wh, self.framestr() )
         else:

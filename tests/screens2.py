@@ -134,9 +134,9 @@ class Screen5(Frame):   # comprises volume on the left, spectrum on the right
         # self += VUMeter(self  ,  'left', scalers=(0.3, 0.9), align=('left','top'), style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE) #, background='mid')
         # self += VUMeter(self  ,  'right', scalers=(0.3, 0.9), align=('right','top'), style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE) #,background='mid')
         cols = ColFramer(self, padpc=0.05)
-        cols += VUMeter(cols  ,  'left', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE, background=BACK)
+        cols += VUMeter(cols  ,  'left', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=VUNeedleStyle()),outline=OUTLINE, background=BACK)
         cols += MetaDataFrame(cols,padding=0, background=None)#,outline=OUTLINE)
-        cols += VUMeter(cols  ,  'right', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=NEEDLE),outline=OUTLINE, background=BACK)
+        cols += VUMeter(cols  ,  'right', square=False, style=VUMeterStyle(pivot=PIVOT, scale=VUMeterScale(arcs={}), endstops=ENDSTOPS, needle=VUNeedleStyle()),outline=OUTLINE, background=BACK)
 
 class Screen6(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """

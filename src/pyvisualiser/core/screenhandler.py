@@ -232,7 +232,7 @@ class ScreenController:
                 title = screen.title + " > " + type(screen).__name__ if hasattr(screen, 'title') else type(screen).__name__
                 self.events.Control('loop_start', text=title)
 
-                screen.update_screen(full=self.full_update)
+                screen.update_screen()
                 drawing_time_ms = (time.perf_counter() - start_draw) * 1000
 
                 self.events.Control('loop_end')

@@ -163,7 +163,7 @@ class SpectrumFrame(Frame, Spectrum):
         current frame geometry (self.w, self.h).
         """
         # 1. CRITICAL: Clear existing children frames
-        self.frames = [] 
+        # self.frames = [] 
         cfg = self.config
 
         # 2. Re-initialize the Spectrum geometry (in case frame size changed)
@@ -185,7 +185,7 @@ class SpectrumFrame(Frame, Spectrum):
         # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
         # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
 
-    def update_screen(self, full=True):
+    def update_screen(self):
         """
         Decay work by assuming that all bars naturally decay at a fixed rate and manner (eg lin /log)
         If the target height is less than the current height then, the decay continues
@@ -200,8 +200,8 @@ class SpectrumFrame(Frame, Spectrum):
         self.read(self.channel)
 
         if self.config['spectrum_style'].flip:
- # reversed(list(enumerate(self.current))) gives you pairs of (original_index, value) 
-    # starting from the end of the array.
+            # reversed(list(enumerate(self.current))) gives you pairs of (original_index, value) 
+            # starting from the end of the array.
             for i, item in enumerate(reversed(self.current)):
                 x = i * (self.barw + self.bar_gap)
                 
@@ -255,7 +255,7 @@ class Diamondiser(Frame, Spectrum):
                             radius=self.max_radius, colour='mid') \
                              for _ in range(self.bars)]
 
-    def update_screen(self, full):
+    def update_screen(self):
         self.read(self.channel)
         radius  = self.centre_pc
 
@@ -276,7 +276,7 @@ class Octaviser(Frame, Spectrum):
         self.num_octaves=len(self.octaves)
         self.arcs = ArcsOctaves(self.parent, theme='rainbow', NumOcts=self.num_octaves)
 
-    def update_screen(self, full):
+    def update_screen(self):
         fft = self.read(self.channel)
 
         for octave in range(1, self.num_octaves):
