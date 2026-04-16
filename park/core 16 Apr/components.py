@@ -1070,15 +1070,15 @@ class Outline:
             
             final_glow_color = list(glow_color[:3]) + [int(glow_alpha)]
 
-            # # Use the dedicated pre-pass geometry layer to draw the glow behind backgrounds
-            # self.frame.platform.renderer.draw_glow(
-            #     final_glow_color,
-            #     glow_coords,
-            #     softness=self.style.softness,
-            #     border_radius=self.style.radius + expand,
-            #     additive=True,
-            #     level=10.0
-            # )
+            # Use the dedicated pre-pass geometry layer to draw the glow behind backgrounds
+            self.frame.platform.renderer.draw_glow(
+                final_glow_color,
+                glow_coords,
+                softness=self.style.softness,
+                border_radius=self.style.radius + expand,
+                additive=True,
+                level=10.0
+            )
 
         # --- 2. Draw Main Outline ---
         if coords is None:

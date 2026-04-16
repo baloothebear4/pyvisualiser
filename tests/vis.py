@@ -83,7 +83,7 @@ BASE_FRAMES = (TextFrame, PlayProgressFrame, ArtFrame, MetaImages, MetaData,\
 SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  SpectrumStereoSplitFrame,\
               SpectrumStereoOffsetFrame, VUMeterFrame1, VUMeterFrame2, VUMeterFrame3, VUMeterFrame4, VUMeterImageFrame)   
 
-GLSCREENS  = (GLTestScreen1, GLTestScreen2, GLmeshScreen)
+GLSCREENS  = (GLTestScreen3,GLTestScreen1, GLTestScreen2)
 
 MANY_SCREENS = FULL_SCREENS+MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_TEST_SCREENS+VU_TEST_SCREENS
 # SCREENS = (ProgressScreen, ArtistScreen,F4, TrackVUMeterScreen2)
@@ -98,11 +98,11 @@ MANY_SCREENS = FULL_SCREENS+MAIN_SCREENS+ART_SCREENS +GEO_TEST_SCREENS+SPECTRUM_
 TEST_SCREENS2 = (BackgroundEffectsScreen0, BackgroundEffectsScreen1, BackgroundEffectsScreen2, AmbientGlowTunerScreen,OutlineGlowTestScreen,ProfileTestScreen, \
                  AudioTestScreen, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
-HERO_SCREENS  = (H1,H2,H3,H4,H5)
+HERO_SCREENS  = (H1,H2,H3,H4,H5,H6)
 
-SCREENS =   HERO_SCREENS + ART_SCREENS + TEST_SCREENS2 + GLSCREENS + SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)+FULL_SCREENS#+GEO_TEST_SCREENS
+SCREENS =   HERO_SCREENS +  GLSCREENS +TEST_SCREENS2#+ ART_SCREENS +SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+FULL_SCREENS#+GEO_TEST_SCREENS
 
-
+# SCREENS=(H1,)
 """ 
     Determine the underlying hardware plaform - NB: Pi is assumed to use the KMS graphics driver 
     the loopback and roon zones are all configured by the user to match their system

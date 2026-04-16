@@ -70,6 +70,6 @@ __all__ = [
     if not name.startswith("_") and (
         inspect.isclass(obj) or 
         inspect.isfunction(obj) or 
-        isinstance(obj, (Effects, BarStyle, SpectrumStyle)) # Add this!
+        isinstance(obj, (BarEffects, BarStyle, SpectrumStyle)) # Add this!
     )
 ]

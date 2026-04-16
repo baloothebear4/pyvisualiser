@@ -59,7 +59,7 @@ class StereoSpectrumSplitScreen(Frame):
 """
     SpectrumFrame API:
     # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, theme='std', flip=False, \
-    #                 bar_style=BarStyle(led_h=5, led_gap=1), peak_h=1, col_mode='h', radius=0, bar_space=0.5, barw_min=12, barw_max=20, tip=False, decay=DECAY):
+    #                 bar_style=BarStyle(led_h=5, led_gap=1), peak_h=1, col_mode='h', radius=0, barsize_pc=0.5, barw_min=12, barw_max=20, tip=False, decay=DECAY):
 """
 class MonoSpectrumScreen(Frame):
     """ Volume/Source on left - Stereo Spectrum overlaid """
@@ -75,7 +75,7 @@ class MonoSpectrumLEDScreen(Frame):
         Frame.__init__(self, platform, outline={'width':5,'colour':'alert'}, theme='hifi', padding=30, background='background')
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
         col = ColFramer(self)
-        col += SpectrumFrame(col  , 'mono', scalers=(1.0, 1.0), bar_style=BarStyle(peak_h=2, led_gap=3, led_h=4), spectrum_style=SpectrumStyle(barw_min=6, bar_space=0.2), background='dark')
+        col += SpectrumFrame(col  , 'mono', scalers=(1.0, 1.0), bar_style=BarStyle(peak_h=2, led_gap=3, led_h=4), spectrum_style=SpectrumStyle(barw_min=6, barsize_pc=0.2), background='dark')
         self.always_draw_background()
 
 
@@ -85,7 +85,7 @@ class MixedLEDScreen(Frame):
         Frame.__init__(self, platform, padding=50, background='dark', outline={'width':2,'colour':'alert'}, theme='hifi')
         # def __init__(self, platform, bounds, channel, scale, align=('left','bottom'), right_offset=0, colour='white'):
         cols = ColFramer(self, col_ratios=(4,1), background={'colour':'dark','opacity':20}, padding=0, outline={'width':4,'colour':'mid'})
-        cols += SpectrumFrame(cols, 'mono', bar_style=BarStyle(peak_h=2, led_gap=3, led_h=5), spectrum_style=SpectrumStyle(barw_min=6, bar_space=0.2), theme='leds')
+        cols += SpectrumFrame(cols, 'mono', bar_style=BarStyle(peak_h=2, led_gap=3, led_h=5), spectrum_style=SpectrumStyle(barw_min=6, barsize_pc=0.2), theme='leds')
         cols += VU2chFrame(cols, orient='vert', flip=False, led_gap=3, led_h=5, background=None)
         self.always_draw_background()
 
@@ -157,7 +157,7 @@ class MetaMiniSpectrumFrame(Frame):
     def create(self):  #reentrant so scaling works properly when sizing columns & rows
         rowframe    = RowFramer(self)
         rowframe   += MetaDataFrame(rowframe, scalers=(1.0, 1.0), justify=self.justify)
-        rowframe   += SpectrumFrame(rowframe,'mono', scalers=(1.0, 0.3), align=('centre','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, bar_space=2, col_mode='horz' )
+        rowframe   += SpectrumFrame(rowframe,'mono', scalers=(1.0, 0.3), align=('centre','bottom'), flip=False, led_gap=0, peak_h=1,radius=0, tip=False, barw_min=1, barsize_pc=2, col_mode='horz' )
 
 
 
@@ -200,7 +200,7 @@ class TestSpectrumScreen(Frame):   # comprises volume on the left, spectrum on t
         # self += Spectrum2chFrame(self  , (0.5,0.5), align=('left','top'))
         self += SpectrumStereoOffsetFrame(self  , scalers=(0.5,0.5), align=('left','bottom'))
         back = {'colour':'background', 'per_frame_update':False}
-        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','top'), bar_style=BarStyle(peak_h=2, led_gap=2, led_h=4), spectrum_style=SpectrumStyle(barw_min=6, bar_space=0.2), theme='leds', background=back)
+        self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','top'), bar_style=BarStyle(peak_h=2, led_gap=2, led_h=4), spectrum_style=SpectrumStyle(barw_min=6, barsize_pc=0.2), theme='leds', background=back)
         # #mono
         self += SpectrumFrame(self  , 'left', scalers=(0.5,0.5), align=('right','bottom'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=2), background=back)
 
@@ -802,7 +802,7 @@ class F7(Frame):
         # self += TextFrame(self  , text='one', scalers=(0.33,1.0 ), background='mid', align=('left','middle'), outline={'colour':'alert','width':10}, padding =10)
         # self += TextFrame(self  , text='two', scalers=(0.33, 1.0), background='mid', align=('centre','middle'), outline={'colour':'alert','width':10}, padding =10)
         # self += TextFrame(self  , text='three', scalers=(0.33, 1.0), background='mid', align=('right','middle'), outline={'colour':'alert','width':10}, padding =10)
-        # col += SpectrumFrame(col,  'left', scalers=(1.0, 1.0), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, bar_space=0.5),background='dark' )
+        # col += SpectrumFrame(col,  'left', scalers=(1.0, 1.0), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, barsize_pc=0.5),background='dark' )
         # self += VUHorzFrame(self, 'left',  scalers=(1.0, 0.5), align=('left','top') ,tip=False, background='mid')
         col += VUFrame(col, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
         # col += VUFrame(col  , 'right', scalers=(1.0, 1.0), align=('centre', 'top'), background='stream.png')
@@ -822,8 +822,8 @@ class F8(Frame):   # comprises volume on the left, spectrum on the right
 
         cols = ColFramer(self, background='background')
         # spectrum = Frame(cols)
-        cols += SpectrumFrame(cols  ,  'mono', flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=2),background='background')
-        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=2) )
+        cols += SpectrumFrame(cols  ,  'mono', flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=2),background='background')
+        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=2) )
         # cols += StereoSpectrumFrame(cols)
         # cols += MetaMiniSpectrumFrame(cols)
         artoutline = {'colour':'background', 'width':5}

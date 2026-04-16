@@ -13,7 +13,7 @@
 
 """
 from    pyvisualiser.core.framecore  import Frame, Smoother, RowFramer, ColFramer
-from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, Effects, BarStyle, SpectrumStyle
+from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, BarStyle, SpectrumStyle
 from    pyvisualiser.styles.presets  import PI, Centred
 
 
@@ -25,8 +25,8 @@ class Spectrum:
     PEAKDECAY = 0.01  # pc of Decay to use for peak bars
 
 
-    def __init__(self, width, bar_space=0.5, barw_min=1, barw_max=20, bandwidth=None, decay=DECAY):
-        self.bar_space      = bar_space     # pc of barwidth
+    def __init__(self, width, barsize_pc=0.5, barw_min=1, barw_max=20, bandwidth=None, decay=DECAY):
+        self.barsize_pc      = barsize_pc     # pc of barwidth
         self.barw_min       = barw_min      # min widths
         self.barw_max       = barw_max      # max width
         self.decay          = decay
@@ -40,7 +40,7 @@ class Spectrum:
             self.bar_freqs = self.platform.createBands(self.spacing, flast=bandwidth)
             self.bars      = len(self.bar_freqs)
             for barw in range(self.barw_max, self.barw_min, -1):
-                self.bar_gap    = int(barw * self.bar_space)
+                self.bar_gap    = int(barw * self.barsize_pc)
                 self.max_bars   = int(width/(self.bar_gap+barw))
                 if  self.bars <= self.max_bars: break
             if  self.bars <= self.max_bars: break
@@ -103,21 +103,7 @@ class SpectrumFrame(Frame, Spectrum):
     """
 
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, flip=False, outline=None, square=False, \
-                background=None, padding=0,\
-                bar_style=None, spectrum_style=None, effects=None, \
-                # # OLd API
-                led_h=5, led_gap=1, peak_h=1, radius=0, tip=False, decay=Spectrum.DECAY, col_mode='vert', \
-                bar_space=0.5, barw_min=1, barw_max=20, right_offset=0, \
-                intensity_threshold=0.5, intensity_scale=2.5, intensity_blur=1.0, intensity_alpha=200):
-
-        if effects is None:
-            effects = Effects(threshold=intensity_threshold, scale=intensity_scale, blur=intensity_blur, alpha=intensity_alpha)
-
-        if bar_style is None:
-            bar_style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, radius=radius, tip=tip, colour_mode=col_mode, flip=flip, right_offset=right_offset)
-
-        if spectrum_style is None:
-            spectrum_style = SpectrumStyle(bar_space=bar_space, barw_min=barw_min, barw_max=barw_max)
+                 background=None, padding=0, bar_style=BarStyle(), spectrum_style=SpectrumStyle()):
 
         # 1. Capture all configuration parameters into self.config
         self.config = {
@@ -126,18 +112,9 @@ class SpectrumFrame(Frame, Spectrum):
             'align': align,
             'theme': theme,
             'bar_style': bar_style,
-            'spectrum_style': spectrum_style,
-            'effects': effects,
-            # Legacy args captured in style/spectrum_style now
-            # 'peak_h': peak_h,
-            # 'radius': radius,
-            # 'bar_space': bar_space,
-            # 'barw_min': barw_min,
-            # 'barw_max': barw_max,
-            # 'decay': decay
-
+            'spectrum_style': spectrum_style
         }
-        # self.config.update(kwargs)
+
         
         # Assign primary attributes used outside of Frame's geometry calculation
         self.channel        = self.config['channel']
@@ -169,7 +146,7 @@ class SpectrumFrame(Frame, Spectrum):
         # 2. Re-initialize the Spectrum geometry (in case frame size changed)
         # Spectrum.__init__ should be safe to call multiple times if it just recalculates bar geometry
         Spectrum.__init__(self, self.w, 
-                          bar_space=cfg['spectrum_style'].bar_space, 
+                          barsize_pc=cfg['spectrum_style'].barsize_pc, 
                           barw_min=cfg['spectrum_style'].barw_min, 
                           barw_max=cfg['spectrum_style'].barw_max, 
                           decay=cfg['spectrum_style'].decay)
@@ -177,10 +154,9 @@ class SpectrumFrame(Frame, Spectrum):
         
         # 3. Create the Bar object using the newly calculated dimensions
         # self.width, self.h are from Frame, self.barw is from Spectrum
-        self.bar = Bar(self, align=('left', 'bottom'),
+        self.bar = Bar(self,
                        box_size=(self.width, self.h), # Ensure width/h are correct
-                       style=cfg['bar_style'],
-                       effects=cfg['effects'])
+                       style=cfg['bar_style'])
 
         # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
         # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
@@ -238,20 +214,20 @@ class SpectrumFrame(Frame, Spectrum):
 """ A visualiser based on a circle display of spectrum lines """
 class Diamondiser(Frame, Spectrum):
     BARSPACE = 1
-    def __init__(self, parent, channel, scalers=None, theme=None, align=None, bar_space=BARSPACE,background=None, z_order=0, **kwargs):
+    def __init__(self, parent, channel, scalers=None, theme=None, align=None, barsize_pc=BARSPACE,background=None, z_order=0, **kwargs):
         Frame.__init__(self, parent, scalers=scalers, align=align, square=True, theme=theme,background=background, z_order=z_order)
         self.channel     = channel
-        self.bar_space   = bar_space
+        self.barsize_pc   = barsize_pc
         self.configure()
 
     def configure(self):
-        Spectrum.__init__(self, self.w, bar_space=self.bar_space, bandwidth=8000, decay=0.5)
+        Spectrum.__init__(self, self.w, barsize_pc=self.barsize_pc, bandwidth=8000, decay=0.5)
         # self.VU          = VU(self.platform, channel, decay=0.2)
         self.max_radius  = self.h/2
         self.ray_angle   = 1/self.bars
         self.centre_pc   = 0.8
 
-        self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=self.bar_space*2, tick_pc=self.centre_pc, centre_offset=0, \
+        self.rays        = [Line(self, endstops=(PI/2, 5*PI/2), width=self.barsize_pc*2, tick_pc=self.centre_pc, centre_offset=0, \
                             radius=self.max_radius, colour='mid') \
                              for _ in range(self.bars)]
 
@@ -272,7 +248,7 @@ class Octaviser(Frame, Spectrum):
         self.configure()
 
     def configure(self):
-        Spectrum.__init__(self, self.w, bar_space=5)
+        Spectrum.__init__(self, self.w, barsize_pc=5)
         self.num_octaves=len(self.octaves)
         self.arcs = ArcsOctaves(self.parent, theme='rainbow', NumOcts=self.num_octaves)
 
@@ -296,7 +272,7 @@ Spectrum Analyser Frames - variants on
 
     SpectrumFrame API:
     # def __init__(self, parent, channel, scale, align=('left','bottom'), right_offset=0, theme='std', flip=False, \
-    #                 led_h=5, led_gap=1, peak_h=1, radius=0, bar_space=0.5, barw_min=12, barw_max=20, tip=False, decay=DECAY):
+    #                 led_h=5, led_gap=1, peak_h=1, radius=0, barsize_pc=0.5, barw_min=12, barw_max=20, tip=False, decay=DECAY):
 """
 
 class Spectrum2chFrame(Frame): #""" Vert split - L/R """
@@ -313,8 +289,8 @@ class SpectrumStereoFrame(Frame): #""" Horz Split screen - right flipped 'Apple 
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align, background=None)
 
-        self += SpectrumFrame(self, 'right', scalers=(0.5, 1.0), align=('right','top'), bar_style=BarStyle(flip=False, led_gap=2, peak_h=0, radius=2,colour_mode='horz'), spectrum_style=SpectrumStyle(barw_min=10, bar_space=0.4), theme='rainbow', background=None)
-        self += SpectrumFrame(self, 'left', scalers=(0.5, 1.0), align=('left','top'), bar_style=BarStyle(flip=False, led_gap=2, peak_h=0, radius=2, colour_mode='horz'),spectrum_style=SpectrumStyle(barw_min=10, bar_space=0.4,flip=True), theme='rainbow', background=None)
+        self += SpectrumFrame(self, 'right', scalers=(0.5, 1.0), align=('right','top'), bar_style=BarStyle(flip=False, led_gap=2, peak_h=0, radius=2,colour_mode='horz'), spectrum_style=SpectrumStyle(barw_min=10, barsize_pc=0.4), theme='rainbow', background=None)
+        self += SpectrumFrame(self, 'left', scalers=(0.5, 1.0), align=('left','top'), bar_style=BarStyle(flip=False, led_gap=2, peak_h=0, radius=2, colour_mode='horz'),spectrum_style=SpectrumStyle(barw_min=10, barsize_pc=0.4,flip=True), theme='rainbow', background=None)
         
 
 class SpectrumStereoLRFrame(Frame): #""" Horz Split screen - LED Style right flipped  """
@@ -330,22 +306,22 @@ class SpectrumStereoSplitFrame(Frame): #""" Horz Split screen - right flipped ""
     # This is vertically aligned
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align, background={'colour':'background', 'per_frame_update':True})
-        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom'), bar_style=BarStyle(led_gap=0, flip=True, tip=True), spectrum_style=SpectrumStyle(barw_min=5, bar_space=0.5) )
-        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','top'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=5, bar_space=0.5) )
+        self += SpectrumFrame(self, 'right', scalers=(1.0, 0.5), align=('left','bottom'), bar_style=BarStyle(led_gap=0, flip=True, tip=True), spectrum_style=SpectrumStyle(barw_min=5, barsize_pc=0.5) )
+        self += SpectrumFrame(self, 'left', scalers=(1.0, 0.5), align=('left','top'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=5, barsize_pc=0.5) )
         
 
 class SpectrumStereoOffsetFrame(Frame):
     def __init__(self, parent, scalers, align) :
         Frame.__init__(self, parent, scalers=scalers, align=align,background={'colour':'background', 'per_frame_update':True})
-        self += SpectrumFrame(self, 'right', scalers=(1.0, 1.0), align=('left','top'), right_offset=2, bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=8, bar_space=1.5), theme='red', background=None)
-        self += SpectrumFrame(self, 'left', scalers=(1.0, 1.0), align=('left','bottom'), right_offset=0, bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=8, bar_space=1.5), theme='blue',background=None )
+        self += SpectrumFrame(self, 'right', scalers=(1.0, 1.0), align=('left','top'),  bar_style=BarStyle(led_gap=0, tip=True,right_offset=2,), spectrum_style=SpectrumStyle(barw_min=8, barsize_pc=1.5), theme='red', background=None)
+        self += SpectrumFrame(self, 'left', scalers=(1.0, 1.0), align=('left','bottom'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=8, barsize_pc=1.5), theme='blue',background=None )
 
 
 class StereoSpectrumFrame(Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
 
-        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, bar_space=0.5, **kwargs)
-        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, bar_space=0.5, **kwargs )
+        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, barsize_pc=0.5, **kwargs)
+        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, barsize_pc=0.5, **kwargs )
 
 

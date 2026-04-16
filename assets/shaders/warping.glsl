@@ -95,7 +95,7 @@ float func( vec2 q, out vec4 ron )
 in vec2 v_uv;
 out vec4 f_color;
 
-void main( )
+void main()
 {
     // Convert from [0,1] v_uv to centered, aspect-corrected coordinates.
     // The original line was incorrect for normalized v_uv input.

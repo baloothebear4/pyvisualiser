@@ -12,24 +12,11 @@ from dataclasses import dataclass, field
 from typing import Optional, Union, Any
 
 
+"""
 
-@dataclass(frozen=True)
-class ReflectionStyle:
-    size: float = 0.5
-    opacity: float = 0.2    
+Backgrounds
 
-@dataclass(frozen=True)
-class TextStyle:
-    typeface: str = 'Inter/Inter-VariableFont_opsz,wght.ttf'
-    min_size: int = 18
-    max_lines: int = 1
-
-@dataclass(frozen=True)
-class TextStyle:
-    typeface: str = 'Inter/Inter-VariableFont_opsz,wght.ttf'
-    min_size: int = 18
-    max_lines: int = 1
-
+"""
 @dataclass(frozen=True)
 class VignetteStyle:
     strength: float = 0.0
@@ -54,7 +41,6 @@ class ReactiveGlowStyle:
     attack: float = 0.5
     decay: float = 0.1
     threshold: float = 0.2
-
 @dataclass(frozen=True)
 class PeakAccentStyle:
     colour: str = 'alert'
@@ -93,9 +79,40 @@ class BackgroundStyle:
     starfield: Union[StarfieldStyle, bool] = False
     cloud: Union[CloudStyle, bool] = False
     edge_light: Union[EdgeLightStyle, bool] = False
+    shader: Union[str, bool] = False         # any compatable shader can be loaded as a background
+
+"""
+
+Text
+
+"""
 
 @dataclass(frozen=True)
-class Effects:
+class TextStyle:
+    typeface: str = 'Inter/Inter-VariableFont_opsz,wght.ttf'
+    min_size: int = 18
+    max_lines: int = 1
+"""
+
+Images
+
+"""
+
+@dataclass(frozen=True)
+class ReflectionStyle:
+    size: float = 0.5
+    opacity: float = 0.2    
+
+
+
+
+"""
+
+Digital Bars & Spectrums
+
+"""
+@dataclass(frozen=True)
+class BarEffects:
     threshold: float = 0.75
     scale: float = 2.5
     blur: float = 1.0
@@ -110,7 +127,6 @@ class Effects:
     outer_glow_blur_mult: float = 2.5
     reflection: Union[ReflectionStyle, bool] = False
 
-
 @dataclass(frozen=True)
 class BarStyle:
     led_h: int = 10
@@ -121,6 +137,7 @@ class BarStyle:
     radius: int = 0
     orient: str = 'vert'
     tip: bool = False
+    effects: BarEffects = BarEffects()
     edge_softness: float = 0.0
     colour_mode: Optional[str] = 'horz'
     segment_size: Optional[int] = None
@@ -136,12 +153,17 @@ class BarStyle:
 
 @dataclass(frozen=True)
 class SpectrumStyle:
-    bar_space: float = 2
+    barsize_pc: float = 2
     barw_min: int = 2
     barw_max: int = 50
     decay: int = 0.4
     flip: bool = False #plots highs on left, lows on right
 
+"""
+
+Outline
+
+"""
 
 @dataclass(frozen=True)
 class OutlineStyle:
@@ -152,16 +174,13 @@ class OutlineStyle:
     glow_intensity: float = 0.0
     softness: float = 0.1
 
-@dataclass(frozen=True)
-class VUNeedleStyle:
-    colour: str = 'foreground'
-    width: int = 4
-    length: float = 0.8
-    radius_pc: float = 1.0
-    glow_intensity: float = 0.0
-    glow_colour: str = 'alert'
-    tip_glow: bool = False
-    shadow: bool = False
+
+""""
+
+Analogue VU Meters
+
+"""
+
 
 ANNOTATE  = { 'Valign':'middle', 'text':'dB', 'colour':'mid' }
 FONTH     = 0.05
@@ -181,6 +200,17 @@ MARKS     = {   0.12: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
                 0.9: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'}}
 
 ARCS      = { ARCLEN*0.9: {'width': TICK_W-1, 'colour': 'mid'} }
+
+@dataclass(frozen=True)
+class VUNeedleStyle:
+    colour: str = 'foreground'
+    width: int = 4
+    length: float = NEEDLELEN
+    radius_pc: float = 1.0
+    glow_intensity: float = 0.0
+    glow_colour: str = 'alert'
+    tip_glow: bool = False
+    shadow: bool = False
 
 @dataclass(frozen=True)
 class VUMeterScale:
@@ -209,3 +239,22 @@ class VUMeterStyle:
     show_peak: bool = False
     decay: float = DECAY
     smooth: int = SMOOTH
+
+
+"""
+
+Oscilogramme
+
+"""
+
+@dataclass(frozen=True)
+class OscillogrammeStyle:
+    delay: float     = 0.5   # Lower is longer delay - This is the amount that a bar reduces each period
+    samplesperframe: int = 512  # Samples   = 1024  # Samples
+    barsize_pc: float = 2
+    barw_min: int = 2
+    barw_max: int = 50
+    decay: int = 0.4
+
+
+

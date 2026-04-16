@@ -78,11 +78,11 @@ class Screen3(Frame):   # comprises volume on the left, spectrum on the right
         row2  = RowFramer(colframe, row_ratios=(5,0.3,1), padding=0.0)
         # col2  = ColFramer(row2,col_ratios=(1,6))
         # col2 += VUFlipFrame(row2, orient='vert', flip=True, led_gap=3, background='background')
-        row2 += SpectrumFrame(row2, 'mono', bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=1))
+        row2 += SpectrumFrame(row2, 'mono', bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=1))
 
         row2 += PlayProgressFrame(row2)
         row2 += MetaData(row2, 'track', justify='centre')
-        # rowframe += SpectrumFrame(rowframe,  'mono', flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=1) )
+        # rowframe += SpectrumFrame(rowframe,  'mono', flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=1) )
         # subframe += MetaDataFrame(subframe, scalers=(1.0, 1.0))
         row3  = RowFramer(colframe, row_ratios=(5,1), padding=0.0)
         row3 += MetaImages(row3, art_type='artist',outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 10})
@@ -107,7 +107,7 @@ class Screen4(Frame):
         cols += MetaImages(cols,  'album', outline={'colour':'mid','width':3, 'radius':10},padding=10,background={'opacity':0})
         rows  = RowFramer(cols, row_ratios=(3,1), padpc=0)
         rows += MetaDataFrame(rows, justify='left', background=back)
-        rows += SpectrumFrame(cols,channel='mono', bar_style=BarStyle(led_gap=0), spectrum_style=SpectrumStyle(bar_space=4), background=back)
+        rows += SpectrumFrame(cols,channel='mono', bar_style=BarStyle(led_gap=0), spectrum_style=SpectrumStyle(barsize_pc=4), background=back)
 
 
 class Screen5(Frame):   # comprises volume on the left, spectrum on the right
@@ -187,12 +187,12 @@ class ProfileTestScreen(Frame):
 
         cols = ColFramer(rows, padding=10)
         # Spectrum Frame with thick bars and reflections to test Bloom / Softness
-        bar_style = BarStyle(led_gap=2, peak_h=3, radius=1, tip=True, flip=False, colour_mode='vert')
-        spectrum_style = SpectrumStyle(barw_min=8, bar_space=0.5, barw_max=25)
-        effects = Effects(reflection=ReflectionStyle(size=0.4, opacity=0.3))
+        effects = BarEffects(reflection=ReflectionStyle(size=0.4, opacity=0.3))
+        bar_style = BarStyle(led_gap=2, peak_h=3, radius=1, tip=True, flip=False, colour_mode='vert',effects=effects)
+        spectrum_style = SpectrumStyle(barw_min=8, barsize_pc=0.5, barw_max=25)
         
         spectrum_wrapper = RowFramer(cols, padding=10)
-        spectrum_wrapper += SpectrumFrame(spectrum_wrapper, 'mono', bar_style=bar_style, spectrum_style=spectrum_style, effects=effects)
+        spectrum_wrapper += SpectrumFrame(spectrum_wrapper, 'mono', bar_style=bar_style, spectrum_style=spectrum_style)
         
         # Meta Images to show album art interactions with Depth, Sharpness, Vignette
         cols += MetaImages(cols, art_type='album', align=('centre','middle'), outline=OutlineStyle(colour='light', width=4, glow_intensity=1.0, softness=0.5))

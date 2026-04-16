@@ -61,11 +61,11 @@ class APICoverageScreen(Frame):
         # 2. SpectrumFrame: Test bar settings, peak_h
         r2 += SpectrumFrame(r2, channel='mono', bar_style=BarStyle(led_h=3, led_gap=1), 
                             peak_h=2, decay=0.3, background={'colour':'dark', 'opacity':200},
-                            spectrum_style=SpectrumStyle(bar_space=0.2, barw_min=5),
+                            spectrum_style=SpectrumStyle(barsize_pc=0.2, barw_min=5),
                             effects=Effects(threshold=0.5, scale=3.0, blur=2.0, alpha=150))
         
         # 3. Diamondiser: Test circular spectrum
-        r2 += Diamondiser(r2, channel='mono', bar_space=1, background='mid')
+        r2 += Diamondiser(r2, channel='mono', barsize_pc=1, background='mid')
 
         # --- ROW 3: Audio Visualisers (Meters & Waveforms) & Z-Order ---
         r3 = ColFramer(rows, col_ratios=(1, 1, 1), padding=10)
@@ -110,11 +110,11 @@ class LEDtestScreen(Frame):
 
         col = ColFramer(self, padding=0, col_ratios=(10,6), padpc=0.0)
 
-        bars = BarStyle(led_gap=5, peak_h=3,radius=0, tip=False)
-        spectrum = SpectrumStyle(barw_min=19, bar_space=0.1, decay=0.2)
+        bars = BarStyle(led_gap=5, peak_h=3,radius=0, tip=False,effects=NeonGlow,)
+        spectrum = SpectrumStyle(barw_min=19, barsize_pc=0.1, decay=0.2)
         # intensity_threshold=0.3, intensity_scale=1.2, intensity_alpha=200,intensity_blur=1.5
-        col += SpectrumFrame(col,  'mono', effects=NeonGlow, bar_style=bars, spectrum_style=spectrum)
+        col += SpectrumFrame(col,  'mono',  bar_style=bars, spectrum_style=spectrum)
         # intensity_threshold=0.8, intensity_scale=1.5, intensity_alpha=200,intensity_blur=1.5)
-        col += VUFrame(col, 'mono', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=20, led_gap=2, tip=False),effects=NeonGlow)
+        col += VUFrame(col, 'mono', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=20, led_gap=2, tip=False,effects=NeonGlow))
 
 

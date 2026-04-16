@@ -24,55 +24,23 @@ class BarTest(Frame):
     Creates a set of static bars with varying levels of effects so we can see whats going on
     """
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, \
-                 barsize_pc=0.7, flip=False, outline=None,square=False, update_fn=None,\
-                 peak_h=1, barw_min=10, barw_max=400, tip=False, decay=0.3, orient='vert', \
-                 # New API
-                 style=None, \
-                 segment_size=5, segment_gap=1, corner_radius=0, edge_softness=0.05, \
-                 effects=None, \
-                 intensity_threshold=0.8, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=20, \
-                 # Legacy args (for compatibility)
-                 led_h=None, led_gap=None, radius=None, softness=None, \
-                 bloom_threshold=None, bloom_intensity=None, bloom_softness=None, bloom_alpha=None, **kwargs):
-
-        # Map legacy arguments to new API if present
-        if led_h is not None: segment_size = led_h
-        if led_gap is not None: segment_gap = led_gap
-        if radius is not None: corner_radius = radius
-        if softness is not None: edge_softness = softness
-        if bloom_threshold is not None: intensity_threshold = bloom_threshold
-        if bloom_intensity is not None: intensity_scale = bloom_intensity
-        if bloom_softness is not None: intensity_blur = bloom_softness
-        if bloom_alpha is not None: intensity_alpha = bloom_alpha
-
-        if effects is None:
-            effects = Effects(threshold=intensity_threshold, scale=intensity_scale, blur=intensity_blur, alpha=intensity_alpha)
-
-        if style is None:
-            style = BarStyle(led_h=led_h, led_gap=led_gap, peak_h=peak_h, flip=flip, orient=orient, 
-                             segment_size=segment_size, segment_gap=segment_gap, corner_radius=corner_radius, edge_softness=edge_softness)
+                 outline=None,square=False, update_fn=None, style=None, barsize_pc=0.7):
 
         # 1. Capture all configuration parameters into self.config
         self.config = {
-            'channel': channel, 'barsize_pc':barsize_pc, 'flip':flip, \
-            'peak_h':peak_h, 'barw_min':barw_min, 'barw_max':barw_max, \
-            'tip':tip, 'decay':decay, 'orient':orient, \
+            'channel': channel, \
             'style': style, \
-            'effects': effects, 'update_fn':update_fn
+            'update_fn':update_fn
         }
-        # Add any remaining keyword arguments
-        self.config.update(kwargs)
-
+        self.barsize_pc = barsize_pc
         Frame.__init__(self, parent, scalers=scalers, align=align,theme=theme,background=background, outline=outline,square=square)
         self.configure()
 
     def configure(self):
-        self.barw   = self.abs_w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.abs_h * self.config['barsize_pc']   # width of the bar
-        box         = (self.barw, self.h) if self.config['orient'] == 'vert' else (self.w, self.barw)
-        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, \
-                         \
-                        style=self.config['style'], \
-                        effects=self.config['effects'])
+        style = self.config['style']
+        self.barw   = self.abs_w * self.barsize_pc if style.orient == 'vert' else self.abs_h * self.barsize_pc   # width of the bar
+        box         = (self.barw, self.h) if style.orient == 'vert' else (self.w, self.barw)
+        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, style=style)
 
         self.level     = self.config['channel']
         self.update_fn = self.config['update_fn']
@@ -88,6 +56,7 @@ class BarTest(Frame):
         # self.draw_background(True)
         self.bar.draw( 0, height, self.barw, peaks)
         return True
+
 class AdvancedVisualsScreen(Frame):
     @property
     def title(self): return 'Advanced Visuals Test'
@@ -108,7 +77,7 @@ class AdvancedVisualsScreen(Frame):
         # --- Echo Wave (3D Effect) ---
         # c1 = RowFramer(top_cols, row_ratios=(1, 8), padding=10)
         # c1 += TextFrame(c1, text="Echo Wave\n(3D History)", align=('centre', 'middle'), 
-        #                 colour='light', background='dark')
+        #                 colour='light', background=BackgroundStyle(colour='dark'))
         # # Test parameters: history depth and perspective scaling
         # c1 += EchoWaveFrame(c1, channel='mono', history_size=30, decay=0.92, 
         #                     perspective_scale=0.96, y_step=8,
@@ -118,7 +87,7 @@ class AdvancedVisualsScreen(Frame):
         # --- Freq Wave (Scrolling) ---
         c2 = RowFramer(self, row_ratios=(1, 8), padding=10)
         c2 += TextFrame(c2, text="Freq Wave\n(Scrolling)", align=('centre', 'middle'), 
-                        colour='light', background='dark')
+                        colour='light', background=BackgroundStyle(colour='dark'))
         c2 += FreqWaveFrame(c2, channel='mono', mode='spectrum', num_bands=5, speed=5,
                             y_step=2, perspective_scale=0.98,
                             background={'colour':'background', 'opacity':200},
@@ -130,7 +99,7 @@ class AdvancedVisualsScreen(Frame):
         # --- Pulse Orb (Particle System) ---
         # c3 = RowFramer(bottom_cols, row_ratios=(1, 8), padding=10)
         # c3 += TextFrame(c3, text="Pulse Orb\n(Particles)", align=('centre', 'middle'), 
-        #                 colour='foreground', background='dark')
+        #                 colour='foreground', background=BackgroundStyle(colour='dark'))
         # # Test parameters: particle limits and spin speed
         # # c3 += PulseOrbFrame(c3, channel='right', particle_limit=150, spin_speed=0.05,
         # #                     pulse_scale=1.8,
@@ -139,7 +108,7 @@ class AdvancedVisualsScreen(Frame):
         # --- Spectrum Wave (New) ---
         # c4 = RowFramer(bottom_cols, row_ratios=(1, 8), padding=10)
         # c4 += TextFrame(c4, text="Spectrum Wave\n(FFT History)", align=('centre', 'middle'), 
-        #                 colour='light', background='dark')
+        #                 colour='light', background=BackgroundStyle(colour='dark'))
         # c4 += SpectrumWaveFrame(c4, channel='mono', history_size=20, decay=0.90,
         #                         perspective_scale=0.95, y_step=10,
         #                         background={'colour':'background', 'opacity':200},
@@ -292,17 +261,17 @@ class GlowTestScreen(Frame):
         cols = ColFramer(self, col_ratios=(1, 1, 1, 1), padding=50, padpc=0.1)
 
         # This bar should NOT glow. It's bright, but not using additive blending.
-        cols += BarTest(cols, 0.9, orient='vert', effects=None, style=BarStyle(colour_mode='solid'))
+        cols += BarTest(cols, 0.9,  style=BarStyle(colour_mode='solid', orient='vert', effects=None))
 
         # This bar SHOULD glow. It uses additive blending for values > threshold.
         # The NeonGlow preset has a low threshold, so it should be bright.
-        cols += BarTest(cols, 0.9, orient='vert', effects=NeonGlow)
+        cols += BarTest(cols, 0.9,  style=BarStyle(colour_mode='solid', orient='vert', effects=NeonGlow))
 
         # A dimmer bar that should also glow, but less intensely.
-        cols += BarTest(cols, 0.7, orient='vert', effects=NeonGlow)
+        cols += BarTest(cols, 0.7, style=BarStyle(orient='vert', effects=NeonGlow))
         
         # A very dim bar that should not glow.
-        cols += BarTest(cols, 0.3, orient='vert', effects=NeonGlow)
+        cols += BarTest(cols, 0.3, style=BarStyle(orient='vert', effects=NeonGlow))
 
         # Add text to explain
         self.text_frame = TextFrame(self, text="Viewing Glow Buffer. Left bar is normal, others are additive.",
@@ -359,10 +328,10 @@ class BarEffectsTestScreen(Frame):
         '''
 
         for level in np.arange(0.1, 1.1, 0.1):
-            eff_h = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
-            horzbars += BarTest(horzbars, level, orient='horz', effects=eff_h)
-            eff_v = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=0.5)
-            vertbars += BarTest(vertbars, level, orient='vert', theme='std', effects=eff_v)
+            eff_h = BarEffects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
+            horzbars += BarTest(horzbars, level, style=BarStyle(orient='horz', effects=eff_h))
+            eff_v = BarEffects(threshold=0.8, scale=1.0*level, alpha=200, blur=0.5)
+            vertbars += BarTest(vertbars, level, theme='std', style=BarStyle(orient='vert', effects=eff_v))
 
 
 class AudioTest(Frame):
@@ -375,7 +344,7 @@ class AudioTest(Frame):
         r1 = RowFramer(self, padding=0, padpc=0.05)
 
         r1 += TextFrame(r1, update_fn=self.get_audio_metadata_str)
-        r1 += BarTest(r1, 0, orient='vert', update_fn=self.get_audio_metadata)
+        r1 += BarTest(r1, 0, style=BarStyle(orient='vert'), update_fn=self.get_audio_metadata)
 
     def get_audio_metadata_str(self):
          return "%s\n%.2f" % (self.metadata,self.get_audio_metadata())
@@ -420,10 +389,10 @@ class AudioTestScreen1(Frame):
         # eff_h = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
 
         r1 += TextFrame(r1, update_fn=self.get_bass_str)
-        r1 += BarTest(r1, 0, orient='vert', update_fn=self.get_bass)
+        r1 += BarTest(r1, 0, style=BarStyle(orient='vert'), update_fn=self.get_bass)
 
         r2 += TextFrame(r2,  update_fn=self.get_treble_str)
-        r2 += BarTest(r2, 0, orient='vert', update_fn=self.get_treble)
+        r2 += BarTest(r2, 0, style=BarStyle(orient='vert'), update_fn=self.get_treble)
 
         r3 += TextFrame(r3, update_fn=self.get_bpm_str)
         r3 += BarTest(r3, 0, orient='vert', update_fn=self.get_bpm)
@@ -445,6 +414,8 @@ class AudioTestScreen1(Frame):
 
     def get_bpm(self):
         return  self.platform.bpm/160
+
+
 class OutlineGlowTestScreen(Frame):
     @property
     def title(self): return 'Outline Glow Effects Test'
@@ -463,17 +434,17 @@ class OutlineGlowTestScreen(Frame):
         # 1. Subtle (Default-ish)
         style1 = {'colour': 'light', 'width': 2, 'radius': 10, 'glow_intensity': 0.2, 'softness': 0.5}
         r1 += TextFrame(r1, text="Subtle Glow\nInt: 0.2, Soft: 0.5", align=('centre', 'middle'), 
-                        outline=style1, background='dark')
+                        outline=style1, background=BackgroundStyle(colour='dark'))
 
         # 2. Medium
         style2 = {'colour': 'alert', 'width': 3, 'radius': 10, 'glow_intensity': 1.0, 'softness': 0.5}
         r1 += TextFrame(r1, text="Medium Glow\nInt: 1.0, Soft: 0.5", align=('centre', 'middle'), 
-                        outline=style2, background='dark')
+                        outline=style2, background=BackgroundStyle(colour='dark'))
 
         # 3. Intense
         style3 = {'colour': 'foreground', 'width': 2, 'radius': 10, 'glow_intensity': 2.0, 'softness': 0.5}
         r1 += TextFrame(r1, text="Intense Glow\nInt: 2.0, Soft: 0.5", align=('centre', 'middle'), 
-                        outline=style3, background='dark')
+                        outline=style3, background=BackgroundStyle(colour='dark'))
 
         # Row 2: Softness Variations
         r2 = ColFramer(rows, col_ratios=(1, 1, 1), padding=20,padpc=0.3)
@@ -481,17 +452,17 @@ class OutlineGlowTestScreen(Frame):
         # 1. Sharp
         style4 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 0.1}
         r2 += TextFrame(r2, text="Sharp Glow\nSoft: 0.1", align=('centre', 'middle'), 
-                        outline=style4, background='dark')
+                        outline=style4, background=BackgroundStyle(colour='dark'))
 
         # 2. Soft
         style5 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 1.0}
         r2 += TextFrame(r2, text="Soft Glow\nSoft: 1.0", align=('centre', 'middle'), 
-                        outline=style5, background='dark')
+                        outline=style5, background=BackgroundStyle(colour='dark'))
 
         # 3. Very Diffuse
         style6 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 2.0}
         r2 += TextFrame(r2, text="Diffuse Glow\nSoft: 2.0", align=('centre', 'middle'), 
-                        outline=style6, background='dark')
+                        outline=style6, background=BackgroundStyle(colour='dark'))
 
 class ParameterTuner:
     def __init__(self, target_object, parameters):

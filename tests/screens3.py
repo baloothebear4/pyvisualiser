@@ -93,7 +93,7 @@ class H1(Frame):   # comprises volume on the left, spectrum on the right
 
         meter=VUMeterStyle(pivot=PIVOT, endstops=ENDSTOPS, needle=NEEDLE, scale=VUscale )
   
-        SPECTRUM_STYLE = SpectrumStyle( bar_space = 0.2, barw_min = 12, decay = 0.2)
+        SPECTRUM_STYLE = SpectrumStyle( barsize_pc = 0.2, barw_min = 12, decay = 0.2)
         BAR_STYLE      = BarStyle(led_gap=2, peak_h=2, radius=0, led_h=6)
         SPECTRUM_BACKGROUND    = BackgroundStyle(colour='background', colour_opacity=VIS_OPACITY, ambient_glow=None)
 
@@ -177,12 +177,14 @@ class H2(Frame):   # comprises volume on the left, spectrum on the right
         metadata        += MetaData(metadata, metadata_type='track',justify=('left'), colour='foreground')
         metadata        += MetaData(metadata, metadata_type='artist',justify=('left'), colour='light')
 
-        bar_style        = BarStyle(led_gap=0, peak_h=2, radius=3, tip=True,flip=False)
-        spectrum_style   = SpectrumStyle(barw_min=3, bar_space=1, barw_max=10, decay=0.2)
         reflection_style = ReflectionStyle(size=0.5, opacity=0.05)
-        effects_style    = Effects(reflection=reflection_style, threshold=0.6, scale=2.0, alpha=200, blur=1.5)
+        effects_style    = BarEffects(reflection=reflection_style, threshold=0.6, scale=2.0, alpha=200, blur=1.5)
+        bar_style        = BarStyle(led_gap=0, peak_h=2, radius=3, tip=True,flip=False,effects=effects_style)
+        spectrum_style   = SpectrumStyle(barw_min=3, barsize_pc=1, barw_max=10, decay=0.2)
 
-        centre           += SpectrumFrame(centre, 'mono', padding=0,bar_style=bar_style, spectrum_style=spectrum_style, effects=effects_style) 
+
+
+        centre           += SpectrumFrame(centre, 'mono', padding=0,bar_style=bar_style, spectrum_style=spectrum_style) 
         # empty Frame to ensure space for the reflection
         centre           += Frame(centre)
 
@@ -226,7 +228,8 @@ class H3(Frame):   # comprises volume on the left, spectrum on the right
         volsource    += MetaData(volsource, metadata_type='volume', colour='foreground')
         
         # Complex visualiser on Right
-        colframe += Diamondiser(colframe,  'mono', background=None)
+        # colframe += Diamondiser(colframe,  'mono', background=None)
+        colframe += GLshader(colframe, shader='starvis')
 
         
 
@@ -246,29 +249,29 @@ class H4(Frame):   # comprises volume on the left, spectrum on the right
         Frame.__init__(self, platform, theme= 'hifi', padding=0, background=back)
 
 
-        colframe    = ColFramer(self, padpc=0.05, col_ratios=(4,4,0.2,0.2,0.5), padding=10,background=None)
+        colframe    = ColFramer(self, padpc=0.05, col_ratios=(3,4,0.5), padding=10,background=None)
         artoutline  = OutlineStyle(colour='mid', width=5, radius=10, opacity=0.4, glow_intensity=0.1, softness=0.1)
 
 
-        # Complex visualiser on Right
-        # colframe += GLshader(colframe, shader='milkdrop')
-        colframe += SamplesFrame(colframe)
-
+        image = RowFramer(colframe, row_ratios=(4,1),outline=artoutline,)
+        image += MetaImages(image, padding=10, art_type='artist', background=None,  reflection=True)  
+        # image += Frame(image) # blank padding space for the reflection
+        image += MetaData(image, metadata_type='artist', colour='mid',justify=('centre'))
 
         #  Artist art, meta data progress in centre
-        metadata_col  = RowFramer(colframe, row_ratios=(2,5,1), padding=0,padpc=0.0)
-        metadata_col += MetaData(metadata_col, metadata_type='track', colour='light')
-        metadata_col += MetaImages(metadata_col, padding=10, art_type='artist', background=None, outline=artoutline)
-        metadata_col += PlayProgressFrame(metadata_col)
+        metadata_col  = RowFramer(colframe, row_ratios=(1,3,3), padding=0,padpc=0.0)
+        metadata_col += MetaData(metadata_col, metadata_type='track', colour='foreground')
+        metadata_col += OscilogrammeBar(metadata_col, 'left', oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0))
+        metadata_col += OscilogrammeBar(metadata_col, 'right', oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0,flip=True))
 
         # VU Bars
-        colframe += VUFrame(colframe, 'left', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=5, led_gap=2, tip=False),effects=None)
-        colframe += VUFrame(colframe, 'right', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=5, led_gap=2, tip=False),effects=None)
+        # colframe += VUFrame(colframe, 'left', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=5, led_gap=2, tip=False))
+        # colframe += VUFrame(colframe, 'right', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=5, led_gap=2, tip=False))
 
         # Add the source and Volume
         volsource     = RowFramer(colframe, row_ratios=(1,2), padding=0,padpc=0.0)
-        volsource    += MetaData(volsource, metadata_type='source', colour='mid')
-        volsource    += MetaData(volsource, metadata_type='volume', colour='light')
+        volsource    += MetaData(volsource, metadata_type='source', colour='light')
+        volsource    += MetaData(volsource, metadata_type='volume', colour='foreground')
         
 class H5(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -306,8 +309,8 @@ class H5(Frame):   # comprises volume on the left, spectrum on the right
         # laserneedle2 = VUNeedleStyle(colour='alert', width=4, length=1.0, radius_pc=0.9, glow_intensity=0.2, glow_colour='alert', tip_glow=True)
 
         glow          = AmbientGlowStyle(colour='foreground', radius=0.2, softness=0.3, opacity=0.3)
-        outline       = OutlineStyle(colour='foreground', width=5, opacity=1.0, radius=25, glow_intensity=0.02, softness=0.2)  
-        background    = BackgroundStyle(colour='dark', colour_opacity=0.0, ambient_glow=glow, texture_opacity=0.7, texture_path='particles.jpg') #), texture_path='particles.jpg',texture_opacity=0.8)
+        outline       = OutlineStyle(colour='foreground', width=5, opacity=1.0, radius=25, glow_intensity=0.8, softness=0.2)  
+        background    = BackgroundStyle(colour='background', colour_opacity=1.0, ambient_glow=None, texture_opacity=0.0, texture_path='particles.jpg') #), texture_path='particles.jpg',texture_opacity=0.8)
 
         style = VUMeterStyle(pivot=-0.7, endstops=(3*PI/4, 5*PI/4),
                              needle=VUNeedleStyle(width=2, colour='foreground', length=0.8, radius_pc=0.75, glow_intensity=0.0, glow_colour='foreground',tip_glow=True, shadow=True),
@@ -335,3 +338,26 @@ class H5(Frame):   # comprises volume on the left, spectrum on the right
 
         cols_r2 += MetaData(cols_r2, metadata_type='volume', colour='foreground')
 
+class H6(Frame):
+
+    def __init__(self, parent):
+        particles = {'count': 80, 'colour': 'light', 'speed': 0.2, 'size': 1, 'softness': 0.1}
+        Frame.__init__(self, parent, theme='hifi', background=BackgroundStyle(colour='background', starfield=True, colour_opacity=1.0))
+
+        ARTIST = {'artist': {'colour':'foreground', 'align': ('right', 'middle'), 'scalers': (1.0, 1.0)}}
+        TRACK  = {'track' : {'colour':'light', 'align': ('right', 'middle'), 'scalers': (1.0, 1.0)}}
+        ALBUM  = {'album' : {'colour':'mid',   'align': ('right','middle'), 'scalers': (1.0, 1.0)} }
+
+        back  = BackgroundStyle(colour='background', colour_opacity=0.5 )
+        cols  = ColFramer(self, col_ratios=(1,2), padding=5)
+
+        image = RowFramer(cols,row_ratios=(5,1), outline=OutlineStyle(colour='mid',width=3, radius=10))
+        image += MetaImages(image,  'album',padding=10,background=back, reflection=True)
+        image += Frame(image) # blank padding space for the reflection
+
+        rows  = RowFramer(cols, row_ratios=(3,1), padpc=0)
+        rows += MetaDataFrame(rows, justify='left', background=back)
+
+        rows_b = ColFramer(rows, col_ratios=(8,1))
+        rows_b  += SpectrumFrame(rows_b,channel='mono', bar_style=BarStyle(led_gap=0), spectrum_style=SpectrumStyle(barsize_pc=4), background=back)
+        rows_b  += MetaData(rows_b, metadata_type='volume', colour='foreground')

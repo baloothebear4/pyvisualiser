@@ -8,10 +8,6 @@ Package of presets that are used to dynamically configure the
 
 from .styles import *
 
-# Define your instances
-# NeonGlow = BarStyle(colour='neon_blue', glow=True, opacity=180)
-# ClassicHiFi = BarStyle(colour='amber', spacing=2)
-# RetroSpectrum = SpectrumStyle(mode='bars', decay=0.8)
 
 
 
@@ -21,9 +17,9 @@ PaletteDefault = 'std'
 
 # Effects Presets
 #
-StrongEffect    = Effects(threshold=0.75, scale=2.5, blur=3.0, alpha=150, attack=0.4, decay=0.1)
-DreamEffect     = Effects(threshold=0.75, scale=3.0, blur=3.0, alpha=150, attack=0.4, decay=0.1)
-NeonGlow        = Effects(threshold=0.1, scale=2.0, blur=0.5, alpha=150, attack=0.8, decay=0.1, power=1.0)
+StrongEffect    = BarEffects(threshold=0.75, scale=2.5, blur=3.0, alpha=150, attack=0.4, decay=0.1)
+DreamEffect     = BarEffects(threshold=0.75, scale=3.0, blur=3.0, alpha=150, attack=0.4, decay=0.1)
+NeonGlow        = BarEffects(threshold=0.1, scale=2.0, blur=0.5, alpha=150, attack=0.8, decay=0.1, power=1.0)
 
 # Background Presets
 BackgroundDefault  = None #BackgroundStyle(ambient_glow=AmbientGlowStyle(colour='foreground', opacity=1.0, radius=0.5, softness=0.5))
@@ -116,6 +112,6 @@ DesktopWidgetProfile = VisualiserProfile(
     fullscreen=False,
     framerate=30,  # Lighter footprint for desktop
     default_palette='std',
-    effects=Effects(scale=1.0, blur=0.5, alpha=100),
+    effects=BarEffects(scale=1.0, blur=0.5, alpha=100),
     background_style=BackgroundStyle(colour='background', texture_opacity=0.0)
 )

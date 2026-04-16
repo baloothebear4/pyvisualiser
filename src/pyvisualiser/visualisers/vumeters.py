@@ -282,11 +282,9 @@ class VUFrame(Frame):
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, \
                  barsize_pc=0.7, flip=False, outline=None,square=False, \
                  peak_h=1, barw_min=10, barw_max=400, tip=False, decay=VU.DECAY, orient='vert', \
-                 style=None, effects=None):
+                 style=None):
 
         profile = ProfileManager.get_profile()
-        if effects is None:
-            effects = profile.effects
 
         if style is None:
             style = profile.get_style('bar')
@@ -298,8 +296,7 @@ class VUFrame(Frame):
             'channel': channel, 'barsize_pc':barsize_pc, 'flip':flip, \
             'peak_h':peak_h, 'barw_min':barw_min, 'barw_max':barw_max, \
             'tip':tip, 'decay':decay, 'orient':orient, \
-            'style': style, \
-            'effects': effects
+            'style': style
         }
 
         Frame.__init__(self, parent, scalers=scalers, align=align,theme=theme,background=background, outline=outline,square=square)
@@ -309,8 +306,7 @@ class VUFrame(Frame):
         self.barw   = self.abs_w * self.config['barsize_pc'] if self.config['orient'] == 'vert' else self.abs_h * self.config['barsize_pc']   # width of the bar
         box         = (self.barw, self.h) if self.config['orient'] == 'vert' else (self.w, self.barw)
         self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, \
-                        style=self.config['style'], \
-                        effects=self.config['effects'])
+                        style=self.config['style'])
         # self += self.bar
         self.VU     = VU(self.platform, self.config['channel'], self.config['decay'])
         # print("VUFrame._configure> box=%s, flip=%d, orient %s, frame> %s" % (box, self.config['flip'], self.config['orient'], self.geostr()))

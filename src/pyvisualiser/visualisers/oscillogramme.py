@@ -27,8 +27,9 @@ Visualiser Frames create complex responses to the audio:
 """
 
 from    pyvisualiser.core.framecore  import Frame, Smoother
-from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, Effects, BarStyle, SpectrumStyle
+from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, BarEffects, BarStyle, SpectrumStyle
 from    pyvisualiser.styles.presets  import PI, Centred
+from    pyvisualiser.styles.styles   import OscillogrammeStyle, BarStyle
 
 
 class OscilogrammeBar(Frame):
@@ -49,28 +50,32 @@ class OscilogrammeBar(Frame):
         tip         - is a curved end to the bar
         decay       - is a time constant for how quickly a bar falls down
     """
-    DECAY     = 0.5   # Lower is longer delay - This is the amount that a bar reduces each period
-    FRAME     = 1024  # Samples
-    BAR_MAX   = 20    # Max width of a Bar
 
-    def __init__(self, parent, channel, scalers=None, align=('left', 'bottom'), barsize_pc=1, theme='std', flip=False, background=None,\
-                    led_h=5, led_gap=0, col_mode='horz', radius=0, barw_min=4, tip=True, decay=DECAY,outline=None, square=False, z_order=0, **kwargs):
 
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, outline=outline,square=square,background=background, z_order=z_order)
-        self.bar_space      = barsize_pc     # pc of barwidth
-        self.decay          = decay
+    def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, outline=None,
+                 oscillograme = OscillogrammeStyle(), bar=BarStyle(), square=False, z_order=0):
+
+        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, outline=outline,square=square,\
+                       background=background, z_order=z_order)
         self.channel        = channel
         self.parent         = parent
+        self.oscillograme   = oscillograme
+        self.bar_style      = bar
+
+        self.configure()
+
+    def configure(self):
+        # print("OscilogrammeBar.__init__> theme %s, parent.theme %s" % (self.theme, self.parent.theme))
 
         # Calculate how many bars can be drawn in the width available
         # Go down the bar widths to see what will fit
-        for barw in range(barw_min, OscilogrammeBar.BAR_MAX):
-            self.bar_gap    = int(barw * self.bar_space)
+        for barw in range(self.oscillograme.barw_min, self.oscillograme.barw_max):
+            self.bar_gap    = int(barw * self.oscillograme.barsize_pc)
             self.bars       = int(self.w/(self.bar_gap+barw))
-            if  self.bars <= OscilogrammeBar.FRAME: break
+            if  self.bars <= self.oscillograme.samplesperframe: break
 
         self.barw           = barw
-        self.reduce_by      = 2*OscilogrammeBar.FRAME//self.bars
+        self.reduce_by      = 2*self.oscillograme.samplesperframe//self.bars
 
         # Pack out the gaps to make sure the bars + gaps fill the whole width
         oscillograme_width = self.bars * (self.bar_gap+self.barw)
@@ -79,10 +84,14 @@ class OscilogrammeBar(Frame):
             self.bar_gap = self.bar_gap+ gaptofill/self.bars
 
         self.current  = [ Smoother(1.0) for i in range(self.bars)]    #array of smoothers
-        bar_style = BarStyle(led_h=led_h, led_gap=led_gap, flip=flip, radius=radius, tip=tip, colour_mode='horz')
-        self.bar      = Bar(self, align=('centre', 'middle'), box_size=(self.width, self.h), theme=theme, style=bar_style)
+        # bar_style = BarStyle(led_h=led_h, led_gap=led_gap, flip=flip, radius=radius, tip=tip, colour_mode='horz')
+        self.bar      = Bar(self, box_size=(self.width, self.h), style=self.bar_style)
+        self.decay    = self.oscillograme.decay
 
         # print("OscilogrammeBar.__init__> width=%s, reduce_by=%d, bars %s, bar_gap %d, barw %d, frame> %s" % (self.width, self.reduce_by, self.bars, self.bar_gap, self.barw, self.geostr()))
+
+
+
 
     @property
     def width(self):
@@ -172,6 +181,6 @@ class SamplesFrame(Frame):
         self.create()
         
     def create(self):
-        self += OscilogrammeBar(self  ,  'left', scalers=(1.0,0.5), align=('left','top'), barsize_pc=0.5, led_gap=0,barw_min=2)
-        self += OscilogrammeBar(self  ,  'right', scalers=(1.0,0.5), align=('left','bottom'), flip=True, barsize_pc=0.5, led_gap=0, barw_min=2)
+        self += OscilogrammeBar(self,  'left', scalers=(1.0,0.5), align=('left','top'), oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0))
+        self += OscilogrammeBar(self,  'right', scalers=(1.0,0.5), align=('left','bottom'), oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0,flip=True, colour_mode='horz'))
 

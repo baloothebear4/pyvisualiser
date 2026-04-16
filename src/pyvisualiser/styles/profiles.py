@@ -7,7 +7,7 @@ A Profile is the top-level configuration hierarchy that defines the target envir
 from dataclasses import dataclass, field
 from typing import Optional, Any
 
-from .styles import Effects, BackgroundStyle, BarStyle, SpectrumStyle, VUMeterStyle, TextStyle
+from .styles import BarEffects, BackgroundStyle, BarStyle, SpectrumStyle, VUMeterStyle, TextStyle
 
 
 @dataclass
@@ -90,7 +90,7 @@ class VisualiserProfile:
     default_palette: str = 'std'
     
     # Global effects configuration (bloom intensity, blur scaling)
-    effects: Effects = field(default_factory=Effects)
+    effects: BarEffects = field(default_factory=BarEffects)
     
     # Default styles for core components
     background_style: Optional[BackgroundStyle] = None

@@ -1,0 +1,827 @@
+#!/usr/bin/env python
+"""
+ preDAC preamplifier project
+
+ Process Audio class
+    - provides a full alsaaudio interface
+    - maniuplates audio packages
+    - does Digital signal processing
+    - uses alsaaudio package to control ADC and DAC
+
+ baloothebear4
+ v1.0 April 2020
+ v1.1 Sept 2022
+
+"""
+
+from scipy.stats import lognorm
+
+import  time, math, os
+import  numpy as np
+from    scipy.fft import rfft
+from    scipy.signal import butter, lfilter
+import  pyaudio
+import  wave
+from    queue import Queue, Empty, Full
+from    events import Events
+
+
+# constants
+CHANNELS        = 2
+# INFORMAT        = alsaaudio.PCM_FORMAT_S16_LE
+INFORMAT        = pyaudio.paInt16
+RATE            = 44100  #33075  # 22050, 24000,
+FRAME           = 1024
+FRAMESIZE       = FRAME * CHANNELS
+CRITICAL_TIME_MS = (FRAME / RATE) * 1000
+maxValue        = float(2**15)
+SAMPLEPERIOD    = FRAMESIZE/RATE
+SMOOTHFACTOR    = 0
+AUDIO_QUEUE_MAXSIZE = 10  # Max number of audio frames to queue
+
+SILENCESAMPLES  = 7   / SAMPLEPERIOD  #7 seconds worth of samples
+PEAKSAMPLES     = 0.7 / SAMPLEPERIOD  #0.5 seconds worth of VU measurements
+VUSAMPLES       = 0.25 / SAMPLEPERIOD  #0.3 seconds is the ANSI VU standard
+
+RECORDSTATE     = False
+RECORDTIME      = 30 * 60 / SAMPLEPERIOD / CHANNELS # failfase to stop the disk filling up
+RECORDPATH      = "/home/pi/preDAC/rec/"
+RECORDFILESUFFIX = "preDAC"
+RECORDINGS_PATTERN = RECORDPATH + RECORDFILESUFFIX + "-%s.wav"
+
+WINDOW          = 12 #12 # 4 = Hanning
+FIRSTCENTREFREQ = 10 #31.25        # Hz
+LASTCENTREFREQ  = RATE // 3 # ie about 13.5kHz
+OCTAVE          = 3
+NUMPADS         = FRAME
+BINBANDWIDTH    = RATE/(FRAME + NUMPADS) #ie 43.5 Hz for 44.1kHz/1024
+DCOFFSETSAMPLES = 200
+TWOPI           = 2*3.14152
+
+VUGAIN          = 0.06
+RMSNOISEFLOOR   = -70    # dB
+DYNAMICRANGE    = 50     # Max dB
+SILENCETHRESOLD = 0.001   #0.02   # Measured from VU Noise Floor + VU offset
+
+# VU calibration and scaling  DEPRECATED
+PeakRange = DYNAMICRANGE - 5 # was 50 antificipated dB range
+VURange   = DYNAMICRANGE - 20
+PeakOff   = -(RMSNOISEFLOOR + 10) # lower limit to display
+VUOff     = -(RMSNOISEFLOOR + 10) # was 40
+
+class WindowAve:
+    """ Class to find the moving average of a set of window of points """
+    def __init__(self, size):
+        self.window = [1.0]*int(size)
+        self.size   = int(size)
+
+    def average(self, data):
+        #add the data point to the window
+        self.window.insert(0, data)
+        del self.window[-1]
+        return sum(self.window)/len(self.window)
+
+    def reset(self,type):
+        if type == 'silence':
+            self.window = [0.0]*int(self.size)
+        else:
+            self.window = [1.0]*int(self.size)
+
+import aubio
+import threading
+
+class AudioAnalyser:
+    def __init__(self, rate=RATE, hop_s=int(FRAME/2), win_s=FRAME):
+        self.rate = rate
+        self.hop_s = hop_s
+        self.win_s = win_s
+        
+        # 1. FIX: Explicitly set the hop_s and win_s for the tempo object
+        self.tempo = aubio.tempo("default", win_s, hop_s, rate)
+        
+        self.pv = aubio.pvoc(win_s, hop_s) 
+        self.centroid_fn = aubio.specdesc("centroid", win_s)
+        self.kurtosis_fn = aubio.specdesc("kurtosis", win_s)
+        self.flux_fn     = aubio.specdesc("complex", win_s)
+
+        # 2. FIX: Pre-allocate an 'out' buffer for the tempo object
+        # Aubio functions write results into these fvec objects
+        # self.out_tempo = aubio.fvec(1) 
+
+        self.audioanalysis = {
+            "beat": False, "bpm": 0.0, "centroid": 0.0,
+            "kurtosis": 0.0, "flux": 0.0, "volume": 0.0
+        }
+        
+        self.alpha = 0.05   # Smoothing factor
+        self._stop_event = threading.Event()
+        self.samples_queue = Queue(maxsize=20)
+        self.thread = threading.Thread(target=self._analysis_loop, daemon=True)
+
+    def start(self):
+        """Called by AudioProcessor.start_capture to kick off the thread"""
+        if not self.thread.is_alive():
+            self.thread.start()
+
+    def stop(self):
+        """
+        Signals the background thread to exit and joins it.
+        Called when the application is closing or the screen is changing.
+        """
+        print("AudioAnalyser.stop> Shutting down analysis thread...")
+        self._stop_event.set()
+        
+        # If the thread is alive, wait briefly for it to finish the current loop
+        if self.thread.is_alive():
+            self.thread.join(timeout=1.0)
+        
+        # Clear the queue to free up memory
+        try:
+            while not self.samples_queue.empty():
+                self.samples_queue.get_nowait()
+        except Empty:
+            pass
+
+    def add_samples(self, samples):
+        """Called by AudioProcessor.is_audio_available to feed the engine"""
+        try:
+            # We use nowait to ensure the main audio thread never blocks
+            self.samples_queue.put_nowait(samples)
+        except Full:
+            pass # Better to drop a frame of analysis than to stutter the audio
+
+
+    def _analysis_loop(self):
+        # print("AudioAnalyser._analysis_loop> Thread is running and waiting for data...")
+        while not self._stop_event.is_set():
+            try:
+                samples = self.samples_queue.get(timeout=1.0)
+            except Empty:
+                continue
+
+            # 1. Mandatory Type Cast: Aubio will crash on float64
+            if samples.dtype != np.float32:
+                samples = samples.astype(np.float32)
+
+            # 2. Strict Length Check: Aubio expects exactly hop_s (512)
+            if len(samples) != self.hop_s:
+                continue
+
+            try:
+                # 3. Spectral Analysis
+                fftgrain = self.pv(samples)
+                cent = self.centroid_fn(fftgrain)[0]
+                flat = self.kurtosis_fn(fftgrain)[0]
+                flux = self.flux_fn(fftgrain)[0]
+
+                # 4. Beat/Tempo: CALL ONLY ONCE
+                is_beat_vec = self.tempo(samples)
+                is_beat = is_beat_vec[0] != 0
+                
+                if is_beat:
+                    self.audioanalysis["beat"] = True
+                    self.audioanalysis["bpm"] = self.tempo.get_bpm()
+
+                # 5. Volume and Smoothing
+                vol = min(np.sqrt(np.mean(samples**2))*20, 1.0)
+                norm_cent = min(cent / (self.rate / 80.0), 1.0) 
+                norm_flat = min(flat / 120.0, 1.0)
+                norm_flux = min(flux / 120.0, 1.0)
+
+                # Update the shared dictionary
+                self.audioanalysis["centroid"] = (norm_cent * self.alpha) + (self.audioanalysis["centroid"] * (1 - self.alpha))
+                self.audioanalysis["kurtosis"] = (norm_flat * self.alpha) + (self.audioanalysis["kurtosis"] * (1 - self.alpha))
+                self.audioanalysis["flux"]     = (norm_flux * self.alpha) + (self.audioanalysis["flux"] * (1 - self.alpha))
+                self.audioanalysis["volume"]   = (vol * self.alpha) + (self.audioanalysis["volume"] * (1 - self.alpha))
+
+
+            except Exception as e:
+                print(f"AudioAnalyser._analysis_loop> Aubio error: {e}")
+
+    def get_state(self):
+        """Returns the current smoothed metrics and resets the beat flag"""
+        state = self.audioanalysis.copy()
+        self.audioanalysis["beat"] = False 
+        return state
+    
+
+class AudioData():
+    def __init__(self):
+        data          = [0.5]*50
+        data_s        = np.arange(FRAMESIZE)
+
+        self.vu       = {'left': 0.5, 'right':0.5, 'mono':0.5}
+        self.peak     = {'left': 0.8, 'right':0.8, 'mono':0.8}
+        self.vumax    = {'left': 0.01, 'right':0.01, 'mono':0.01}
+        self.peakmax  = {'left': 3.9, 'right':3.9, 'mono':3.9}
+        self.spectrum = {'left': data, 'right':data, 'mono':data}
+        self.bins     = {'left': data, 'right':data, 'mono':data_s}
+        self.samples  = {'left': data_s, 'right':data_s, 'mono':data_s}
+        self.oldsamples  = {'left': data_s, 'right':data_s, 'mono':data_s}
+        self.spectra  = {'left': data_s, 'right':data_s, 'mono':data_s}
+        self.signal_detected = False
+        self.bpm = 0.0
+        self.bass = 0.0
+        self.treble = 0.0
+        self.peakwindow      = {'left': WindowAve(PEAKSAMPLES), 'right': WindowAve(PEAKSAMPLES), 'mono': WindowAve(PEAKSAMPLES)}
+        self.vuwindow        = {'left': WindowAve(VUSAMPLES), 'right': WindowAve(VUSAMPLES), 'mono': WindowAve(VUSAMPLES)}
+        self.recordfile = self.find_next_file( RECORDINGS_PATTERN )
+
+    def filter(self, signal, fc):
+        return signal
+
+    def printPower(self, power, fCentre):
+        # apply a frequency dependent filter
+        print("%6.1f @f=%-5d %s" % (power, fCentre , "*"*int(self.filter(power, fCentre))))
+
+    def seeData(self, data, title):
+        line = "[%d] %s\n" % (len(data), title)
+        for i in range(len(data)):
+            line += "%6d "%data[i]
+            if i % 16 == 15:
+                print(line)
+                line = ""
+
+    def _print(self):
+        self.LR2(self.vu, self.peak)
+
+
+
+
+class AudioProcessor(AudioData):
+    def __init__(self, events, device='BlackHole 2ch'):
+        self.events   = events
+        self.recorder = pyaudio.PyAudio()
+        self.audio_available = False
+
+        # set up audio input
+        self.find_device_index(device)
+
+        self.recordingState = RECORDSTATE
+        self.recording      = []
+        #self.device = 1
+        self.analysis = AudioAnalyser(rate=RATE)
+        AudioData.__init__(self)
+
+        self.peakC      = RMSNOISEFLOOR
+        self.minC       = maxValue
+        self.dc         = []
+        self.readtime   = []
+        self.silence    = WindowAve(SILENCESAMPLES)
+        self.window     = np.kaiser(FRAME + 0, WINDOW)  #Hanning window
+        print("AudioProcessor.__init__> ready and reading from soundcard %s, Recording is %s " % (self.recorder.get_device_info_by_index(self.device)['name'], RECORDSTATE))
+
+        self.audio_queue = Queue(maxsize=AUDIO_QUEUE_MAXSIZE)
+
+
+    @property
+    def framesize(self):
+        return FRAME    
+
+    def find_device_index(self, device):
+        # print("\nTarget audio device:", device)
+        # print("Available audio devices:")
+        # for i in range(p.get_device_count()):
+        #     info = p.get_device_info_by_index(i)
+        #     if info['maxInputChannels'] > 0:
+        #         print(f"  Device {i}: {info['name']} (inputs: {info['maxInputChannels']})")
+  
+        p = self.recorder
+        try:
+            # Try to find the loopback device
+            loopback_device = None
+            for i in range(p.get_device_count()):
+                info = p.get_device_info_by_index(i)
+                if device.lower() in info['name'].lower():
+                    self.device = i
+                    # print(f"Found loop back device {info['name']}  at index {info['index']} ")
+                    break
+
+        except Exception as e:
+            print(f"\nAudioProcessor.find_device_index> ❌ ERROR: {e}")
+            print("AudioProcessor.find_device_index> Check your ALSA configuration and device permissions")
+            self.device = 4
+        
+
+    def start_capture(self):
+        try:
+            self.stream   = self.recorder.open(format = INFORMAT,rate = RATE,channels = CHANNELS,input = True, \
+                                               input_device_index=self.device, frames_per_buffer=FRAMESIZE, stream_callback=self.callback)
+            self.stream.start_stream()
+            self.analysis.start()
+            print("AudioProcessor.start_capture> ADC/DAC ready ", self.recorder.get_device_info_by_index(self.device)['name'], " index>", self.device)
+        except Exception as e:
+            print("AudioProcessor.start_capture> ADC/DAC not available", e)
+
+    def stop_capture(self):
+        try:
+            self.analysis.stop()
+            self.stream.stop_stream()
+            self.stream.close()
+            self.recorder.terminate()
+        except Exception as e:
+            print("AudioProcessor.Stop_capture> error", e)
+
+    # ------------switch to running the callback in a queue to prevent blocking --------------
+    def callback(self, in_data, frame_count, time_info, status):
+
+        # 1. START HIGH-RESOLUTION TIMER
+        start_time = time.perf_counter()
+        
+        # 2. CHECK FOR AUDIO BUFFER OVERFLOW
+        # The 'status' flag tells us if the buffer overflowed BEFORE we even started processing.
+        if status & pyaudio.paInputOverflow:
+            print(f"AudioProcessor.callback> *** [FRAME DROPPED] *** queue size ", self.audio_queue.qsize())
+            
+        # --- Existing Audio Capture and Processing ---
+        try:
+            in_data = np.frombuffer(in_data, dtype=np.int16)
+            if not self.audio_queue.full():
+                self.audio_queue.put_nowait(in_data)
+                # print("AudioProcessor.callback> audio frame queued, queue size:", self.audio_queue.qsize())
+        except Exception as e:
+            print("AudioProcessor.callback> exception ", e)
+            pass
+        return (None, pyaudio.paContinue)        
+
+        # self.events.Audio('capture')
+        
+        processing_time_ms = (time.perf_counter() - start_time) * 1000
+    
+        # 3. CHECK AGAINST TIME BUDGET
+        # We must ensure this method runs faster than the time it took the audio to arrive.
+        if processing_time_ms > CRITICAL_TIME_MS:
+            print(f"AudioProcessor.callback> *** [LATENCY WARNING]: {processing_time_ms:.2f} vs {CRITICAL_TIME_MS:.2f} ms ***")
+        
+        # Continue stream
+        return (None, pyaudio.paContinue)
+
+    def get_analysis(self):
+        """Returns the latest spectral data from the analyser thread."""
+        if hasattr(self, 'analysis'):
+            return self.analysis.get_state()
+        return None
+
+    def is_audio_available(self):
+        """
+        Polls the audio queue, processes stereo samples for legacy VU meters,
+        and feeds normalized mono chunks to the Aubio background thread.
+        """
+        # Reset the flag for this check
+        self.audio_available = False
+
+        if not self.audio_queue.empty():
+            try:
+                # 1. Get raw int16 data from the capture thread
+                data = self.audio_queue.get_nowait()
+                
+                # 2. Split for Legacy Stereo components (VU meters, etc.)
+                # data is interleaved [L, R, L, R...]
+                self.samples['left']  = data[0::2]
+                self.samples['right'] = data[1::2]
+                
+                # 3. Create Mono Int16 for existing logic
+                # Reshape to (1024, 2) and average across axis 1
+                mono_int16 = np.mean(data.reshape(-1, CHANNELS), axis=1).astype(np.int16)
+                self.samples['mono']  = mono_int16
+                
+                # 4. Normalize to Float32 (-1.0 to 1.0) for Aubio
+                # Aubio crashes or produces noise if not float32 or if range is wrong
+                mono_float32 = mono_int16.astype(np.float32) / 32768.0
+
+                # 5. Feed the Analyser in "Hops"
+                # If FRAME is 1024 and hop_s is 512, this loop runs twice.
+                # This ensures the Analyser thread gets exactly what it expects.
+                hop_s = self.analysis.hop_s
+                for i in range(0, len(mono_float32), hop_s):
+                    chunk = mono_float32[i : i + hop_s]
+                    if len(chunk) == hop_s:
+                        # print("DEBUG: Feeding chunk to Analyser")
+                        self.analysis.add_samples(chunk)
+
+                # 6. Housekeeping
+                if self.recording:
+                    self.record(data)
+                
+                self.audio_available = True
+
+            except Empty:
+                self.audio_available = False
+            except Exception as e:
+                print(f"AudioProcessor.is_audio_available> Error: {e}")
+                self.audio_available = False
+
+        return self.audio_available
+    #----------------------------------------
+
+    def start_recording(self):
+        self.recordingState = True
+
+    def stop_recording(self):
+        self.recordingState = False
+        self.saveRecording()
+        self.recording = []
+        self.events.Audio('recording_stopped')
+
+    def record(self, data):
+        if self.recordingState:
+            self.recording.append(data)
+
+            if len(self.recording) >  RECORDTIME:
+                self.stop_recording()
+
+            elif len(self.recording) % SAMPLEPERIOD == 1:
+                print("AudioProcessor.record> recorded %fs audio " % len(self.recording)/SAMPLEPERIOD )
+
+    def saveRecording(self):
+        # Save the recorded data as a WAV file
+        self.recordfile = self.find_next_file( RECORDINGS_PATTERN )
+        print('Finished recording to ', self.recordfile)
+        try:
+            # bits = self.recorder.get_sample_size(INFORMAT)
+            # wf = PyWave.open(recordfile, mode='w', channels = CHANNELS, frequency = RATE, bits_per_sample = bits, format = INFORMAT)
+            wf = wave.open(self.recordfile, 'wb')
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(self.recorder.get_sample_size(INFORMAT))
+            wf.setframerate(RATE)
+            wf.writeframes(b''.join(self.recording))
+
+            wf.close()
+        except Exception as e:
+            print("AudioProcessor.save_recording> ", e)
+
+
+    def find_next_file(self, path_pattern):
+        """
+        Finds the next free path in an sequentially named list of files
+
+        e.g. path_pattern = 'file-%s.txt':
+
+        file-1.txt
+        file-2.txt
+        file-3.txt
+
+        Runs in log(n) time where n is the number of existing files in sequence
+        """
+        i = 1
+
+        # First do an exponential search
+        while os.path.exists(path_pattern % i):
+            i = i * 2
+
+        # Result lies somewhere in the interval (i/2..i]
+        # We call this interval (a..b] and narrow it down until a + 1 = b
+        a, b = (i // 2, i)
+        while a + 1 < b:
+            c = (a + b) // 2 # interval midpoint
+            a, b = (c, b) if os.path.exists(path_pattern % c) else (a, c)
+
+        return path_pattern % b
+
+
+    def process(self, bass=500, treble=5000):
+        # self.smoothed_samples['left']  = np.add(SMOOTHFACTOR * self.oldsamples['left'], (1-SMOOTHFACTOR)*self.samples['left'])
+        # self.smoothed_samples['right'] = np.add(SMOOTHFACTOR * self.oldsamples['right'], (1-SMOOTHFACTOR)*self.samples['right'])
+        # left  = self.samples['left']
+        # right = self.samples['right']
+
+        self.bins['left']   = self.calcFFT(self.samples['left'])
+        self.bins['right']  = self.calcFFT(self.samples['right'])
+        # The fastest way using already computed magnitude bins
+        self.bins['mono'] = (self.bins['left'] + self.bins['right']) / 2.0
+        # self.bins['mono']   = self.calcFFT(self.samples['mono'])
+        # self.bins['left']     = self.spectral_average(left, 'left')
+        # self.bins['right']    = self.spectral_average(right, 'right')
+
+
+        self.vu['left']     = self.VU('left')
+        self.vu['right']    = self.VU('right')
+        self.vu['mono']     = self.VU('mono')
+        
+        self.audioanalysis  = self.analysis.get_state()
+        # print(self.audioanalysis)
+
+        self.detectSilence()
+
+        if self.signal_detected:
+            # Only update BPM when there is a signal
+            if self.audioanalysis['beat']:
+                self.trigger_detected.append('beat')
+            
+        # Bass and Treble calculation from FFT bins
+        bins = self.bins['mono']
+        if len(bins) > 1:
+            # Bass: energy below 300 Hz. Bin width is ~21.5 Hz. 300/21.5 = ~13.9
+            bass_cutoff_bin = 14
+            # Use mean instead of sum for more stable energy reading
+            bass_energy = np.mean(bins[1:bass_cutoff_bin])
+            # Multiply to scale up the average energy to a 0-1 range. The divisor was for the incorrect sum.
+            target_bass = np.clip(bass_energy * 4.0, 0.0, 1.0)
+            self.bass = (self.bass * 0.8) + (target_bass * 0.2)
+
+            # Treble: energy above 3 kHz. 3000/21.5 = ~139.5
+            treble_cutoff_bin = 140
+            # Use mean for treble as well
+            treble_energy = np.mean(bins[treble_cutoff_bin:])
+            # Treble energy is typically lower, so it needs a higher multiplier
+            target_treble = np.clip(treble_energy * 8.0, 0.0, 1.0)
+            self.treble = (self.treble * 0.8) + (target_treble * 0.2)
+
+        self.trigger_detected = []
+ 
+
+    def detectSilence(self):
+        # Corrected hysteresis logic for silence detection
+        signal_level = (self.vu['left'] + self.vu['right']) / 2.0
+        # A long-term average to determine if we are in a state of silence
+        ave_level = self.silence.average(signal_level)
+
+        if self.signal_detected and ave_level < SILENCETHRESOLD:
+            # If we were hearing a signal, but the long-term average has dropped,
+            # we are now in a state of silence.
+            self.signal_detected = False
+            self.events.Audio('silence_detected')
+        elif not self.signal_detected and signal_level > SILENCETHRESOLD:
+            # If we were silent, but an immediate signal is detected (not averaged),
+            # we are now in a state of signal.
+            self.signal_detected = True
+            self.events.Audio('signal_detected')
+
+
+    def createBands(self, spacing, fcentre=FIRSTCENTREFREQ, flast=LASTCENTREFREQ):
+        '''
+        Create the upper bounds of each interval as an array that can be used to fill the fft data
+        - spacing is the octave spacing eg 3.0, 6.0
+        - fcentre is the lowest start frequency eg 31.25
+        '''
+        flast = LASTCENTREFREQ if flast is None else flast
+        intervalUpperF      = []
+        centres             = []
+        # print("AudioProcessor.createBands >Calculate Octave band frequencies: 1/%2d octave, starting at %2f Hz" % (spacing, fcentre))
+        #
+        # Loop in octaves bands
+        #
+        startbin      = 1
+        FFACTOR       = math.pow(2, 1.0/float(2*spacing) )
+        intervalUpper = fcentre * FFACTOR
+
+        while intervalUpper < flast:
+            bincount        = startbin
+            fcentre         = fcentre * math.pow(2, float(1.0/spacing))
+            intervalUpper   = fcentre * FFACTOR
+
+            if bincount*BINBANDWIDTH > intervalUpper:
+                # Check if the bin will fit in the octave band, if not discard the current octave band
+                # print "  band too low @%dHz for bin %d at %dHz - skip it" % (intervalUpper, bincount, bincount*BINBANDWIDTH)
+                continue
+            else:
+                # Check how many bins will comprise this octave band (must be at least one)
+                while (bincount+1)*BINBANDWIDTH <= intervalUpper:
+                    bincount    += 1
+                intervalUpperF.append( intervalUpper )
+                centres.append( fcentre )
+
+            # print (" Fcentre %2.1f, Upper bound %2.1f, startbin %d (%4.0fHz), to bin %d (%4.0fHz)" % (fcentre, intervalUpper, startbin, startbin * BINBANDWIDTH, bincount, bincount * BINBANDWIDTH ))
+            startbin = bincount+1
+        # print("AudioProcessor.createBands>  %d bands determined at: %s" % (len(centres), ["%1.0f" % f for f in centres]))
+        return intervalUpperF
+
+
+    def VU(self, channel):
+        # Use full framesize, normalize AFTER squaring/before mean for consistency
+        normalized_data = self.samples[channel] / maxValue
+        
+        # Calculate RMS
+        rms = np.sqrt(np.mean(np.square(normalized_data)))
+        
+        if np.isnan(rms): rms = 0.0
+
+        return min(1.0, rms / VUGAIN)
+
+
+    def reduceSamples(self, channel, reduceby, rms=True ):
+        # reduce the sample window to the size available
+        normalised_samples = self.samples[channel]/ maxValue  #[:FRAMESIZE//2]
+        if reduceby == 0: reduceby = 1
+        end = reduceby * int(len(normalised_samples)/ reduceby)
+        # reshaped_samples   = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)
+        rms_reshaped_samples   = np.sqrt( np.mean( np.square(normalised_samples[:end].reshape(-1, reduceby)), axis=1))/0.2
+        reshaped_samples       = np.mean( normalised_samples[:end].reshape(-1, reduceby), axis=1)/0.2
+        # print("AudioProcessor.reduceSamples by", reduceby, "from", len(normalised_samples), "to", len(reshaped_samples), "length", length)
+        if rms:
+            return rms_reshaped_samples.tolist()
+        else:
+            return reshaped_samples.tolist()
+
+
+    """ use this to shift the noise floor eg: RMS 20 - 5000 -> 0->5000"""
+    def floor(self, x,y):
+        if x > y:
+            return x
+        else:
+            return y
+
+    def calcReadtime(self,start=True):
+        if start:
+            self.startreadtime = time.time()
+        else:
+            self.readtime.append(time.time()-self.startreadtime)
+            if len(self.readtime)>100: del self.readtime[0]
+            # print('AudioProcessor:calcReadtime> %3.3fms' % (np.mean(self.readtime)*1000))
+
+
+    def calcDCoffset(self, data):
+        """ Create a ring buffer of DC mean level """
+        self.dc.append(np.mean(data))  #setDC
+
+        if len(self.dc) > DCOFFSETSAMPLES:
+            del self.dc[0]
+
+        self.dcoffset = sum(self.dc)/len(self.dc)
+
+        return self.dcoffset
+
+    # def calcFFT(self, data):
+    #     """
+    #     Calculate the FFT and normalise to 0-1
+    #     """
+    #     data        = data[:FRAMESIZE//2] * self.window
+    #     data        = np.pad(data, (0, NUMPADS), 'constant')
+    #     spectrum    = np.abs(np.fft.fft(data)) # * self.window))
+    #     spectrum    = spectrum / maxValue  #Normalize to 0-1 range
+
+    #     return spectrum
+
+    def calcFFT(self, data):
+        """
+        Calculate the Real FFT and normalise (fastest method)
+        """
+        # 1. Apply Window/Slice: (Make sure your window is applied as efficiently as possible)
+        # If self.window is already the correct length (FRAMESIZE//2), this is fine.
+        windowed_data = data[:FRAMESIZE//2] * self.window 
+        
+        # 2. Apply Zero Padding:
+        # If the length is not a power of 2, FFT is much slower. Ensure (FRAMESIZE//2 + NUMPADS) is a power of 2.
+        padded_len = FRAMESIZE//2 + NUMPADS
+        
+        # 3. Use rfft for a ~2x speedup on real-valued data
+        # Specify the exact FFT length using 'n' to include the padding
+        spectrum = np.fft.rfft(windowed_data, n=padded_len)
+        
+        # 4. Get magnitude and normalize
+        # spectrum = np.abs(spectrum) / maxValue
+        # The magnitude of an rfft bin for a pure sine wave of amplitude A is (A * N / 2), where N is the number of samples (FRAME).
+        # To normalize a bin to ~1.0 for a full-scale sine wave, we divide by (maxValue * FRAME / 2).
+        spectrum = np.abs(spectrum) / (maxValue * (FRAME / 2.0))
+        
+        
+        return spectrum
+
+
+    def packFFT(self, intervalUpperF, channel='left'):
+        '''
+        # Pack bins into octave intervals
+        # Convert amplitude into dBs
+        '''
+        bins = self.bins[channel]
+
+        startbin = 1 #do not use bin[0] which is DC
+        spectrumBands = []
+
+        for band in intervalUpperF:  # collect bins at a time
+            bincount    = startbin
+
+            while bincount*BINBANDWIDTH <= band:
+                bincount    += 1
+
+            # Use standard audio dB calculation (log10) since bins are now normalised 0.0 - 1.0
+            level = 20*np.log10((bins[startbin:bincount].mean() + 1e-7))
+            spectrumBands.append( self.normalise(level) )
+            startbin = bincount
+        # print("PackFFT >", spectrumBands)
+        return spectrumBands
+
+    def normalise(self, level):
+        """ convert from dB into a percentage """
+        """ need to calibrate this more carefully """
+        # print("AudioProcessor.normalise > input level ", level)
+        self.dynamicRange(level)
+        """ measuring this on MAc shows the range to be about -72 to +40
+            was (20 +level)/70 for preDAC HW
+        """
+        floor = -self.minC
+        # Prevent zero division if peakC and minC converge
+        scale = max(0.001, self.peakC + floor)
+        
+        # Calculate percentage and clamp exactly to [0.0, 1.0]
+        pc = (floor + level) / scale
+        return max(0.0, min(1.0, pc))
+
+    def printSpectrum(self, octave, intervalUpperF, left=True):
+        FFACTOR = math.pow(2, 1.0/float(2*octave) )
+        if left:
+            power = self.spectrum['left']
+        else:
+            power = self.spectrum['right']
+
+        for i in range (0,len(power)):
+            fCentre = intervalUpperF[i]/FFACTOR
+            self.printPower(power[i], intervalUpperF[i]/FFACTOR)
+        print("--------------")
+
+    def getSpectrum(self, octave, intervalUpperF, left=True):
+        FFACTOR = math.pow(2, 1.0/float(2*octave) )
+        if left:
+            power = self.spectrum['left']
+        else:
+            power = self.spectrum['right']
+
+        channelPower = []
+        for i in range (0,len(power)):
+            fCentre = intervalUpperF[i]/FFACTOR
+            channelPower.append(self.filter(power[i], fCentre))
+        return channelPower
+
+
+    def leftCh(self):
+        return self.getSpectrum()
+
+    def rightCh(self):
+        return self.getSpectrum(left=False)
+
+    def dynamicRange(self, level):
+        # assume input is a level in dB - calc the dynamicRange
+        text = ""
+        change = False
+        if level > self.peakC:
+            self.peakC = level
+            text  += "max %8f " % self.peakC
+            change = True
+        if level < self.minC:
+            if level < RMSNOISEFLOOR: level = RMSNOISEFLOOR
+            self.minC = level
+            text  += " min %8f " % self.minC
+            change = True
+        # if change: print("AudioProcessor.dynamicRange> RMS max %f, min %f" % (self.peakC, self.minC))
+
+
+    """ calculate the RMS power (NB: sqrt is not required) """
+    def rmsPower(self, y):
+        return np.abs(np.mean(np.square(y)))
+
+    def processstatus(self):
+        text  = "Process audio> signal det %s" % self.signal_detected
+        text += "\n L%10f-^%10f^%10f\t%10f R"% (self.vu['left'], self.peak['left'], self.peak['right'], self.vu['right'])
+        text += "\n Peak Spectrum L:%f, R:%f" % (max(self.bins['left']), max(self.bins['right']) )
+        return text
+
+    """ Butterworth digital filters """
+    def butterworth_coeffs(self, cutoff, order=5,type='lowpass'):
+        #btype{‘lowpass’, ‘highpass’, ‘bandpass’, ‘bandstop’}
+        # cutoff in Hz
+        return butter(order, cutoff, fs=RATE, btype=type, analog=False)
+
+    def filter(self, data, cutoff, order=5, type='lowpass'):
+        b, a = self.butterworth_coeffs(cutoff, order=order, type=type)
+        y = lfilter(b, a, data)
+        return y
+
+
+
+    """ test code """
+
+#     def LR2(self, vu, peak):
+#         lString = "-"*int(bars-vu['left']*bars)+"#"*int(vu['left']*bars)
+#         rString = "#"*int(vu['right']*bars)+"-"*int(bars-vu['right']*bars)
+#         print(("[%s]=L%10f-^%10f^%10f\t%10f R=[%s]"% (lString, vu['left'], peak['left'], peak['right'], vu['right'], rString)))
+#         # print("L=[%s]\tR=[%s]"%(lString, rString))
+
+#     def printBins(bins):
+#         text  = ""
+#         for i in range (1,len(bins)):
+#             text += "[%2d %2.1f] " % (i*BINBANDWIDTH, bins[i]/250)
+#             if i >50: break
+#         print(text)
+
+# def main():
+#     # main loop
+#     events = Events('Audio')
+#     audioprocessor = AudioProcessor(events)
+#     runflag = 1
+#     while runflag:
+
+#         for i in range(int(10*44100/FRAMESIZE)): #go for a few seconds
+
+#             audioprocessor.process()
+#             audioprocessor.printSpectrum()
+#             # audioprocessor._print()
+#             # audioprocessor.calibrate()
+
+#         audioprocessor.dynamicRange()
+#         runflag = 0
+
+# if __name__ == "__main__":
+#     try:
+#         main()
+#     except KeyboardInterrupt:
+#         pass

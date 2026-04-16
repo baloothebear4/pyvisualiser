@@ -10,8 +10,8 @@ from pyvisualiser.visualisers.glvisualisers import *
 from pyvisualiser.styles.presets import *
 from pyvisualiser.styles.styles  import *
 from pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer
-from pyvisualiser.visualisers.metadata import MetaDataFrame, PlayProgressFrame, TextFrame
-
+from pyvisualiser.visualisers.metadata import MetaDataFrame, PlayProgressFrame, TextFrame, MetaImages, MetaData
+from pyvisualiser.visualisers.spectrum import *
 
 class GLmeshScreen(Frame):
     @property
@@ -77,3 +77,50 @@ class GLTestScreen2(Frame):
         col = ColFramer(self)
         for shader in SHADERS2:
             col += GLshader(col, shader=shader)
+
+class GLTestScreen3(Frame):
+    @property
+    def title(self): return 'GLSL Shader Test - as a background'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform):
+        # Use the new 'meter2' theme which has the cream background
+        super().__init__(platform, theme='hifi', padding=0, background=BackgroundStyle(colour='background', shader='milkdrop'))       
+
+
+        SpectrumGlow          = None
+        SpectrumReact         = None
+        edge = EdgeLightStyle(enabled=True, intensity=0.7, width=0.2, softness=1.2,audio_reactivity=0.0)
+        SpectrumBackground    = BackgroundStyle(colour='background', ambient_glow=SpectrumGlow, edge_light=edge,\
+                                                texture_path='particles.jpg', texture_opacity=0.6 )
+        SimpleOutline         = OutlineStyle(colour='mid', width=1, radius=10, opacity=1.0, glow_intensity=0.0, softness=0.0)
+        # Frame.__init__(self, platform, theme= 'hifi', background=SpectrumBackground)
+
+        cols = ColFramer(self,col_ratios=(1,2.2,0.3), padding=0, padpc=0.05)
+
+        artoutline       = OutlineStyle(colour='mid', width=5, radius=10, opacity=1.0, glow_intensity=0.7, softness=0.3)
+        cols            += MetaImages(cols, padding=10, art_type='album', background=None, outline=artoutline, opacity=1.0)
+ 
+        centre            = RowFramer(cols, row_ratios=(1.5,3,1), padding=0, padpc=0.0)
+
+        metadata         = RowFramer(centre,padpc=0.0)
+        metadata        += MetaData(metadata, metadata_type='track',justify=('left'), colour='foreground')
+        metadata        += MetaData(metadata, metadata_type='artist',justify=('left'), colour='light')
+
+        reflection_style = ReflectionStyle(size=0.5, opacity=0.05)
+        effects_style    = BarEffects(reflection=reflection_style, threshold=0.6, scale=2.0, alpha=200, blur=1.5)
+        bar_style        = BarStyle(led_gap=0, peak_h=2, radius=3, tip=True,flip=False,effects=effects_style)
+        spectrum_style   = SpectrumStyle(barw_min=3, barsize_pc=1, barw_max=10, decay=0.2)
+
+
+
+        centre           += SpectrumFrame(centre, 'mono', padding=0,bar_style=bar_style, spectrum_style=spectrum_style) 
+        # empty Frame to ensure space for the reflection
+        centre           += Frame(centre)
+
+        # Add the source and Volume
+        volsource        = RowFramer(cols, row_ratios=(1,2), padding=0,padpc=0.0)
+        volsource += MetaData(volsource, metadata_type='source', colour='light')
+        volsource += MetaData(volsource, metadata_type='volume', colour='foreground')
