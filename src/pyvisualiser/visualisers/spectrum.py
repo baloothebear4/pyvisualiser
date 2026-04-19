@@ -13,7 +13,7 @@
 
 """
 from    pyvisualiser.core.framecore  import Frame, Smoother, RowFramer, ColFramer
-from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, BarStyle, SpectrumStyle
+from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, BarStyle, SpectrumStyle
 from    pyvisualiser.styles.presets  import PI, Centred
 
 
@@ -156,7 +156,7 @@ class SpectrumFrame(Frame, Spectrum):
         # self.width, self.h are from Frame, self.barw is from Spectrum
         self.bar = Bar(self,
                        box_size=(self.width, self.h), # Ensure width/h are correct
-                       style=cfg['bar_style'])
+                       bar_style=cfg['bar_style'])
 
         # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))
         # Note: Bar.__init__ must add the bar to self.frames of the SpectrumFrame parent.
@@ -321,7 +321,7 @@ class StereoSpectrumFrame(Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
 
-        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','top'), flip=False, led_gap=5, peak_h=3, radius=0, tip=False, barw_min=15, barsize_pc=0.5, **kwargs)
-        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, led_gap=5, peak_h=3,radius=0, tip=False, barw_min=15, barsize_pc=0.5, **kwargs )
+        self += SpectrumFrame(self,  'right', scalers=(1.0, 0.5), align=('left','top'), spectrum_style=SpectrumStyle(barw_min=15, barsize_pc=0.5,), bar_style=BarStyle(led_gap=5, peak_h=3, radius=0,  ), **kwargs)
+        self += SpectrumFrame(self,  'left', scalers=(1.0, 0.5), align=('left','bottom'), spectrum_style=SpectrumStyle(barw_min=15, barsize_pc=0.5), bar_style=BarStyle(led_gap=5, peak_h=3, radius=0), **kwargs )
 
 

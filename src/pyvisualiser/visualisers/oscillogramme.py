@@ -27,7 +27,7 @@ Visualiser Frames create complex responses to the audio:
 """
 
 from    pyvisualiser.core.framecore  import Frame, Smoother
-from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, Dots, BarEffects, BarStyle, SpectrumStyle
+from    pyvisualiser.core.components import Bar, Text, Line, Box, Image, ArcsOctaves, BarEffects, BarStyle, SpectrumStyle
 from    pyvisualiser.styles.presets  import PI, Centred
 from    pyvisualiser.styles.styles   import OscillogrammeStyle, BarStyle
 
@@ -53,14 +53,14 @@ class OscilogrammeBar(Frame):
 
 
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, outline=None,
-                 oscillograme = OscillogrammeStyle(), bar=BarStyle(), square=False, z_order=0):
+                 oscillograme = OscillogrammeStyle(), bar_style=BarStyle(), square=False, z_order=0):
 
         Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, outline=outline,square=square,\
                        background=background, z_order=z_order)
         self.channel        = channel
         self.parent         = parent
         self.oscillograme   = oscillograme
-        self.bar_style      = bar
+        self.bar_style      = bar_style
 
         self.configure()
 
@@ -85,7 +85,7 @@ class OscilogrammeBar(Frame):
 
         self.current  = [ Smoother(1.0) for i in range(self.bars)]    #array of smoothers
         # bar_style = BarStyle(led_h=led_h, led_gap=led_gap, flip=flip, radius=radius, tip=tip, colour_mode='horz')
-        self.bar      = Bar(self, box_size=(self.width, self.h), style=self.bar_style)
+        self.bar      = Bar(self, box_size=(self.width, self.h), bar_style=self.bar_style)
         self.decay    = self.oscillograme.decay
 
         # print("OscilogrammeBar.__init__> width=%s, reduce_by=%d, bars %s, bar_gap %d, barw %d, frame> %s" % (self.width, self.reduce_by, self.bars, self.bar_gap, self.barw, self.geostr()))
@@ -140,39 +140,6 @@ class Oscilogramme(Frame):
         self.lines.draw_mod_line(samples, colour='foreground')
         return True
         
-
-
-
-
-class CircleModulator(Frame):
-    def __init__(self, parent, channel, scalers=None, align=None, theme=None):
-        self.channel = channel
-        Frame.__init__(self, parent, scalers=scalers, align=align, theme=theme, square=False)
-        self.configure()
-
-    def configure(self):
-        self.lines   = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
-        # self.ripples = Line(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.4)
-        self.dots    = Dots(self, circle=True, radius=self.h/2, endstops=(0,2*PI), amp_scale=1.0)
-        self.VU      = VU(self.platform, self.channel, decay=0.2)
-
-        # print("VUFrame.__init__> box=%s, flip=%d, orient %s, frame> %s" % (box, flip, orient, self.geostr()))
-
-    def update_screen(self):
-        hpf_freq = 1000
-        lpf_freq = 1500
-        # self.draw_background(True)
-
-        height, peaks = self.VU.read()
-        samples = self.platform.reduceSamples( self.channel, self.platform.framesize//(self.w//2), rms=False )  # reduce the dataset quite a bit
-        # high_samples = self.platform.filter( samples, hpf_freq, type='highpass' )
-        low_samples = self.platform.filter( samples, lpf_freq, type='lowpass' )
-        self.lines.draw_mod_line(low_samples, amplitude=0.5, gain=0.1, colour=height*self.h/2)
-        self.dots.draw_mod_dots(low_samples, trigger=self.platform.trigger_detected, amplitude=0.1, gain=0.1, colour='alert')
-        # self.ripples.draw_mod_ripples(low_samples, trigger=self.platform.trigger_detected, amplitude=height)
-        return True
-        
-
 # Subframe to drawn two spectrums flipped on top        
 class SamplesFrame(Frame):
     """ Volume/Source on left - Spectrum on left - one channel """
@@ -181,6 +148,6 @@ class SamplesFrame(Frame):
         self.create()
         
     def create(self):
-        self += OscilogrammeBar(self,  'left', scalers=(1.0,0.5), align=('left','top'), oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0))
-        self += OscilogrammeBar(self,  'right', scalers=(1.0,0.5), align=('left','bottom'), oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0,flip=True, colour_mode='horz'))
+        self += OscilogrammeBar(self,  'left', scalers=(1.0,0.5), align=('left','top'), oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar_style=BarStyle(led_gap=0))
+        self += OscilogrammeBar(self,  'right', scalers=(1.0,0.5), align=('left','bottom'), oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar_style=BarStyle(led_gap=0,flip=True, colour_mode='horz'))
 

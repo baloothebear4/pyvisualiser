@@ -24,12 +24,12 @@ class BarTest(Frame):
     Creates a set of static bars with varying levels of effects so we can see whats going on
     """
     def __init__(self, parent, channel, scalers=None, align=None, theme=None, background=None, \
-                 outline=None,square=False, update_fn=None, style=None, barsize_pc=0.7):
+                 outline=None,square=False, update_fn=None, bar_style=None, barsize_pc=0.7):
 
         # 1. Capture all configuration parameters into self.config
         self.config = {
             'channel': channel, \
-            'style': style, \
+            'bar_style': bar_style, \
             'update_fn':update_fn
         }
         self.barsize_pc = barsize_pc
@@ -37,10 +37,10 @@ class BarTest(Frame):
         self.configure()
 
     def configure(self):
-        style = self.config['style']
-        self.barw   = self.abs_w * self.barsize_pc if style.orient == 'vert' else self.abs_h * self.barsize_pc   # width of the bar
-        box         = (self.barw, self.h) if style.orient == 'vert' else (self.w, self.barw)
-        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, style=style)
+        bar_style = self.config['bar_style']
+        self.barw   = self.abs_w * self.barsize_pc if bar_style.orient == 'vert' else self.abs_h * self.barsize_pc   # width of the bar
+        box         = (self.barw, self.h) if bar_style.orient == 'vert' else (self.w, self.barw)
+        self.bar    = Bar(self, align=('centre', 'middle'), box_size=box, bar_style=bar_style)
 
         self.level     = self.config['channel']
         self.update_fn = self.config['update_fn']
@@ -261,17 +261,17 @@ class GlowTestScreen(Frame):
         cols = ColFramer(self, col_ratios=(1, 1, 1, 1), padding=50, padpc=0.1)
 
         # This bar should NOT glow. It's bright, but not using additive blending.
-        cols += BarTest(cols, 0.9,  style=BarStyle(colour_mode='solid', orient='vert', effects=None))
+        cols += BarTest(cols, 0.9,  bar_style=BarStyle(colour_mode='solid', orient='vert', effects=None))
 
         # This bar SHOULD glow. It uses additive blending for values > threshold.
         # The NeonGlow preset has a low threshold, so it should be bright.
-        cols += BarTest(cols, 0.9,  style=BarStyle(colour_mode='solid', orient='vert', effects=NeonGlow))
+        cols += BarTest(cols, 0.9,  bar_style=BarStyle(colour_mode='solid', orient='vert', effects=NeonGlow))
 
         # A dimmer bar that should also glow, but less intensely.
-        cols += BarTest(cols, 0.7, style=BarStyle(orient='vert', effects=NeonGlow))
+        cols += BarTest(cols, 0.7, bar_style=BarStyle(orient='vert', effects=NeonGlow))
         
         # A very dim bar that should not glow.
-        cols += BarTest(cols, 0.3, style=BarStyle(orient='vert', effects=NeonGlow))
+        cols += BarTest(cols, 0.3, bar_style=BarStyle(orient='vert', effects=NeonGlow))
 
         # Add text to explain
         self.text_frame = TextFrame(self, text="Viewing Glow Buffer. Left bar is normal, others are additive.",
@@ -329,9 +329,9 @@ class BarEffectsTestScreen(Frame):
 
         for level in np.arange(0.1, 1.1, 0.1):
             eff_h = BarEffects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
-            horzbars += BarTest(horzbars, level, style=BarStyle(orient='horz', effects=eff_h))
+            horzbars += BarTest(horzbars, level, bar_style=BarStyle(orient='horz', effects=eff_h))
             eff_v = BarEffects(threshold=0.8, scale=1.0*level, alpha=200, blur=0.5)
-            vertbars += BarTest(vertbars, level, theme='std', style=BarStyle(orient='vert', effects=eff_v))
+            vertbars += BarTest(vertbars, level, theme='std', bar_style=BarStyle(orient='vert', effects=eff_v))
 
 
 class AudioTest(Frame):
@@ -344,7 +344,7 @@ class AudioTest(Frame):
         r1 = RowFramer(self, padding=0, padpc=0.05)
 
         r1 += TextFrame(r1, update_fn=self.get_audio_metadata_str)
-        r1 += BarTest(r1, 0, style=BarStyle(orient='vert'), update_fn=self.get_audio_metadata)
+        r1 += BarTest(r1, 0, bar_style=BarStyle(orient='vert'), update_fn=self.get_audio_metadata)
 
     def get_audio_metadata_str(self):
          return "%s\n%.2f" % (self.metadata,self.get_audio_metadata())
@@ -389,10 +389,10 @@ class AudioTestScreen1(Frame):
         # eff_h = Effects(threshold=0.8, scale=1.0*level, alpha=200, blur=1.5)
 
         r1 += TextFrame(r1, update_fn=self.get_bass_str)
-        r1 += BarTest(r1, 0, style=BarStyle(orient='vert'), update_fn=self.get_bass)
+        r1 += BarTest(r1, 0, bar_style=BarStyle(orient='vert'), update_fn=self.get_bass)
 
         r2 += TextFrame(r2,  update_fn=self.get_treble_str)
-        r2 += BarTest(r2, 0, style=BarStyle(orient='vert'), update_fn=self.get_treble)
+        r2 += BarTest(r2, 0, bar_style=BarStyle(orient='vert'), update_fn=self.get_treble)
 
         r3 += TextFrame(r3, update_fn=self.get_bpm_str)
         r3 += BarTest(r3, 0, orient='vert', update_fn=self.get_bpm)

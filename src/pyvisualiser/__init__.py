@@ -28,9 +28,11 @@ from .core.framecore import Frame, ColFramer, RowFramer
 from .core.screenhandler import ScreenController, Platform
 
 # From the visualisers subdirectory
-from pyvisualiser.visualisers.vumeters import *
-from pyvisualiser.visualisers.metadata import *
-from pyvisualiser.visualisers.spectrum import *
+from .visualisers.vumeters import *
+from .visualisers.metadata import *
+from .visualisers.spectrum import *
+from .visualisers.oscillogramme import *
+
 
 from .styles.styles import *
 from .styles.presets import *

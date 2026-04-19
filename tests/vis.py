@@ -78,7 +78,7 @@ SUBFRAMES = (TrackScreen, TrackVisScreen, TrackVisScreen2, TrackVisScreen3, Trac
 #
 BASE_FRAMES = (TextFrame, PlayProgressFrame, ArtFrame, MetaImages, MetaData,\
                VUMeter, VUFrame, SpectrumFrame, OscilogrammeBar, Oscilogramme,\
-               Octaviser, CircleModulator, Diamondiser)
+               Octaviser, Diamondiser)
 
 SUBFRAMES2 = (Spectrum2chFrame, SpectrumStereoFrame,  SpectrumStereoLRFrame,  SpectrumStereoSplitFrame,\
               SpectrumStereoOffsetFrame, VUMeterFrame1, VUMeterFrame2, VUMeterFrame3, VUMeterFrame4, VUMeterImageFrame)   
@@ -100,7 +100,7 @@ TEST_SCREENS2 = (BackgroundEffectsScreen0, BackgroundEffectsScreen1, BackgroundE
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 HERO_SCREENS  = (H1,H2,H3,H4,H5,H6)
 
-SCREENS =   HERO_SCREENS +  GLSCREENS +TEST_SCREENS2#+ ART_SCREENS +SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+FULL_SCREENS#+GEO_TEST_SCREENS
+SCREENS =   HERO_SCREENS +  GLSCREENS +TEST_SCREENS2 + MANY_SCREENS#+ ART_SCREENS +SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+FULL_SCREENS#+GEO_TEST_SCREENS
 
 # SCREENS=(H1,)
 """ 

@@ -97,7 +97,7 @@ class VUScreen(Frame):   # comprises volume on the left, spectrum on the right
         Frame.__init__(self, platform,background='background')
         # self += VolumeSourceFrame(self  , 0.4, 'right')
         self += VU2chHorzFrame(self,background=background,     # --- Add these extreme values ---
-            effects=Effects(threshold=0.6, scale=3.0, blur=0.9)
+            bar_style=BarStyle(effects=BarEffects(threshold=0.6, scale=3.0, blur=0.9))
         )
 
 class VUVScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -181,7 +181,7 @@ class TestVisualiserScreen(Frame):   # comprises volume on the left, spectrum on
         Frame.__init__(self, platform,background=back)
 
         self += OscilogrammeBar(self  , 'left', scalers=(1.0,0.5), align=('right','top') )
-        self += OscilogrammeBar(self  , 'right', scalers=(1.0,0.5), align=('right','bottom'), flip=True)
+        self += OscilogrammeBar(self  , 'right', scalers=(1.0,0.5), align=('right','bottom'), bar_style=BarStyle(flip=True))
         # self += Diamondiser(self  , 'right', (0.5,0.5), align=('left','top'))
         # # self += Octaviser(self  , 'right', (0.5,0.5), align=('left','bottom'))
         # self += CircleModulator(self  , 'left', (0.5,0.5), align=('right','top'))
@@ -702,7 +702,7 @@ class F5(Frame):
         # colframe += TextFrame(colframe  , text='one big oneLB', scalers=(1.0,0.2), align=('left','top'), justify=('left', 'bottom'), background='mid', outline={'colour':'foreground','width':1}, padding =10)
         colframe += TextFrame(colframe  , text='twoCM', scalers=(1.0,1.0), align=('right','top'), justify=('centre', 'middle'), background='light', outline={'colour':'alert','width':1})
         # colframe += TextFrame(colframe  , text='threeRT', scalers=(1.0, 0.2), background='mid', justify=('right', 'top'), align=('centre','bottom'), outline={'colour':'foreground','width':1}, padding =10)
-        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
+        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, bar_style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
         
  
         rowframe = RowFramer(colframe  , row_ratios=(1,3, 1),  scalers=(1.0,1.0), align=('right','middle'), background='dark', padding=0.0)
@@ -776,7 +776,7 @@ class F6(Frame):
         colframe = ColFramer(self, col_ratios=(1,1,1), scalers=(1.0,1.0), background=None, outline={'colour':'foreground','width':1}, padding=10)
         # colframe += VU2chFrame(colframe, scalers=(0.1, 1.0), align=('right','middle'), background='background',bar_style=BarStyle(led_h=7, led_gap=2),barsize_pc=0.1, outline={'colour':'foreground', 'width':1}, theme='std')
         colframe += MetaDataFrame(colframe)
-        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='vert', led_gap=0, tip=True), background='dark')
+        colframe += VUFrame(colframe, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, bar_style=BarStyle(orient='vert', led_gap=0, tip=True), background='dark')
         # colframe += MetaImages(colframe, art_type='album', scalers=(1.0,1.0), outline={'colour':'foreground','width':30, 'radius':4, 'opacity':20},padding=0, background='mid')
         # colframe += MetaImages(colframe, art_type='artist', scalers=(1.0,1.0), background='light', outline={'colour':'alert','width':5},padding=0, opacity=100)
 
@@ -804,7 +804,7 @@ class F7(Frame):
         # self += TextFrame(self  , text='three', scalers=(0.33, 1.0), background='mid', align=('right','middle'), outline={'colour':'alert','width':10}, padding =10)
         # col += SpectrumFrame(col,  'left', scalers=(1.0, 1.0), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, barsize_pc=0.5),background='dark' )
         # self += VUHorzFrame(self, 'left',  scalers=(1.0, 0.5), align=('left','top') ,tip=False, background='mid')
-        col += VUFrame(col, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
+        col += VUFrame(col, 'left', align=('right','middle'), scalers=(1.0,1.0), barsize_pc=1.0, bar_style=BarStyle(orient='horz', led_gap=0, tip=True), background='dark')
         # col += VUFrame(col  , 'right', scalers=(1.0, 1.0), align=('centre', 'top'), background='stream.png')
 
         print(self)  

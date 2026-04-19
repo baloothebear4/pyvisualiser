@@ -8,6 +8,7 @@ These are the base classes for rendering on OpenGL shared by the graphics driver
 import moderngl
 from   abc import ABC, abstractmethod
 import numpy as np
+from pyvisualiser.core.framecore import get_asset_path
 
 # --- Phase 1: New Rendering Core Abstractions ---
 
@@ -475,6 +476,71 @@ class FXAAPass(RenderPass):
         self.prog['tex'].value = 0
         self.prog['resolution'].value = (input_target.texture.width, input_target.texture.height)
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
+
+import os
+class OutlineBlurPass(RenderPass):
+    def __init__(self, context, frame, blur_radius=10.0, glow_color=(1.0, 1.0, 1.0, 0.5)):
+        super().__init__(context)
+        self.frame = frame
+        self.blur_radius = blur_radius
+        self.glow_color = glow_color
+        
+        # Load the shader (assuming helper exists in your framework)
+        shader_name = 'blur_mask'
+        
+        path = get_asset_path('shaders', f"{shader_name}.frag.glsl")
+        if not os.path.exists(path): 
+            raise FileNotFoundError(f"Shader {shader_name} not found")
+
+        with open(path, 'r') as f:
+            src = f.read()      
+
+        self.prog = self.ctx.program(
+            vertex_shader='''
+                #version 330
+                in vec2 in_vert;
+                in vec2 in_texcoord;
+                out vec2 v_texcoord;
+                void main() {
+                    gl_Position = vec4(in_vert, 0.0, 1.0);
+                    v_texcoord = in_texcoord;
+                }
+            ''',
+            fragment_shader=src
+        )
+        
+        # Quad geometry for the glow area (slightly larger than the frame)
+        vertices = np.array([
+            -1.0, -1.0, 0.0, 0.0,
+             1.0, -1.0, 1.0, 0.0,
+            -1.0,  1.0, 0.0, 1.0,
+             1.0,  1.0, 1.0, 1.0,
+        ], dtype='f4')
+        self.vbo = self.ctx.buffer(vertices)
+        self.vao = self.ctx.vertex_array(self.prog, [(self.vbo, '2f 2f', 'in_vert', 'in_texcoord')])
+
+    def render(self, **kwargs):
+        # 1. Get absolute coordinates from Frame
+        x, y, w, h = self.frame.abs_rect()
+        
+        # 2. Setup Uniforms
+        self.prog['u_resolution'].value = (float(self.ctx.screen.width), float(self.ctx.screen.height))
+        self.prog['u_blur_radius'].value = float(self.blur_radius)
+        self.prog['u_glow_color'].value = self.glow_color
+        
+        # The mask rect is the internal area where we want NO glow
+        # Note: OpenGL Y is bottom-up
+        gl_y = self.ctx.screen.height - (y + h)
+        self.prog['u_mask_rect'].value = (float(x), float(gl_y), float(w), float(h))
+
+        # 3. Draw with Blending
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        self.vao.render(moderngl.TRIANGLE_STRIP)
+        self.ctx.disable(moderngl.BLEND)
+
+
+
 
 class Compositor:
     """Orchestrates the rendering pipeline."""

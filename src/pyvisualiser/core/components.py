@@ -13,6 +13,7 @@ v2.0 baloothebear4 Feb 2026     Major upgrade to port to OpenGL for speed and vi
 from  pyvisualiser.core.framecore import Frame, Cache, Colour, get_asset_path
 from  pyvisualiser.styles.styles import *
 from pyvisualiser.styles.profiles import ProfileManager
+from  pyvisualiser.core.render import OutlineBlurPass
 
 
 import pygame
@@ -49,20 +50,20 @@ class Bar(Frame):
         - peak lines
     """
     def __init__(self, parent, scalers=None, align=('centre', 'bottom'), theme=None, \
-                 box_size=(100,100), style=None):
+                 box_size=(100,100), bar_style=None):
 
         # print("Bar.__init__> theme %s, parent.theme %s" % (theme, parent.theme))
         Frame.__init__(self, parent, align=align,theme=theme, scalers=scalers)
         self.resize( box_size )
 
         profile = ProfileManager.get_profile()
-        self.style = style if style is not None else profile.get_style('bar')
-        if self.style is None:
-            self.style = BarStyle()
+        self.bar_style = bar_style if bar_style is not None else profile.get_style('bar')
+        if self.bar_style is None:
+            self.bar_style = BarStyle()
         
-        self.effects = style.effects if style.effects is not None else profile.effects
+        self.effects = bar_style.effects if bar_style.effects is not None else profile.effects
         
-        colour_range = self.h if self.style.colour_mode == 'vert' else self.w
+        colour_range = self.h if self.bar_style.colour_mode == 'vert' else self.w
         self.colours = Colour(self.theme, colour_range)
         
         self.gradient_surface = self._create_gradient_surface()
@@ -101,7 +102,7 @@ class Bar(Frame):
     def draw_peak(self, peak_h, flip, peak_coords):
         if peak_h> 0.0:
             colour = self.colours.get( colour_index=peak_h , flip=flip)  #
-            self.platform.renderer.draw_rect(colour, peak_coords, softness=self.style.edge_softness)
+            self.platform.renderer.draw_rect(colour, peak_coords, softness=self.bar_style.edge_softness)
 
     def _get_smoothed_bloom(self, key, target):
         current = self.bloom_states.get(key, 0.0)
@@ -118,14 +119,14 @@ class Bar(Frame):
 
     def draw(self, offset, ypc, w, peak=0, colour_index=None):
         self.tip_radius = int(w/2)
-        if self.style.orient == 'horz':
+        if self.bar_style.orient == 'horz':
             self.drawH(offset, ypc, w, peak, colour_index)
         else:
             self.drawV(offset, ypc, w, peak, colour_index)
 
     def drawV(self, offset, ypc, w, peak=0, colour_index=None):
         """ Draw Vertical Bar """
-        if self.style.flip:
+        if self.bar_style.flip:
             coords = self.float_abs_rect( offset=(offset, 0),  wh=[w, self.abs_h] )
 
             # Determine colors for gradient (Top, Bottom)
@@ -179,9 +180,9 @@ class Bar(Frame):
             # print("Bar.draw (flip)> colour_index ", colour_index, c_top, c_bot)
             # Draw the main segmented bar
             self.platform.renderer.draw_rect(c_top, coords, 
-                                             border_radius=self.style.corner_radius, 
-                                             softness=self.style.edge_softness,
-                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             border_radius=self.bar_style.corner_radius, 
+                                             softness=self.bar_style.edge_softness,
+                                             segments=(self.bar_style.segment_size, self.bar_style.segment_gap),
                                              gradient=(c_top, c_bot),
                                              axis=1,
                                              level=ypc,
@@ -190,7 +191,7 @@ class Bar(Frame):
 
             # Tip drawing (optional, can be added back if needed, but segments usually look good enough)
 
-            pcoords = self.float_abs_rect( offset=(offset, peak*self.abs_h),  wh=[w, self.style.peak_h] )
+            pcoords = self.float_abs_rect( offset=(offset, peak*self.abs_h),  wh=[w, self.bar_style.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw (flip)> coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak)
@@ -244,9 +245,9 @@ class Bar(Frame):
 
             # print("Bar.draw > colour_index ", colour_index, c_top, c_bot)
             self.platform.renderer.draw_rect(c_top, coords, 
-                                             border_radius=self.style.corner_radius, 
-                                             softness=self.style.edge_softness,
-                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             border_radius=self.bar_style.corner_radius, 
+                                             softness=self.bar_style.edge_softness,
+                                             segments=(self.bar_style.segment_size, self.bar_style.segment_gap),
                                              gradient=(c_top, c_bot),
                                              axis=-1.0, # Bottom anchored
                                              level=ypc,
@@ -270,9 +271,9 @@ class Bar(Frame):
                 c_top_ref, c_bot_ref = fade_c(c_top), fade_c(c_bot)
 
                 self.platform.renderer.draw_rect(c_bot_ref, ref_coords, 
-                                                 border_radius=self.style.corner_radius, 
-                                                 softness=self.style.edge_softness,
-                                                 segments=(self.style.segment_size, self.style.segment_gap),
+                                                 border_radius=self.bar_style.corner_radius, 
+                                                 softness=self.bar_style.edge_softness,
+                                                 segments=(self.bar_style.segment_size, self.bar_style.segment_gap),
                                                  gradient=(c_bot_ref, c_top_ref), 
                                                  axis=1.0, # Top anchored
                                                  level=ypc,
@@ -282,11 +283,11 @@ class Bar(Frame):
                 if peak > 0.01:
                     # Render inverted peak: peak goes from 0 to 1 means offset goes from abs_h down to 0
                     p_offset_ref = self.abs_h + (peak * self.abs_h * ref_size)
-                    pcoords_ref = self.float_abs_rect(offset=(offset, p_offset_ref), wh=[w, self.style.peak_h])
+                    pcoords_ref = self.float_abs_rect(offset=(offset, p_offset_ref), wh=[w, self.bar_style.peak_h])
                     c_peak_ref = fade_c(self.colours.get(self.colours.num_colours * peak, False))
-                    self.platform.renderer.draw_rect(c_peak_ref, pcoords_ref, softness=self.style.edge_softness)
+                    self.platform.renderer.draw_rect(c_peak_ref, pcoords_ref, softness=self.bar_style.edge_softness)
 
-            pcoords = self.float_abs_rect( offset=(offset, self.abs_h*(1-peak)),  wh=[w, self.style.peak_h] )
+            pcoords = self.float_abs_rect( offset=(offset, self.abs_h*(1-peak)),  wh=[w, self.bar_style.peak_h] )
             self.draw_peak(peak*self.h, False, pcoords)
 
             # print("Bar.draw > coords ", coords, "peak coords", coords, "ypc", ypc, "peak", peak, "col", col)
@@ -294,7 +295,7 @@ class Bar(Frame):
     """ Draw a horizontal bar """
     def drawH(self, offset, ypc, w, peak=0, colour_index=None):
         width  = self.abs_w
-        if self.style.flip:
+        if self.bar_style.flip:
 
             coords = self.float_abs_rect( offset=(0, offset),  wh=[width, w] )
             
@@ -341,9 +342,9 @@ class Bar(Frame):
                 self.platform.renderer.draw_rect(c_outer_tip, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_tip, c_outer_thresh), axis=2.0, level=10.0, additive=True)
 
             self.platform.renderer.draw_rect(c_left, coords, 
-                                             border_radius=self.style.corner_radius, 
-                                             softness=self.style.edge_softness,
-                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             border_radius=self.bar_style.corner_radius, 
+                                             softness=self.bar_style.edge_softness,
+                                             segments=(self.bar_style.segment_size, self.bar_style.segment_gap),
                                              gradient=(c_left, c_right),
                                              axis=-2.0, # Right anchored
                                              level=ypc,
@@ -351,7 +352,7 @@ class Bar(Frame):
                                              texture_holder=self)
 
             peak_w  = width*(peak)
-            pcoords = self.float_abs_rect( offset=(width*(1-peak), offset),  wh=[self.style.peak_h, w] )
+            pcoords = self.float_abs_rect( offset=(width*(1-peak), offset),  wh=[self.bar_style.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
         else:
@@ -400,9 +401,9 @@ class Bar(Frame):
                 self.platform.renderer.draw_rect(c_outer_thresh, b_rect_outer, softness=self.effects.blur * 2.5, gradient=(c_outer_thresh, c_outer_tip), axis=2.0, level=10.0, additive=True)
 
             self.platform.renderer.draw_rect(c_left, coords, 
-                                             border_radius=self.style.corner_radius, 
-                                             softness=self.style.edge_softness,
-                                             segments=(self.style.segment_size, self.style.segment_gap),
+                                             border_radius=self.bar_style.corner_radius, 
+                                             softness=self.bar_style.edge_softness,
+                                             segments=(self.bar_style.segment_size, self.bar_style.segment_gap),
                                              gradient=(c_left, c_right),
                                              axis=2.0, # Left anchored
                                              level=ypc,
@@ -410,7 +411,7 @@ class Bar(Frame):
                                              texture_holder=self)
 
             peak_w  = peak * width
-            pcoords = self.float_abs_rect( offset=(peak_w, offset),  wh=[self.style.peak_h, w] )
+            pcoords = self.float_abs_rect( offset=(peak_w, offset),  wh=[self.bar_style.peak_h, w] )
             self.draw_peak(peak_w, False, pcoords)
 
 class Image:
@@ -951,87 +952,88 @@ class Text:
         # print("Text.textsize > ", (text_abcd[2], text_abcd[3]))
         return (text_abcd[2], text_abcd[3])
 
-"""
-Dots are for drawing circles on progress bars, mood dots in space on visualisers etc
-"""
-class Dots(Frame):
-    def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', scalers=(1.0,1.0), \
-                  circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=1.0, dotcount=1000):
+# """
+# Dots are for drawing circles on progress bars, mood dots in space on visualisers etc
+# """
+# class Dots(Frame):
+#     def __init__( self, parent, colour_index=None, width=1, align=('centre', 'middle'), theme='std', scalers=(1.0,1.0), \
+#                   circle=True, endstops=(PI/2, 3* PI/2), radius=100, centre_offset=0, amp_scale=1.0, dotcount=1000):
 
-        self.width      = width
-        self.circle     = circle
-        self.radius     = radius
-        self.dotspace   = []
-        self.dotcount   = dotcount
-        self.amp_scale  = amp_scale
-        Frame.__init__(self, parent, align=align, scalers=scalers)
-        self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
+#         self.width      = width
+#         self.circle     = circle
+#         self.radius     = radius
+#         self.dotspace   = []
+#         self.dotcount   = dotcount
+#         self.amp_scale  = amp_scale
+#         Frame.__init__(self, parent, align=align, scalers=scalers)
+#         self.anglescale(radius, endstops, centre_offset)  # True if val is 0-1, False if -1 to 1
 
-        self.colour_index = colour_index
-        self.colours      = Colour(self.theme, radius)
-        # print("Dots.init> ", bounds, self.geostr(), self.anglestr())
+#         self.colour_index = colour_index
+#         self.colours      = Colour(self.theme, radius)
+#         # print("Dots.init> ", bounds, self.geostr(), self.anglestr())
 
-    def draw_circle(self, offset, colour_index=0):   #(x,y) offset
-        if colour_index is None: colour_index = self.colour_index
-        coords = self.abs_rect()
-        colour = self.colours.get(colour_index)
-        pygame.draw.ellipse(self.platform.screen, colour, coords, self.width)
-        # print("Dots.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
+#     def draw_circle(self, offset, colour_index=0):   #(x,y) offset
+#         if colour_index is None: colour_index = self.colour_index
+#         coords = self.abs_rect()
+#         colour = self.colours.get(colour_index)
+#         pygame.draw.ellipse(self.platform.screen, colour, coords, self.width)
+#         # print("Dots.draw> offset", self.platform.h, offset, "coords", coords, "top", self.top, self.geostr())
 
-    def draw_mod_dots(self, points, trigger={}, colour=None, amplitude=1.0, gain=0.8):
-        size         = len(points)
-        xc, yc       = self.centre[0], self.centre[1]
-        col          = self.radius*(self.amp_scale*amplitude) if colour is None else colour # Add a get col
-        accelerator  = 1.01
+#     def draw_mod_dots(self, points, trigger={}, colour=None, amplitude=1.0, gain=0.8):
+#         size         = len(points)
+#         xc, yc       = self.centre[0], self.centre[1]
+#         col          = self.radius*(self.amp_scale*amplitude) if colour is None else colour # Add a get col
+#         accelerator  = 1.01
 
-        if 'bass' in trigger:
-            accelerator = 1.05  # velocity the dots move outward
-            col = 'light'
+#         if 'bass' in trigger:
+#             accelerator = 1.05  # velocity the dots move outward
+#             col = 'light'
 
-        if 'treble' in trigger:
-            accelerator = 1.1
-            col  = 'foreground'  # velocity the dots move outward
+#         if 'treble' in trigger:
+#             accelerator = 1.1
+#             col  = 'foreground'  # velocity the dots move outward
 
-        # For all the dot space, calculate the velocities and move
-        for dot in self.dotspace:
-            self.dotspace.remove(dot)
-            x1 = int(accelerator*(dot[0]-xc)+ xc)
-            y1 = int(accelerator*(dot[1]-yc)+ yc)
-            # x1 = int(accelerator*(dot[0]))
-            # y1 = int(accelerator*(dot[1]))
-            # check dot is still on the screen
-            # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
-            if x1>=0 and x1<=self.w and y1>0 and y1<self.h and len(self.dotspace)<self.dotcount:
-            # if len(self.dotspace)<self.dotcount:    
-                self.dotspace.append([x1,y1, dot[2]])
-            # else:
+#         # For all the dot space, calculate the velocities and move
+#         for dot in self.dotspace:
+#             self.dotspace.remove(dot)
+#             x1 = int(accelerator*(dot[0]-xc)+ xc)
+#             y1 = int(accelerator*(dot[1]-yc)+ yc)
+#             # x1 = int(accelerator*(dot[0]))
+#             # y1 = int(accelerator*(dot[1]))
+#             # check dot is still on the screen
+#             # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
+#             if x1>=0 and x1<=self.w and y1>0 and y1<self.h and len(self.dotspace)<self.dotcount:
+#             # if len(self.dotspace)<self.dotcount:    
+#                 self.dotspace.append([x1,y1, dot[2]])
+#             # else:
 
-            # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
+#             # print("Dots.draw_mod_dots> acc", [x1,y1, dot[2]], len(self.dotspace), trigger)
 
-        colour = self.colours.get(col)
+#         colour = self.colours.get(col)
 
-        for i, v in enumerate(points):
-            # xy = self.anglexy(i/size, self.radius, gain=1.5, amp_scale=abs(v), xyscale=(xscale,1.0))
-            xy = self.anglexy(i/size, self.radius, gain=v*gain,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale)
-            # colour = self.colours.get(v*gain)
-            if v>0.00: # and len(trigger)>1: 
-                self.dotspace.append([ int(xy[0]),int(xy[1]),colour])
+#         for i, v in enumerate(points):
+#             # xy = self.anglexy(i/size, self.radius, gain=1.5, amp_scale=abs(v), xyscale=(xscale,1.0))
+#             xy = self.anglexy(i/size, self.radius, gain=v*gain,amp_scale=self.amp_scale*amplitude,  xyscale=self.xyscale)
+#             # colour = self.colours.get(v*gain)
+#             if v>0.00: # and len(trigger)>1: 
+#                 self.dotspace.append([ int(xy[0]),int(xy[1]),colour])
 
-            # Draw the dot space and calculate the velocities
-        for dot in self.dotspace:
-            # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size, self.geostr())
+#             # Draw the dot space and calculate the velocities
+#         for dot in self.dotspace:
+#             # print("Dots.draw_mod_dots", (dot[0], dot[1]), dot[2], size, self.geostr())
 
-            # if dot[0]<0 or dot[0]>self.w or dot[1]<0 or dot[1]>self.h: # and len(self.dotspace)<self.dotcount:
-            #     self.dotspace.remove(dot)
-            # else:
-            self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
-        # print("Dots.draw_mod_dots>", len(self.dotspace), trigger)
+#             # if dot[0]<0 or dot[0]>self.w or dot[1]<0 or dot[1]>self.h: # and len(self.dotspace)<self.dotcount:
+#             #     self.dotspace.remove(dot)
+#             # else:
+#             self.platform.screen.set_at( (dot[0], dot[1]), dot[2] )
+#         # print("Dots.draw_mod_dots>", len(self.dotspace), trigger)
                 
 
 class Outline:
     def __init__(self, frame, outline):
         self.frame = frame
-        
+        self.blur_pass = None 
+
         if isinstance(outline, dict):
             # If a dict is passed, create an OutlineStyle object from it.
             self.style = OutlineStyle(**outline)
@@ -1046,39 +1048,46 @@ class Outline:
         if self.style is None or self.style.width <= 0:
             return [0, 0, 0, 0]
 
-        # --- 1. Draw Glow (if any) ---
-        # The glow is a filled, soft, additive rectangle drawn before the main outline.
-        # If the frame has an opaque background, it will cover the inner part of this glow,
-        # creating a halo effect.
-        if self.style.glow_intensity > 0 and self.style.softness > 0:
-            
-            # The glow rect should be larger than the frame to create a halo.
-            expand = max(3.0, self.style.width * 2.0)
-            
-            glow_coords = self.frame.abs_perimeter() # Use the full perimeter rect
-            glow_coords[0] -= expand
-            glow_coords[1] -= expand
-            glow_coords[2] += expand * 2
-            glow_coords[3] += expand * 2
+        # --- 1. Modernized Glow via OutlineBlurPass ---
+        # Instead of drawing a rect, we push a RenderPass to the compositor
+        # #
+        # if self.style.glow_intensity > 0 and self.style.softness > 0:
+        #     # Check if we have a GPU context and compositor available
+        #     if hasattr(self.frame.platform.gfx_driver, 'compositor'):
+                
+        #         # Initialize the pass if it doesn't exist
+        #         if self.blur_pass is None:
+        #             # Map style attributes to the BlurPass
+        #             glow_color = self.frame.colours.get(self.style.colour)
+        #             # Convert to normalized 0.0-1.0 for OpenGL
+        #             gl_color = [c/255.0 for c in glow_color[:3]] + [self.style.opacity * self.style.glow_intensity]
+                    
+        #             self.blur_pass = OutlineBlurPass(
+        #                 self.frame.platform.gfx_driver.render_context, 
+        #                 self.frame, 
+        #                 blur_radius=self.style.softness * 15, # Scale softness to pixel radius
+        #                 glow_color=gl_color
+        #             )
 
-            glow_color = self.frame.colours.get(self.style.colour)
-            # Intensity acts as a multiplier on the base opacity.
-            glow_alpha = self.style.opacity * self.style.glow_intensity*255
-            
-            # Clamp alpha to valid range
-            glow_alpha = max(0, min(255, glow_alpha))
-            
-            final_glow_color = list(glow_color[:3]) + [int(glow_alpha)]
+        #         # Add the pass to the pre-draw queue so it renders behind the frame
+        #         self.frame.platform.gfx_driver.compositor.add_pre_pass(self.blur_pass)
 
-            # # Use the dedicated pre-pass geometry layer to draw the glow behind backgrounds
-            # self.frame.platform.renderer.draw_glow(
-            #     final_glow_color,
-            #     glow_coords,
-            #     softness=self.style.softness,
-            #     border_radius=self.style.radius + expand,
-            #     additive=True,
-            #     level=10.0
-            # )
+        # --- 2. Draw Main Outline (Sharp Edge) ---
+        if self.style.width > 0:
+            if coords is None:
+                coords = self.frame.abs_outline()
+
+            # Standard CPU/Surface drawing for the sharp border
+            colour_index = self.frame.colours.get(self.style.colour, opacity=self.style.opacity * 255)
+            
+            self.frame.platform.renderer.draw_rect(
+                colour_index,
+                coords,
+                border_radius=self.style.radius,
+                width=self.style.width
+            )
+        
+            return coords if coords else [0, 0, 0, 0]
 
         # --- 2. Draw Main Outline ---
         if coords is None:

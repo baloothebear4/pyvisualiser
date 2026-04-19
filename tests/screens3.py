@@ -93,7 +93,7 @@ class H1(Frame):   # comprises volume on the left, spectrum on the right
 
         meter=VUMeterStyle(pivot=PIVOT, endstops=ENDSTOPS, needle=NEEDLE, scale=VUscale )
   
-        SPECTRUM_STYLE = SpectrumStyle( barsize_pc = 0.2, barw_min = 12, decay = 0.2)
+        SPECTRUM_STYLE = SpectrumStyle( barsize_pc = 1.0, barw_min = 10, decay = 0.2)
         BAR_STYLE      = BarStyle(led_gap=2, peak_h=2, radius=0, led_h=6)
         SPECTRUM_BACKGROUND    = BackgroundStyle(colour='background', colour_opacity=VIS_OPACITY, ambient_glow=None)
 
@@ -261,8 +261,8 @@ class H4(Frame):   # comprises volume on the left, spectrum on the right
         #  Artist art, meta data progress in centre
         metadata_col  = RowFramer(colframe, row_ratios=(1,3,3), padding=0,padpc=0.0)
         metadata_col += MetaData(metadata_col, metadata_type='track', colour='foreground')
-        metadata_col += OscilogrammeBar(metadata_col, 'left', oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0))
-        metadata_col += OscilogrammeBar(metadata_col, 'right', oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar=BarStyle(led_gap=0,flip=True))
+        metadata_col += OscilogrammeBar(metadata_col, 'left', oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar_style=BarStyle(led_gap=0))
+        metadata_col += OscilogrammeBar(metadata_col, 'right', oscillograme=OscillogrammeStyle(barsize_pc=0.5, barw_min=2), bar_style=BarStyle(led_gap=0,flip=True))
 
         # VU Bars
         # colframe += VUFrame(colframe, 'left', barsize_pc=1.0, style=BarStyle(orient='vert', led_h=5, led_gap=2, tip=False))

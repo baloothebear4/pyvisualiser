@@ -69,7 +69,7 @@ class Geometry():
 
     @a.setter
     def a(self, val):
-        if val >= 0 and val <= self.boundswh[0]:
+        if val >= 0 and val < self.boundswh[0]:
             self._abcd[0] = int(val)
         else:
             raise ValueError('set.a > value exceed bounds ', val, self.boundswh[0], self.geostr())
@@ -81,7 +81,7 @@ class Geometry():
 
     @b.setter
     def b(self, val):
-        if val >= 0 and val <= self.boundswh[1]:
+        if val >= 0 and val < self.boundswh[1]:
             self._abcd[1] = int(val)
         else:
             raise ValueError('set.b > value exceed bounds ', val, self.boundswh[1], self.geostr())
@@ -95,7 +95,7 @@ class Geometry():
         if val < self.a:
             raise ValueError(f'set.c < set.a: {val} < {self.a}. Cannot invert coordinates.', self.geostr())
             
-        if val >= 0 and val <= self.boundswh[0]:
+        if val >= 0 and val < self.boundswh[0]:
             self._abcd[2] = int(val)
         else:
             raise ValueError('set.c > value exceed bounds ', val, self.boundswh[0], self.geostr())
@@ -114,7 +114,7 @@ class Geometry():
         if val < self.b:
             raise ValueError(f'set.d < set.b: {val} < {self.b}. Cannot invert coordinates.', self.geostr())
             
-        if val >= 0 and val <= self.boundswh[1]:
+        if val >= 0 and val < self.boundswh[1]:
             self._abcd[3] = int(val)
         else:
             raise ValueError('set.d > value exceed bounds ', val, self.boundswh[1], self.geostr())
@@ -201,22 +201,15 @@ class Geometry():
                 wh=(wh[0]+1, wh[0])
             # print("Geometry.resize> square", wh, self.xyscale, self, self.geostr())
 
-        # reduce the sw & h to allow for outline width
+        # Clamp requested size to available bounds to prevent Geometry errors from small rounding or margin overlaps
+        target_w = min(float(wh[0]), float(self.boundswh[0]))
+        target_h = min(float(wh[1]), float(self.boundswh[1]))
 
         self.a = 0
         self.b = 0
-        try:
-            self.c = wh[0] -1 if wh[0] > 0 else 0
-        except ValueError:
-            self.c = self.boundswh[0] -1
-            # self.align()
-            print("!!! Geometry.resize> outside bounds w %f, set to bounds, %s" % (wh[0], self.geostr()) )
-        try:
-            self.d = wh[1] -1 if wh[1] > 0 else 0
-        except ValueError:
-            self.d = self.boundswh[1] -1
-            # self.align()
-            print("!!! Geometry.resize> outside bounds h %f, set to bounds, %s" % (wh[1], self.geostr()) )
+        
+        self.c = max(0, int(target_w - 1)) if target_w > 0 else 0
+        self.d = max(0, int(target_h - 1)) if target_h > 0 else 0
 
         # print("Geometry.resize end to ", wh, self.geostr())
         self.align()
@@ -623,7 +616,6 @@ class Frame(Geometry):
         # so that the glow sits behind the background layer.
         self.draw_outline()
         self.draw_background()
-
 
 
         # Sort frames by z_order for drawing (lowest first)

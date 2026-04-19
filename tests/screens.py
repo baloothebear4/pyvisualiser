@@ -25,9 +25,10 @@ TrackSpectrumScreen, TrackSpectrumScreen2, TrackSpectrumScreen3, TrackSpectrumSc
 from pyvisualiser.visualisers.vumeters import *
 from pyvisualiser.visualisers.metadata import *
 from pyvisualiser.visualisers.spectrum import *
-
+from pyvisualiser.visualisers.oscillogramme import *
 from pyvisualiser.core.framecore import Frame, ColFramer, RowFramer
-
+from pyvisualiser.styles.presets import *
+from pyvisualiser.styles.styles  import *
 
 """
 Screen classes - these are top level frames comprising frames of frames at full display size
@@ -85,7 +86,7 @@ class TrackVisScreen2(Frame):   # comprises volume on the left, spectrum on the 
         self += MetaData(self  , 'artist', scalers=(0.33, 0.2), align=('centre','top'))
         self += MetaData(self  , 'track', scalers=(0.33, 0.2), align=('centre', 'middle'))        # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         self += MetaData(self  , 'album', scalers=(0.33, 0.2), align=('centre', 'bottom'))
-        self += CircleModulator(self  , 'mono', scalers=(1.0,1.0), align=('centre','middle'))
+        # self += CircleModulator(self  , 'mono', scalers=(1.0,1.0), align=('centre','middle'))
         self += PlayProgressFrame(self  , scalers=(1.0, 0.05), align=('centre','bottom'))
 
 class TrackVisScreen3(Frame):   # comprises volume on the left, spectrum on the right
@@ -132,9 +133,9 @@ class TrackSpectrumScreen(Frame):   # comprises volume on the left, spectrum on 
         # self += PlayProgressFrame(self  , scalers=(0.33, 0.05), align=('centre','bottom'))
 
         self += MetaImages(self  , scalers=(0.31, 1.0), align=('right','middle'))
-        # self += SpectrumFrame(self  ,  'right', scalers=(0.33, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, barw_min=5, bar_space=0.6)
-        # self += SpectrumFrame(self  ,  'left', scalers=(0.33, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, barw_min=5, bar_space=0.6)
-        self += SpectrumFrame(self  ,  'mono', scalers=(0.33, 1.0), align=('left','bottom'), flip=False, led_gap=2, peak_h=2, radius=2, barw_min=5, bar_space=0.6)
+        # self += SpectrumFrame(self  ,  'right', scalers=(0.33, 0.5), align=('left','bottom'), flip=True, led_gap=2, peak_h=0, radius=2, barw_min=5, barsize_pc=0.6)
+        # self += SpectrumFrame(self  ,  'left', scalers=(0.33, 0.5), align=('left','top'), flip=False, led_gap=2, peak_h=0,radius=2, barw_min=5, barsize_pc=0.6)
+        self += SpectrumFrame(self  ,  'mono', scalers=(0.33, 1.0), align=('left','bottom'), bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True),spectrum_style=SpectrumStyle(barw_min=5, barsize_pc=0.6))
 
 class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -148,8 +149,8 @@ class TrackSpectrumScreen2(Frame):   # comprises volume on the left, spectrum on
 
         cols = ColFramer(self)
         # spectrum = Frame(cols)
-        # spectrum += SpectrumFrame(spectrum  ,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=2))
-        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=2) )
+        # spectrum += SpectrumFrame(spectrum  ,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=2))
+        # spectrum += SpectrumFrame(spectrum  ,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=2) )
         cols += StereoSpectrumFrame(cols)
         artoutline = {'colour':'background', 'width':5}
         cols += MetaImages(cols  , scalers=(0.8,1.0),align=('left','middle'), opacity=100, outline=artoutline)
@@ -188,8 +189,8 @@ class TrackSpectrumScreen3(Frame):   # comprises volume on the left, spectrum on
         TRACK  = {'track' : {'colour':'mid', 'align': ('centre', 'middle'), 'scalers': (1.0, 0.5)}}
         # self += ArtistArtFrame(self  , (0.2, 1.0),align=('left','middle'))
         spectrumframe = Frame(self, scalers=(0.7,1.0), align=('left', 'top'))
-        spectrumframe += SpectrumFrame(spectrumframe  ,  'right', scalers=(1.0, 0.5), align=('centre','bottom'), led_gap=0, flip=True, barw_min=3, bar_space=0.5, tip=True )
-        spectrumframe += SpectrumFrame(spectrumframe  ,  'left', scalers=(1.0, 0.5), align=('centre','top'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=0.5) )
+        spectrumframe += SpectrumFrame(spectrumframe  ,  'right', scalers=(1.0, 0.5), align=('centre','bottom'), bar_style=BarStyle(led_gap=0, flip=True, tip=True), spectrum_style=SpectrumStyle( barw_min=3, barsize_pc=0.5,  ))
+        spectrumframe += SpectrumFrame(spectrumframe  ,  'left', scalers=(1.0, 0.5), align=('centre','top'), bar_style=BarStyle(led_gap=0, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=0.5) )
         # self += MetaData(self  , 'artist', scalers=(0.3, 0.5), align=('right','top'))
         # self += MetaData(self  , 'track', scalers=(0.3, 0.5), align=('right','bottom'))
         # self += PlayProgressFrame(self  , scalers=(0.7, 0.05), align=('left','bottom'))
@@ -219,8 +220,8 @@ class TrackSpectrumScreen4(Frame):   # comprises volume on the left, spectrum on
         self += PlayProgressFrame(self,  scalers=(0.9, 0.05), align=('centre','bottom'))
 
         spectrumframe = Frame(self, scalers=(0.7,0.8), align=('left', 'middle'))
-        self += SpectrumFrame(spectrumframe,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, bar_space=0.5))
-        self += SpectrumFrame(spectrumframe,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, bar_space=0.5) )
+        self += SpectrumFrame(spectrumframe,  'right', scalers=(1.0, 0.5), align=('left','bottom'), flip=True, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, barsize_pc=0.5))
+        self += SpectrumFrame(spectrumframe,  'left', scalers=(1.0, 0.5), align=('left','top'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=0, tip=False), spectrum_style=SpectrumStyle(barw_min=15, barsize_pc=0.5) )
         self += MetaData(self, 'track', scalers=(1.0, 0.2), align=('centre','top'))
         
 
@@ -255,7 +256,7 @@ class TrackVUMeterScreen21(Frame):   # comprises volume on the left, spectrum on
     def __init__(self, platform):
         super().__init__(platform, theme= 'meter1')
   
-        NEEDLE    = { 'width':4, 'colour': 'foreground', 'length': 0.8, 'radius_pc': 1.0 }
+        NEEDLE    = VUNeedleStyle( colour='foreground', width=2, length= 0.8, radius_pc=1.0)
         ENDSTOPS  = (3*PI/4, 5*PI/4)  #Position of endstop if not the edge of the frame
         PIVOT     = -0.5
         OUTLINE={'colour':'light', 'width':2, 'opacity': 200, 'radius': 20}
@@ -332,7 +333,7 @@ class MinSpectrumArt(Frame):   # comprises volume on the left, spectrum on the r
         # self += PlayProgressFrame(subframe2  , scalers=(0.9, 0.075), align=('centre','bottom'))
         
         # subframe3= Frame(self, scalers=(0.7, 0.2), align=('right','bottom'))     # for playprogress and Meta data 
-        # colframe += SpectrumFrame(colframe,  'mono', flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=False, col_mode='horz'), spectrum_style=SpectrumStyle(barw_min=1, bar_space=2) )
+        # colframe += SpectrumFrame(colframe,  'mono', flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=False, col_mode='horz'), spectrum_style=SpectrumStyle(barw_min=1, barsize_pc=2) )
 
 
 class ArtMetaSpectrumScreen(Frame):   # comprises volume on the left, spectrum on the right
@@ -351,7 +352,7 @@ class ArtMetaSpectrumScreen(Frame):   # comprises volume on the left, spectrum o
         # rowframe    = RowFramer(self, scalers=(0.67,0.8), align=('right','top'), padding =0.00, background='dark' ) # for album art with padding
         self   += MetaImages(self, scalers=(0.33,1.0), align=('left','middle'))  #, outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 20})
         self   += MetaDataFrame(self, scalers=(0.67,0.8), align=('right','top'), justify='left')
-        self   += SpectrumFrame(self,'mono', scalers=(0.67, 0.2), align=('right','bottom'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=False, col_mode='horz'), spectrum_style=SpectrumStyle(barw_min=1, bar_space=3) )
+        self   += SpectrumFrame(self,'mono', scalers=(0.67, 0.2), align=('right','bottom'), flip=False, bar_style=BarStyle(led_gap=0, peak_h=1, radius=0, tip=False, col_mode='horz'), spectrum_style=SpectrumStyle(barw_min=1, barsize_pc=3) )
 
 class BigDialsScreen2(Frame):   # comprises volume on the left, spectrum on the right
     @property
@@ -391,7 +392,7 @@ class BigDialsScreen2(Frame):   # comprises volume on the left, spectrum on the 
         subframe2= Frame(self, scalers=(0.31, 0.55), align=('left','top'))
         self += MetaImages(subframe, art_type='album',align=('centre','middle'), outline={'colour':'light', 'width':5, 'opacity': 200, 'radius': 20})
         self += MetaDataFrame(subframe2  , scalers=(0.9,0.9), align=('centre','middle'))
-        self += SpectrumFrame(self,  'mono', scalers=(0.68, 0.7), align=('left','bottom'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, bar_space=1) )
+        self += SpectrumFrame(self,  'mono', scalers=(0.68, 0.7), align=('left','bottom'), flip=False, bar_style=BarStyle(led_gap=5, peak_h=3, radius=4, tip=True), spectrum_style=SpectrumStyle(barw_min=3, barsize_pc=1) )
         self += PlayProgressFrame(self  , scalers=(0.68, 0.05), align=('left','bottom'))
 
 
