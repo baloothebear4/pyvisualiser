@@ -159,15 +159,15 @@ class MetaDataFrame(Frame):
 
     OUTLINE = { 'width' : 1, 'radius' : 0, 'colour' : 'dark'}
 
-    def __init__(self, parent, tip=False, justify=('centre','middle'), background='background', **kwargs):
+    def __init__(self, parent, tip=False, justify=('centre','middle'), **kwargs):
         super().__init__(parent, **kwargs)
         self.justify = justify
 
         OUT = None
-        rows  = RowFramer(self, padding=0.00, background=background, row_ratios=(1.5,1,1,0.5),padpc=0.3     )
-        rows += MetaData(rows, 'track', justify=self.justify,  colour  = 'foreground', background=None, outline=OUT)
-        rows += MetaData(rows, 'album', justify=self.justify,  colour  = 'mid',background=None, outline=OUT)
-        rows += MetaData(rows, 'artist', justify=self.justify, colour  = 'mid',background=None, outline=OUT) 
+        rows  = RowFramer(self, padding=0.00, row_ratios=(1.5,1,1,0.5),padpc=0.3     )
+        rows += MetaData(rows, 'track', justify=self.justify,  colour  = 'foreground')
+        rows += MetaData(rows, 'album', justify=self.justify,  colour  = 'light')
+        rows += MetaData(rows, 'artist', justify=self.justify, colour  = 'light') 
         rows += PlayProgressFrame(rows,background=None, outline=OUT)
 
 

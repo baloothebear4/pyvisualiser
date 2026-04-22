@@ -173,6 +173,7 @@ class OutlineStyle:
     opacity: float = 1.0
     glow_intensity: float = 0.0
     softness: float = 0.1
+    glow_colour: Optional[str] = None
 
 
 """"

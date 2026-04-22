@@ -544,10 +544,27 @@ class GeometryPass(RenderPass):
 
                     float alpha = 0.0;
                     
-                    if (v_stroke > 0.0) {
+                    if (v_stroke < 0.0) {
+                        // Glow Rendering (outward spill)
+                        float glow_radius = abs(v_stroke);
+                        if (dist <= 0.0) {
+                            // Drop to 0 inside the frame so the light only spills outwards
+                            alpha = smoothstep(-2.0, 0.0, dist);
+                        } else if (dist < glow_radius) {
+                            float falloff = dist / glow_radius;
+                            // Exponential decay for steep organic light falloff + power curve to gently feather to absolute zero
+                            alpha = pow(1.0 - falloff, 3.0) * exp(-falloff * 5.0);
+                        } else {
+                            alpha = 0.0;
+                        }
+                    } else if (v_stroke > 0.0) {
                         // Outline Rendering
-                        float outer_alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
-                        float inner_alpha = 1.0 - smoothstep(-0.5, 0.5, dist + v_stroke);
+                        // Calculate blur amount based on softness
+                        float blur = v_softness * 20.0;
+                        float feather = max(0.5, blur);
+                        
+                        float outer_alpha = 1.0 - smoothstep(-feather, feather, dist);
+                        float inner_alpha = 1.0 - smoothstep(-feather, feather, dist + v_stroke);
                         alpha = outer_alpha - inner_alpha;
                     } else {
                         // Filled Rendering
@@ -749,12 +766,12 @@ class GeometryPass(RenderPass):
             return
         
         # Calculate padding for softness to avoid clipping
-        padding = 0.0
+        padding = 10.0 + abs(stroke_width)
         if softness > 0.0:
              # Match shader logic: float blur = v_softness * max(20.0, min_dim * 0.8);
              min_dim = min(w, h)
              blur_radius = softness * max(20.0, min_dim * 0.8)
-             padding = blur_radius * 1.5 + 10.0 # Standard safety margin
+             padding += blur_radius * 1.5
 
         # Normalize to OpenGL Clip Space
         sw, sh = self.platform.W, self.platform.H

@@ -1071,23 +1071,32 @@ class Outline:
 
         #         # Add the pass to the pre-draw queue so it renders behind the frame
         #         self.frame.platform.gfx_driver.compositor.add_pre_pass(self.blur_pass)
-
-        # --- 2. Draw Main Outline (Sharp Edge) ---
-        if self.style.width > 0:
-            if coords is None:
-                coords = self.frame.abs_outline()
-
-            # Standard CPU/Surface drawing for the sharp border
-            colour_index = self.frame.colours.get(self.style.colour, opacity=self.style.opacity * 255)
-            
-            self.frame.platform.renderer.draw_rect(
-                colour_index,
-                coords,
-                border_radius=self.style.radius,
-                width=self.style.width
-            )
-        
-            return coords if coords else [0, 0, 0, 0]
+        if self.style.glow_intensity > 0 and self.style.softness > 0:
+            gfx = getattr(self.frame.platform, 'gfx_driver', None)
+            if gfx and hasattr(gfx, 'compositor'):
+                # We NO LONGER register the interior to the mask pass. The mask pass incorrectly
+                # masked ALL interior blooms (Spectrum bars, etc), turning them "transparent".
+                
+                # 2. Draw a high-intensity (HDR) outline to main_target.
+                g_col_name = self.style.glow_colour if self.style.glow_colour is not None else self.style.colour
+                glow_color = self.frame.colours.get(g_col_name)
+                
+                # We restore a higher intensity scaling to ensure the glow can get very bright
+                hdr_color = [c * self.style.glow_intensity * 2.5 for c in glow_color[:3]] + [255]
+                
+                # Calculate outward glow radius
+                glow_w = max(4.0, self.style.width + (self.style.softness * 40.0))
+                
+                base_coords = self.frame.abs_outline()
+                
+                self.frame.platform.renderer.draw_rect(
+                    hdr_color,
+                    base_coords,
+                    border_radius=self.style.radius,
+                    width=-glow_w, # Negative width signals outer exponential glow in shader
+                    softness=self.style.softness, 
+                    additive=True
+                )
 
         # --- 2. Draw Main Outline ---
         if coords is None:

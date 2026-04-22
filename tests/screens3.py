@@ -20,9 +20,11 @@ from pyvisualiser.styles.styles  import *
 from pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer
 
 """ Common styles for this profile"""
-SimpleOutline = OutlineStyle(colour='mid', width=1, radius=10, opacity=1.0, glow_intensity=0.0, softness=0.1)
-Edge          = EdgeLightStyle(enabled=True, intensity=0.7, width=0.2, softness=1.2,audio_reactivity=0.0)
-ArtOutline    = OutlineStyle(colour='mid', width=5, radius=10, opacity=1.0, glow_intensity=0.7, softness=0.3)
+SimpleOutline     = OutlineStyle(colour='mid', width=1, radius=10, opacity=1.0, glow_intensity=0.3, softness=1.0)
+Edge              = EdgeLightStyle(enabled=True, intensity=0.7, width=0.2, softness=1.2,audio_reactivity=0.0)
+ArtOutline        = OutlineStyle(colour='mid', width=5, radius=10, opacity=1.0, glow_intensity=0.3, softness=1.0)
+Cloud             = CloudStyle(opacity=0.8)
+ScreenBackground  = BackgroundStyle(starfield=False,cloud=Cloud, edge_light=Edge )
 
 """ A Floating frame that sits on top of a screen on the RHS same"""
 class VolumeSource(Frame):
@@ -145,7 +147,7 @@ class H1(Frame):   # comprises volume on the left, spectrum on the right
         centre  = RowFramer(cols, row_ratios=(3,1,0.4),outline=None,padding=0,padpc=0.1)
         centre += SpectrumFrame(centre, 'mono', spectrum_style=SPECTRUM_STYLE, bar_style=BAR_STYLE, background=SPECTRUM_BACKGROUND, outline=SimpleOutline,padding=10) 
 
-        metadata  = RowFramer(centre,padpc=0.0,outline=SimpleOutline, background=BackgroundStyle(reactive_glow=ReactiveGlowStyle(colour='mid')))
+        metadata  = RowFramer(centre,padpc=0.0,padding=10, outline=SimpleOutline, background=BackgroundStyle(reactive_glow=ReactiveGlowStyle(colour='mid')))
         metadata  += MetaData(metadata, metadata_type='track',justify=('left'), colour='foreground')
         metadata  += MetaData(metadata, metadata_type='artist',justify=('left'), colour='light')
         centre += PlayProgressFrame(centre)
@@ -224,10 +226,7 @@ class H3(Frame):   # comprises volume on the left, spectrum on the right
     def type(self): return 'Test'
 
     def __init__(self, platform):
-
-        SpectrumGlow          = AmbientGlowStyle(colour='light', radius=0.2, softness=0.2, opacity=0.5)
-        back = BackgroundStyle(edge_light=Edge,texture_path='blue.jpg', texture_opacity=0.1, reactive_glow=None, ambient_glow=False, cloud=CloudStyle(opacity=0.5) )
-        Frame.__init__(self, platform, theme= 'hifi', padding=0, background=back)
+        Frame.__init__(self, platform, theme= 'hifi', padding=0, background=ScreenBackground)
 
 
         # 2 Cols: Album art on Left, MetaData centre
@@ -266,10 +265,8 @@ class H4(Frame):   # comprises volume on the left, spectrum on the right
 
     def __init__(self, platform):
 
-        SpectrumGlow          = AmbientGlowStyle(colour='light', radius=0.2, softness=0.2, opacity=0.5)
-        back = BackgroundStyle(colour='background', colour_opacity=0.7, reactive_glow=None, ambient_glow=False, cloud=CloudStyle(opacity=0.8),\
-                               edge_light=Edge )
-        Frame.__init__(self, platform, theme= 'hifi', padding=0, background=back)
+
+        Frame.__init__(self, platform, theme= 'hifi', padding=0, background=ScreenBackground)
 
 
         colframe    = ColFramer(self, padpc=0.0, col_ratios=(3,4), padding=10,background=None)
@@ -309,8 +306,7 @@ class H5(Frame):   # comprises volume on the left, spectrum on the right
 
     def __init__(self, platform):
         # back = BackgroundStyle(texture_path='blue.jpg',texture_opacity=1.0)
-        back = BackgroundStyle(cloud=CloudStyle(opacity=0.5), edge_light=Edge)
-        Frame.__init__(self, platform, background=back, theme= 'hifi', padding=0)
+        Frame.__init__(self, platform, background=ScreenBackground, theme= 'hifi', padding=0)
 
 
         TICK_W    = 3
@@ -335,9 +331,9 @@ class H5(Frame):   # comprises volume on the left, spectrum on the right
         
         # laserneedle2 = VUNeedleStyle(colour='alert', width=4, length=1.0, radius_pc=0.9, glow_intensity=0.2, glow_colour='alert', tip_glow=True)
 
-        glow          = AmbientGlowStyle(colour='foreground', radius=0.2, softness=0.3, opacity=0.3)
-        outline       = OutlineStyle(colour='foreground', width=5, opacity=1.0, radius=25, glow_intensity=0.8, softness=0.2)  
-        background    = BackgroundStyle(colour='background', colour_opacity=0.5, ambient_glow=glow, texture_opacity=0.0, texture_path='particles.jpg') #), texture_path='particles.jpg',texture_opacity=0.8)
+        vuglow          = AmbientGlowStyle(colour='foreground', radius=0.2, softness=0.3, opacity=0.5)
+        vuoutline       = OutlineStyle(colour='light', width=5, opacity=1.0, radius=25, glow_intensity=0.3, softness=1.5)  
+        vubackground    = BackgroundStyle(colour='dark', colour_opacity=0.8, ambient_glow=vuglow, texture_opacity=0.0, texture_path='particles.jpg') #), texture_path='particles.jpg',texture_opacity=0.8)
 
         style = VUMeterStyle(pivot=-0.7, endstops=(3*PI/4, 5*PI/4),
                              needle=VUNeedleStyle(width=2, colour='foreground', length=0.8, radius_pc=0.75, glow_intensity=0.0, glow_colour='foreground',tip_glow=True, shadow=True),
@@ -351,15 +347,15 @@ class H5(Frame):   # comprises volume on the left, spectrum on the right
         # Meta Data
         rows = RowFramer(cols_all, row_ratios=(4,1),padding=10, padpc=0.0)
 
-        cols = ColFramer(rows, padpc=0.05,padding=0)
-        cols += VUMeter(cols, 'left', style=style, background=background, outline=outline)
-        cols += VUMeter(cols, 'right', style=style, background=background, outline=outline)
+        cols = ColFramer(rows, padpc=0.2,padding=20)
+        cols += VUMeter(cols, 'left', style=style, background=vubackground, outline=vuoutline)
+        cols += VUMeter(cols, 'right', style=style, background=vubackground, outline=vuoutline)
 
                 # Add the source and Volume
         # cols_r2   = ColFramer(rows, col_ratios=(2,10,2),padpc=0.15,padding=5, outline=None)
         # cols_r2 += MetaData(cols_r2, metadata_type='source', colour='light')
 
-        metadata  = RowFramer(rows,padpc=0.1,outline=None)
+        metadata  = RowFramer(rows,padpc=0.05,outline=None)
         metadata  += MetaData(metadata, metadata_type='track',justify=('centre'), colour='foreground')
         metadata  += MetaData(metadata, metadata_type='artist',justify=('centre'), colour='light')
 
@@ -373,15 +369,15 @@ class H6(Frame):
 
     def __init__(self, parent):
 
-        back  = BackgroundStyle(colour='background', colour_opacity=0.5,starfield=True,cloud=True, edge_light=Edge )
-        Frame.__init__(self, parent, theme='hifi', background=back)
+
+        Frame.__init__(self, parent, theme='hifi', background=ScreenBackground)
 
         # 2 Cols: Reflected album art on left, 5 rows: Full MetaData, Playprogress, Spectrum. VolumeSource overlaid on right
 
         cols  = ColFramer(self, col_ratios=(4,7,1), padding=10, padpc=0.0)
 
-        image = RowFramer(cols,row_ratios=(5,1), outline=OutlineStyle(colour='mid',width=3, radius=10))
-        image += MetaImages(image,  'album',padding=10, reflection=True)
+        image = RowFramer(cols,row_ratios=(4,1), outline=None)#OutlineStyle(colour='mid',width=3, radius=10))
+        image += MetaImages(image,  'album',padding=0, reflection=True)
         image += Frame(image) # blank padding space for the reflection
 
         rows  = RowFramer(cols, row_ratios=(3,1), padpc=0.05,padding=5)

@@ -105,6 +105,18 @@ class RenderTarget:
     def clear(self, colour=(0,0,0,0)):
         self.fbo.clear(*colour)
 
+class RenderPass(ABC):
+    """Abstract base class for a rendering pass."""
+    def __init__(self, context: RenderContext):
+        self.context = context
+        self.ctx = context.ctx
+
+    @abstractmethod
+    def render(self, **kwargs):
+        pass
+
+    def resize(self, size: tuple[int, int]):
+        pass
 class PingPongBuffer:
     """
     Helper for multi-pass effects like Blur that require reading from one buffer
@@ -121,18 +133,48 @@ class PingPongBuffer:
         self.read.resize(size)
         self.write.resize(size)
 
-class RenderPass(ABC):
-    """Abstract base class for a rendering pass."""
+class MaskPass(RenderPass):
+    """
+    Renders frame interior areas to a mask texture to prevent glow bleed.
+    Used to ensure outline blurs stay on the outside.
+    """
     def __init__(self, context: RenderContext):
-        self.context = context
-        self.ctx = context.ctx
+        super().__init__(context)
+        self.prog = self.ctx.program(
+            vertex_shader="""
+                #version 330
+                in vec2 in_vert;
+                void main() { gl_Position = vec4(in_vert, 0.0, 1.0); }
+            """,
+            fragment_shader="""
+                #version 330
+                out vec4 f_colour;
+                void main() { f_colour = vec4(1.0, 0.0, 0.0, 1.0); }
+            """
+        )
+        self.vbo = self.ctx.buffer(reserve=6 * 2 * 4) 
+        self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert')
+        self.rects = []
 
-    @abstractmethod
-    def render(self, **kwargs):
-        pass
+    def add_mask(self, rect):
+        self.rects.append(rect)
 
-    def resize(self, size: tuple[int, int]):
-        pass
+    def render(self, target: RenderTarget):
+        target.use()
+        target.clear()
+        if not self.rects: return
+        
+        sw, sh = self.context.width, self.context.height
+        for x, y, w, h in self.rects:
+            x1, y1 = (x / sw) * 2 - 1, 1 - (y / sh) * 2
+            x2, y2 = ((x + w) / sw) * 2 - 1, 1 - ((y + h) / sh) * 2
+            data = [x1, y1, x2, y1, x1, y2, x2, y1, x2, y2, x1, y2]
+            self.vbo.write(np.array(data, dtype='f4'))
+            self.vao.render(moderngl.TRIANGLES, vertices=6)
+        
+        self.rects = []
+
+
 
 class TextureBlitPass(RenderPass):
     """A simple pass to draw a texture to a target (usually the screen)."""
@@ -231,7 +273,7 @@ class BlurPass(RenderPass):
         
         # print(f"BlurPass.render> iterations={self.iterations} spread={spread:.2f}")
         for _ in range(self.iterations):
-            # Horizontal
+            # Horizontal Pass
             ping_pong.write.use()
             ping_pong.read.texture.use(location=0)
             self.prog['image'].value = 0
@@ -239,7 +281,7 @@ class BlurPass(RenderPass):
             self.quad_vao.render(moderngl.TRIANGLE_STRIP)
             ping_pong.swap()
             
-            # Vertical
+            # Vertical Pass
             ping_pong.write.use()
             ping_pong.read.texture.use(location=0)
             self.prog['image'].value = 0
@@ -268,6 +310,7 @@ class CompositePass(RenderPass):
                 #version 330
                 uniform sampler2D scene;
                 uniform sampler2D bloom;
+                uniform sampler2D mask;
                 uniform float bloom_intensity;
                 uniform float vignette;
                 uniform float saturation;
@@ -288,14 +331,23 @@ class CompositePass(RenderPass):
                     return max(color + warm * length(color), 0.0);
                 }
 
+                // High-frequency noise for dithering to prevent color banding
+                float dither(vec2 uv) {
+                    return (fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0;
+                }
+
                 void main() {
                     vec4 hdrcolour = texture(scene, v_uv);
                     vec3 bloomcolour = texture(bloom, v_uv).rgb;
+                    float m = texture(mask, v_uv).r;
                     
-                    vec3 result = hdrcolour.rgb + bloomcolour * bloom_intensity;
+                    vec3 result = hdrcolour.rgb + (bloomcolour * bloom_intensity * (1.0 - m));
 
                     result = adjust_saturation(result, saturation);
                     result = adjust_warmth(result, warmth);
+
+                    // Apply dithering before outputting to help smooth out gradients
+                    result += dither(v_uv);
 
                     if (vignette > 0.0) {
                         float dist = distance(v_uv, vec2(0.5, 0.5));
@@ -309,7 +361,7 @@ class CompositePass(RenderPass):
         )
         self.quad_vao = self.ctx.simple_vertex_array(self.prog, context.get_quad_buffer(), 'in_vert', 'in_uv')
 
-    def render(self, scene_target: RenderTarget, bloom_target: RenderTarget, output_target: RenderTarget = None, intensity=1.0, **kwargs):
+    def render(self, scene_target: RenderTarget, bloom_target: RenderTarget, mask_target: RenderTarget, output_target: RenderTarget = None, intensity=1.0, **kwargs):
         if output_target:
             output_target.use()
         else:
@@ -324,9 +376,11 @@ class CompositePass(RenderPass):
         
         scene_target.texture.use(location=0)
         bloom_target.texture.use(location=1)
+        mask_target.texture.use(location=2)
         
         self.prog['scene'].value = 0
         self.prog['bloom'].value = 1
+        self.prog['mask'].value = 2
         self.prog['bloom_intensity'].value = intensity
         if 'vignette' in self.prog: self.prog['vignette'].value = kwargs.get('vignette', 0.0)
         if 'saturation' in self.prog: self.prog['saturation'].value = kwargs.get('saturation', 1.0)
@@ -470,6 +524,8 @@ class FXAAPass(RenderPass):
             output_target.use()
         else:
             self.ctx.screen.use()
+            # Ensure viewport is set to screen size for final output
+            self.ctx.viewport = (0, 0, self.context.width, self.context.height)
         
         self.ctx.disable(moderngl.BLEND)
         input_target.texture.use(location=0)
@@ -569,12 +625,15 @@ class Compositor:
         self.composite_pass = CompositePass(context)
         self.tone_mapping_pass = ToneMappingPass(context)
         self.fxaa_pass = FXAAPass(context)
+        self.mask_pass = MaskPass(context)
         
         self.bloom_intensity = 0.8 # Slightly reduce default intensity
         self.exposure = 1.0
         self.gamma = 2.2
-        self.fxaa_enabled = True
+        self.fxaa_enabled = False
         
+        self.mask_target = RenderTarget(context.ctx, context.size, scale=1.0, dtype='f1')
+
         self.debug_view = None # Can be 'glow'
     def add_pass(self, render_pass: RenderPass, at_start=False):
         if at_start:
@@ -591,6 +650,7 @@ class Compositor:
         self.glow_buffer.resize(size)
         self.hdr_composite_target.resize(size)
         self.post_process_target.resize(size)
+        self.mask_target.resize(size)
         for p in self.passes:
             p.resize(size)
         for p in self.post_passes:
@@ -623,12 +683,10 @@ class Compositor:
         # Calculate iterations for the current frame
         iter_count = 1
         if hasattr(self, 'blur_pass'):
-            # Convert perceptual softness (0..2) to iterations (1..8) AND spread (1..6)
-            # We use a more aggressive spread curve here for visible results.
-            self.blur_pass.iterations = max(1, int(1 + sft * 3.5))
+            # favor iterations over spread to eliminate "striping" / ghosting artifacts
+            self.blur_pass.iterations = max(2, int(2 + sft * 8.0))
             iter_count = self.blur_pass.iterations
-            # Spread: 1.0 at softness 0.5, up to 6.0 at softness 2.0
-            self.blur_spread = max(1.0, 1.0 + (sft - 0.5) * 3.33)
+            self.blur_spread = max(1.0, 0.5 + sft * 1.5)
 
         # Debug print once every 60 frames (approx 1s at 60fps) to verify parameter flow
         # if not hasattr(self, '_frame_count'): self._frame_count = 0
@@ -640,20 +698,20 @@ class Compositor:
         if hasattr(self, 'glow_extraction_pass'):
             self.glow_extraction_pass.threshold = thr
 
-        # print("Compositor.render_frame> Start")
+        # 1. Generate mask for the current frame BEFORE binding the main scene target.
+        # This ensures the mask FBO is finished and doesn't steal the active binding.
+        self.mask_pass.render(target=self.mask_target)
 
-        # --- Pass 1: Geometry ---
+        # --- Pass 2: Geometry ---
         # All standard drawing goes into our main off-screen buffer.
         self.main_target.use()
         bg = [c/255.0 for c in BACKGROUND_colour]
         self.main_target.clear(colour=(bg[0], bg[1], bg[2], 1.0))
-        # print(f"Compositor.render_frame> Main Target FBO: {self.main_target.fbo.glo}")
-        # print(f"Compositor.render_frame> Cleared main target to {bg}")
         
         # Ensure standard blending for pre-passes
         self.context.ctx.enable(moderngl.BLEND)
         self.context.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
-        
+
         # Execute transient pre-passes (e.g. Backgrounds)
         if self.pre_passes:
             # print(f"Compositor.render_frame> Executing {len(self.pre_passes)} pre-passes")
@@ -663,13 +721,19 @@ class Compositor:
         
         # Execute all registered passes (just GeometryPass for now)
         for p in self.passes:
-            p.render()
+            p.render(target=self.main_target)
 
         # --- Pass 2: Post-Processing (Glow Extraction) ---
         self.glow_extraction_pass.render(input_target=self.main_target, output_target=self.glow_buffer.read, energy=nrg)
+        # 2. Generate the Mask (This step replaces the old OutlineBlurPass logic)
+        # Assuming a new dedicated pass or the GeometryPass can output the mask
+        # self.mask_pass.render(input_target=self.main_target, output_target=self.mask_target)
 
-        # --- Pass 3: Blur ---
-        self.blur_pass.render(ping_pong=self.glow_buffer, spread=getattr(self, 'blur_spread', 1.0))
+        # 3. Blur the Masked Output
+        self.blur_pass.render(ping_pong=self.glow_buffer, spread=self.blur_spread)
+
+        # # --- Pass 3: Blur ---
+        # self.blur_pass.render(ping_pong=self.glow_buffer, mask_target=self.mask_target, spread=self.blur_spread)
 
         # --- Final Pass: Composite to Screen ---
         if self.debug_view == 'glow':
@@ -677,10 +741,10 @@ class Compositor:
             self.final_blit_pass.render(input_target=self.glow_buffer.read)
         else:
             if self.fxaa_enabled:
-                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, output_target=self.post_process_target, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
+                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, mask_target=self.mask_target, output_target=self.post_process_target, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
                 self.fxaa_pass.render(input_target=self.post_process_target)
             else:
-                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
+                self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, mask_target=self.mask_target, intensity=blo, vignette=vig, saturation=sat, warmth=wrm)
             # 1. Composite Scene and Bloom into HDR Target
             # self.composite_pass.render(scene_target=self.main_target, bloom_target=self.glow_buffer.read, 
             #                            output_target=self.hdr_composite_target, intensity=blo, 
@@ -733,11 +797,11 @@ class GlowExtractionPass(RenderPass):
                     
                     // Soft-knee extraction to prevent sudden popping of bloom
                     float brightness = max(max(colour.r, colour.g), colour.b);
-                    float knee = 0.15; // Range of transition
+                    float knee = 0.25; // Wider range for more natural highlights
                     float soft = smoothstep(threshold - knee, threshold + knee, brightness);
                     vec3 bright_colour = max(vec3(0.0), colour - (threshold - knee)) * soft;
 
-                    // Apply energy as a multiplier to boost the glow before blurring
+                    // Reduced multiplier to prevent overblowing the final composite
                     f_colour = vec4(bright_colour * energy * 4.0, 1.0);
                 }
             """

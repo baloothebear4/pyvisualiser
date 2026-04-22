@@ -426,13 +426,13 @@ class OutlineGlowTestScreen(Frame):
     def __init__(self, platform):
         super().__init__(platform, theme='hifi', background={'image': 'particles.jpg', 'opacity': 50})
         
-        rows = RowFramer(self, padding=30, padpc=0.05)
+        rows = RowFramer(self, padding=30, padpc=0.2)
         
         # Row 1: Intensity Variations
         r1 = ColFramer(rows, col_ratios=(1, 1, 1), padding=20,padpc=0.3)
         
         # 1. Subtle (Default-ish)
-        style1 = {'colour': 'light', 'width': 2, 'radius': 10, 'glow_intensity': 0.2, 'softness': 0.5}
+        style1 = {'colour': 'foreground', 'width': 2, 'radius': 10, 'glow_intensity': 0.2, 'softness': 0.5}
         r1 += TextFrame(r1, text="Subtle Glow\nInt: 0.2, Soft: 0.5", align=('centre', 'middle'), 
                         outline=style1, background=BackgroundStyle(colour='dark'))
 
@@ -460,7 +460,7 @@ class OutlineGlowTestScreen(Frame):
                         outline=style5, background=BackgroundStyle(colour='dark'))
 
         # 3. Very Diffuse
-        style6 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 2.0}
+        style6 = {'colour': 'mid', 'width': 2, 'radius': 5, 'glow_intensity': 1.0, 'softness': 5.0}
         r2 += TextFrame(r2, text="Diffuse Glow\nSoft: 2.0", align=('centre', 'middle'), 
                         outline=style6, background=BackgroundStyle(colour='dark'))
 

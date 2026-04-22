@@ -173,6 +173,7 @@ class AudioAnalyser:
                 cent = self.centroid_fn(fftgrain)[0]
                 flat = self.kurtosis_fn(fftgrain)[0]
                 flux = self.flux_fn(fftgrain)[0]
+                bpm  = self.audioanalysis["bpm"]
 
                 # 4. Beat/Tempo: CALL ONLY ONCE
                 is_beat_vec = self.tempo(samples)
@@ -180,20 +181,21 @@ class AudioAnalyser:
                 
                 if is_beat:
                     self.audioanalysis["beat"] = True
-                    self.audioanalysis["bpm"] = self.tempo.get_bpm()
+                    bpm = self.tempo.get_bpm()
 
                 # 5. Volume and Smoothing
                 vol = min(np.sqrt(np.mean(samples**2))*20, 1.0)
                 norm_cent = min(cent / (self.rate / 80.0), 1.0) 
                 norm_flat = min(flat / 120.0, 1.0)
                 norm_flux = min(flux / 120.0, 1.0)
+                norm_bpm  = min(bpm  / 180.0, 1.0)
 
                 # Update the shared dictionary
                 self.audioanalysis["centroid"] = (norm_cent * self.alpha) + (self.audioanalysis["centroid"] * (1 - self.alpha))
                 self.audioanalysis["kurtosis"] = (norm_flat * self.alpha) + (self.audioanalysis["kurtosis"] * (1 - self.alpha))
                 self.audioanalysis["flux"]     = (norm_flux * self.alpha) + (self.audioanalysis["flux"] * (1 - self.alpha))
                 self.audioanalysis["volume"]   = (vol * self.alpha) + (self.audioanalysis["volume"] * (1 - self.alpha))
-
+                self.audioanalysis["bpm"]      = (norm_bpm * self.alpha) + (self.audioanalysis["bpm"] * (1 - self.alpha))
 
             except Exception as e:
                 print(f"AudioAnalyser._analysis_loop> Aubio error: {e}")
