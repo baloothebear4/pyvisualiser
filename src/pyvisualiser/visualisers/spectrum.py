@@ -142,10 +142,11 @@ class SpectrumFrame(Frame, Spectrum):
         # 1. CRITICAL: Clear existing children frames
         # self.frames = [] 
         cfg = self.config
+        spectrum_w, spectrum_h = self.abs_wh
 
         # 2. Re-initialize the Spectrum geometry (in case frame size changed)
         # Spectrum.__init__ should be safe to call multiple times if it just recalculates bar geometry
-        Spectrum.__init__(self, self.w, 
+        Spectrum.__init__(self, spectrum_w, 
                           barsize_pc=cfg['spectrum_style'].barsize_pc, 
                           barw_min=cfg['spectrum_style'].barw_min, 
                           barw_max=cfg['spectrum_style'].barw_max, 
@@ -155,7 +156,7 @@ class SpectrumFrame(Frame, Spectrum):
         # 3. Create the Bar object using the newly calculated dimensions
         # self.width, self.h are from Frame, self.barw is from Spectrum
         self.bar = Bar(self,
-                       box_size=(self.width, self.h), # Ensure width/h are correct
+                       box_size=(self.width, spectrum_h), # Ensure width/h are correct
                        bar_style=cfg['bar_style'])
 
         # print("SpectrumFrame.configure> w %s Spectrum setup: bars=%d, bar width=%d, gap=%d \n    Frame> %s" % (self.width, self.bars, self.barw, self.bar_gap, self.framestr()))

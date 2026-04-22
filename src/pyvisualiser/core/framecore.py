@@ -315,7 +315,7 @@ class Geometry():
         return [canvas_a+shrink, canvas_b+shrink, canvas_c-shrink, canvas_d-shrink]
 
 
-    """ return the absolute coordinates for drawing on screen with pygame, using Top Left ordinates """
+    """ return the absolute coordinates for drawing on screen with pygame, using Top Left ordinates: w,h,x,y """
     # centre does not change regardless of borders and padding
     def abs_centre(self, offset=(0, 0)): # Return (x, y)
         # origin = (self.x0+offset[0], (1+self.top+ (self.boundswh[1] - self.h) - self.y0-offset[1]) )
@@ -358,7 +358,8 @@ class Geometry():
         # print("Geometry.abs_coords>",coords)
         return coords
     
-    # updates the coordinates the align accordingly in the frame
+
+    """ updates the coordinates the align accordingly in the frame """
     def align_coords(self, coords, wh, align=('centre','middle')):
         new_coords    = list(coords)
 
