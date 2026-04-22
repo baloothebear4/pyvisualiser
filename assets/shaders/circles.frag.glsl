@@ -1,8 +1,12 @@
-#version 330 core
+#version 330
 
-out vec4 FragColor;
+in vec2 v_uv;
+out vec4 f_color;
 
-in vec2 TexCoords; // Interpolated texture coordinates from vertex shader
+uniform float iTime;
+uniform vec2  iResolution;
+
+
 
 uniform float time; // Uniform variable to animate the lines
 
@@ -13,11 +17,10 @@ void main()
     float lineWidth = 0.01;
     
     // Calculate distance from center
-    float dist = length(TexCoords - vec2(centerX, centerY));
+    float dist = length(v_uv - vec2(centerX, centerY));
     
     // Create a shifting effect using time
-    float shiftFactor = cos(TexCoords.x * 30.0 + time) + sin(TexCoords.y * 
-30.0 + time);
+    float shiftFactor = cos(v_uv.x * 30.0 + iTime) + sin(v_uv.y * 30.0 + iTime);
     
     // Adjust the distance to create lines at specific intervals
     dist += shiftFactor * lineWidth;
@@ -26,10 +29,10 @@ void main()
     if (dist < 1.0)
     {
         vec3 blueColor = vec3(0.0, 0.2, 0.8);
-        FragColor = vec4(blueColor, 1.0);
+        f_colour = vec4(blueColor, 1.0);
     }
     else
     {
-        FragColor = vec4(0.0, 0.0, 0.0, 0.0); // Black for the background
+        f_colour = vec4(0.0, 0.0, 0.0, 0.0); // Black for the background
     }
 }

@@ -45,7 +45,7 @@ class GLmeshScreen(Frame):
 
 
 SHADERS1 = ["supernova", "milkdrop","starvis","liquidorb"]#,"discosun"]# , "pinkball", "spiralclouds", "warping"]
-SHADERS2 = [ "pinkball","kalidoscope","warping", "balatro"]# "spiralclouds", "",cloudflight]
+SHADERS2 = [ "pinkball","kalidoscope","warping", "balatro","circles"]# "spiralclouds", "",cloudflight]
 
 class GLTestScreen1(Frame):
     @property

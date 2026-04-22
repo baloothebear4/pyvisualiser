@@ -55,7 +55,7 @@ class StarfieldStyle:
 
 @dataclass(frozen=True)
 class CloudStyle:
-    opacity: float = 0.0 #percent of the screen this covers, approx 
+    opacity: float = 0.0 #phow bright this appears
 
 @dataclass(frozen=True)
 class EdgeLightStyle:

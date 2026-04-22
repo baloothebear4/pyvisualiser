@@ -185,6 +185,12 @@ vec4 run_pattern(vec2 screenSize, vec2 screen_coords) {{
     #else
         pattern_main();
     #endif
+    
+    // Auto-calculate transparency for seamless background blending.
+    // Dark/black pixels become fully transparent.
+    float brightness = max(pattern_out.r, max(pattern_out.g, pattern_out.b));
+    pattern_out.a = min(pattern_out.a, clamp(brightness * 1.5, 0.0, 1.0));
+    
     return pattern_out;
 }}
 """

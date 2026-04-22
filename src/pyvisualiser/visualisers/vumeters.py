@@ -389,7 +389,7 @@ class VU2chFrame(Frame):
         # self.always_draw_background()
 
 class VUFlipFrame(Frame):
-    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False,theme=None, outline=None,background=BackgroundStyle(),led_h=2, **kwargs):
+    def __init__(self, parent, scalers=None, align=None, orient='vert', flip=False,theme=None, outline=None,background=None, bar_style=BarStyle(), **kwargs):
         Frame.__init__(self, parent, scalers=scalers, align=align, outline=outline,background=background, theme=theme)
         self.orient = orient
 
@@ -405,17 +405,17 @@ class VUFlipFrame(Frame):
             rows = RowFramer(self)
             rows += VUFrame(rows, 'left', bar_style=BarStyle(orient='vert', flip=flip[0], led_h=led_h), theme=self.theme )
             rows += VUFrame(rows, 'right',bar_style=BarStyle(orient='vert', flip=flip[1], led_h=led_h), theme=self.theme)
-        # self.always_draw_background()
+
 
 
 class VUHorzFrame(Frame):
-    def __init__(self, parent, channel, tip=False):
+    def __init__(self, parent, channel, **kwargs):
         # Split kwargs into Frame args and VUFrame args
         # frame_keys = ['scalers', 'align', 'square', 'theme', 'background', 'outline', 'padding']
         # frame_kwargs = {k: kwargs[k] for k in frame_keys if k in kwargs}
         # vu_kwargs = {k: v for k, v in kwargs.items() if k not in frame_keys}
 
-        Frame.__init__(self, parent)
+        Frame.__init__(self, parent, **kwargs)
         cols = ColFramer(self, col_ratios=(1,3))
         # cols = self
         channel_text = ' L' if channel=='left' else ' R'
