@@ -113,7 +113,7 @@ void main() {
             color = theme * diffuse + spec * 0.5 + col_b * rim * (u_flux + 0.5);
             
             // Beat flash core
-            if(u_beat) color += vec3(0.2, 0.4, 0.5);
+            // if(u_beat) color += vec3(0.2, 0.4, 0.5);
         }
     }
 

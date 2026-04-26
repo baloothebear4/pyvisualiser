@@ -112,6 +112,7 @@ class AudioAnalyser:
             "beat": False, "bpm": 0.0, "centroid": 0.0,
             "kurtosis": 0.0, "flux": 0.0, "volume": 0.0
         }
+        self.raw_bpm = 0.0
         
         self.alpha = 0.05   # Smoothing factor
         self._stop_event = threading.Event()
@@ -173,7 +174,6 @@ class AudioAnalyser:
                 cent = self.centroid_fn(fftgrain)[0]
                 flat = self.kurtosis_fn(fftgrain)[0]
                 flux = self.flux_fn(fftgrain)[0]
-                bpm  = self.audioanalysis["bpm"]
 
                 # 4. Beat/Tempo: CALL ONLY ONCE
                 is_beat_vec = self.tempo(samples)
@@ -181,14 +181,14 @@ class AudioAnalyser:
                 
                 if is_beat:
                     self.audioanalysis["beat"] = True
-                    bpm = self.tempo.get_bpm()
+                    self.raw_bpm = self.tempo.get_bpm()
 
                 # 5. Volume and Smoothing
                 vol = min(np.sqrt(np.mean(samples**2))*20, 1.0)
                 norm_cent = min(cent / (self.rate / 80.0), 1.0) 
                 norm_flat = min(flat / 120.0, 1.0)
                 norm_flux = min(flux / 120.0, 1.0)
-                norm_bpm  = min(bpm  / 180.0, 1.0)
+                norm_bpm  = min(self.raw_bpm / 180.0, 1.0)
 
                 # Update the shared dictionary
                 self.audioanalysis["centroid"] = (norm_cent * self.alpha) + (self.audioanalysis["centroid"] * (1 - self.alpha))

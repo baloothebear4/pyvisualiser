@@ -18,6 +18,7 @@ from pyvisualiser.visualisers.oscillogramme import *
 from pyvisualiser.styles.presets import *
 from pyvisualiser.styles.styles  import *
 from pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer
+from pyvisualiser.core.glwrapper  import ShaderFrame
 
 """ Common styles for this profile"""
 SimpleOutline     = OutlineStyle(colour='mid', width=1, radius=10, opacity=1.0, glow_intensity=0.2, softness=1.0)
@@ -37,7 +38,8 @@ class VolumeSource(Frame):
     def __init__(self, platform, **kwargs):
         Frame.__init__(self, platform, **kwargs)
         rows = RowFramer(self, row_ratios=(1,1,1), padding=10, padpc=0.05, align=('right','bottom'), scalers=(0.1,1.0))
-        rows += Frame(rows) # blank padding space
+        # rows += Frame(rows) # blank padding space
+        rows += CircularProgress(rows)
         rows += MetaData(rows, metadata_type='source', colour='light')
         rows += MetaData(rows, metadata_type='volume', colour='foreground')
 
@@ -244,7 +246,7 @@ class H3(Frame):   # comprises volume on the left, spectrum on the right
         metadata_col += Frame(metadata_col)
         metadata_col += PlayProgressFrame(metadata_col)
 
-        colframe += GLshader(colframe, shader='liquidorb')
+        colframe += ShaderFrame(colframe, shader='liquidorb')
 
         vu_style = BarStyle(orient='vert', flip=False, tip=True, led_h=10)
         vu_frame = ColFramer(colframe)
@@ -378,7 +380,7 @@ class H6(Frame):
         cols  = ColFramer(self, col_ratios=(4,7,1), padding=10, padpc=0.0)
 
         image = RowFramer(cols,row_ratios=(4,1), outline=None)#OutlineStyle(colour='mid',width=3, radius=10))
-        image += MetaImages(image,  'album',padding=0, reflection=True)
+        image += MetaImages(image,  'album',padding=0, reflection=True, outline=OutlineStyle(width=0, softness=1.8, glow_intensity=0.2, glow_colour='foreground'))
         image += Frame(image) # blank padding space for the reflection
 
         rows  = RowFramer(cols, row_ratios=(3,1), padpc=0.05,padding=5)

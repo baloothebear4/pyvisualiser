@@ -869,7 +869,7 @@ class Colour:
 
         return color_tuples
 
-    def get(self, colour_index=None, flip=False, opacity=255):
+    def get_rgb(self, colour_index=None, flip=False):
         # depending what the index is look-up:
         # print("Colour.get> INFO :", colour_index )
         if isinstance(colour_index, (int, float)):
@@ -878,12 +878,19 @@ class Colour:
             else:
                 i = min(self.num_colours, (max(0, int(colour_index))))
             c = self.colours[int(i)]
-            return [c[0], c[1], c[2], opacity]
+            return [c[0], c[1], c[2]]
         elif colour_index in COLOUR_THEMES[self.theme]:
-            return list(COLOUR_THEMES[self.theme][colour_index])+[opacity]
+            return list(COLOUR_THEMES[self.theme][colour_index])
         else:
             print("Colour.get> WARN : index not known - look for purple ", colour_index)
             return purple
+        
+    def get(self, colour_index=None, flip=False, opacity=255):
+        return self.get_rgb(colour_index, flip)+ [opacity]   
+    
+    def get_rgb_normalised(self, colour_index=None, flip=False, opacity=255):
+        rgb = self.get_rgb(colour_index, flip)
+        return [c/255 for c in rgb]  
         
     def is_colour(self, colour):
         if isinstance(colour, str):

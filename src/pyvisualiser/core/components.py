@@ -1045,7 +1045,7 @@ class Outline:
             self.style = None
 
     def draw(self, coords=None):
-        if self.style is None or self.style.width <= 0:
+        if self.style is None: # or self.style.width <= 0:
             return [0, 0, 0, 0]
 
         # --- 1. Modernized Glow via OutlineBlurPass ---

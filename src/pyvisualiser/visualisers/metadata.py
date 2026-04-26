@@ -16,7 +16,8 @@
 
 from    pyvisualiser.core.framecore  import Frame, RowFramer, ColFramer, get_asset_path, Smoother
 from    pyvisualiser.core.components import Line, Box, Image, Text
-
+from    pyvisualiser.core.glwrapper  import ShaderFrame
+from    pyvisualiser.styles.presets import Centred
 
 class TextFrame(Frame):
     """
@@ -25,7 +26,7 @@ class TextFrame(Frame):
         - V is the vertical alignment
         - Y is the y scaler
     """
-    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, \
+    def __init__(self, parent, scalers=None, align=None, text='Default Text', reset=True, theme=None, wrap=False, font_size=None,\
                  colour='foreground', justify='centre', background=None, outline=None, padding=0, update_fn=None, z_order=0):
         
         self.parent         = parent
@@ -44,13 +45,15 @@ class TextFrame(Frame):
         self.update_fn      = update_fn
         Frame.__init__(self, self.parent, scalers=self.scalers, align=self.alignment, theme=self.theme, \
                        background=self.background, outline=self.outline,padding=self.padding, z_order=self.z_order)
+        self.font_size = self.h if font_size is None else font_size
 
         self.configure()
 
     def configure(self):
 
         # print("TextFrame.configure>", self.text, self.background_frame.background, self.geostr())
-        self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour=self.colour, wrap=self.wrap, justify=self.justify, z_order=self.z_order)
+
+        self.textcomp      = Text(self, text=self.text, fontmax=self.font_size, reset=self.reset, colour=self.colour, wrap=self.wrap, justify=self.justify, z_order=self.z_order)
         # self.textcomp      = Text(self, text=self.text, fontmax=self.h, reset=self.reset, colour_index=self.colour_index, wrap=self.wrap)
 
     def update_screen(self, text=None, colour=None, fontmax=None):
@@ -121,6 +124,26 @@ class PlayProgressFrame(Frame):
         self.remaining.draw(remaining, colour='light')
         # print("PlayProgressFrame>", elapsed, remaining)
  
+class CircularProgress(Frame):
+    @property
+    def title(self): return 'GLSL Shader Test - Circular Progress'
+
+    @property
+    def type(self): return 'Test'
+
+    def __init__(self, platform,colour='mid'):
+        # Use the new 'meter2' theme which has the cream background
+        super().__init__(platform, theme='hifi', padding=0, square=True)
+
+        start_text = self.update_text()
+        self += ShaderFrame(self, shader='progressdial',colour=colour)
+        self += TextFrame(self, text=start_text, colour='light', align=Centred, update_fn=self.update_text, scalers=(0.7,0.7))
+
+    def update_text(self):
+        minutes = self.platform.duration//60
+        seconds = self.platform.duration%60
+        return f"{minutes:0.0f}:{seconds:02.0f}"
+
 
 '''
 Control, Source & Quality metadata

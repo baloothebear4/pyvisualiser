@@ -100,7 +100,7 @@ TEST_SCREENS2 = (BackgroundEffectsScreen0, BackgroundEffectsScreen1, BackgroundE
 # SCREENS = VU_METER_SCREENS+ (AmbientGlowTunerScreen,OutlineGlowTestScreen, BackgroundEffectsScreen1, BackgroundEffectsScreen2, F1, BarEffectsTestScreen, LEDtestScreen, GlowTestScreen)
 HERO_SCREENS  = (H1,H2,H3,H4,H5,H6,H7)
 
-SCREENS =  HERO_SCREENS +  GLSCREENS +TEST_SCREENS2# + MANY_SCREENS#+ ART_SCREENS +SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+FULL_SCREENS#+GEO_TEST_SCREENS
+SCREENS =  (GLTestScreen3,) +HERO_SCREENS +  GLSCREENS +TEST_SCREENS2# + MANY_SCREENS#+ ART_SCREENS +SPECTRUM_TEST_SCREENS+(SamplesFrame,Screen7, VUTestScreen1,  VUTestScreen2,VUImageScreen)#+FULL_SCREENS#+GEO_TEST_SCREENS
 
 # SCREENS=(H1,)
 """ 

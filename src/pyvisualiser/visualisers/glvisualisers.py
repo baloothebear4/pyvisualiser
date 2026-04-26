@@ -144,40 +144,4 @@ class SpectrumMesh(GLSLFrame):
 SHADERS = ["baltro", "cloudflight", "discosun", "kalidoscope", "pinkball", "spiralclouds", "warping"]
 ANALYSIS_METADATA = ["beat", "bpm","centroid", "kurtosis","flux","volume"]
 
-class GLshader(GLSLFrame):
-    def __init__(self, parent, shader="baltro", **kwargs):
-        super().__init__(parent, shader, **kwargs)
 
-    def update_uniforms(self):
-        super().update_uniforms()
-        if not self.prog: return
-
-        # 1. Map Volume (VU)
-        vu = 0.2
-        if hasattr(self.platform, 'vu'):
-            vu = self.platform.vu['mono']
-        
-        if 'u_vu' in self.prog:
-            self.prog['u_vu'].value = float(vu)
-            
-        # 2. Map Bass Frequency Energy
-        # Calculate average of lower bins
-        bass = self.platform.bass * 15
-        
-        if 'u_bass' in self.prog:
-            self.prog['u_bass'].value = float(bass)
-
-        # 4. Map the audio analysis metadata
-        if hasattr(self.platform, 'audioanalysis'):
-            for m in ANALYSIS_METADATA:
-                key = f"u_{m}"
-                if key in self.prog:
-                    value = self.platform.audioanalysis.get(m, 0.0)
-                    # Handle boolean 'beat' uniform which expects an int/bool
-                    if isinstance(value, bool):
-                        self.prog[key].value = int(value)
-                    else:
-                        self.prog[key].value = float(value)
-
-        # print(f"Bass: {bass}"), print(f"VU: {vu}", print(f"BPM: {bpm}"))
-        # print(f"BPM: {bpm}"), print(f"Bass: {bass}"), print(f"treble: {self.platform.treble}")
