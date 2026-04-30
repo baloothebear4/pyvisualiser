@@ -39,8 +39,8 @@ class VolumeSource(Frame):
         Frame.__init__(self, platform, **kwargs)
         rows = RowFramer(self, row_ratios=(1,1,1), padding=10, padpc=0.05, align=('right','bottom'), scalers=(0.1,1.0))
         # rows += Frame(rows) # blank padding space
-        rows += CircularProgress(rows)
-        rows += MetaData(rows, metadata_type='source', colour='light')
+        rows += CircularProgress(rows, colour='mid')
+        rows += MetaData(rows, metadata_type='source', colour='mid')
         rows += MetaData(rows, metadata_type='volume', colour='foreground')
 
 
@@ -113,9 +113,10 @@ class H1(Frame):   # comprises volume on the left, spectrum on the right
         VUGlow          = AmbientGlowStyle(colour='foreground', radius=0.2, softness=0.4, opacity=0.7)
         VUOutline       = OutlineStyle(colour='mid', width=4, opacity=1.0, radius=25, glow_intensity=0.1, softness=0.05)  
         VUBackground    = BackgroundStyle(colour='background', colour_opacity=VIS_OPACITY, ambient_glow=VUGlow)
-        VUscale         = VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, tick_width=TICK_W, scale_radius=SCALESLEN, font_height=FONTH, tick_length=TICKLEN, tick_radius_pc=TICK_PC)
+        VUscale         = VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, tick_width=TICK_W, scale_radius=SCALESLEN, 
+                                        tick_colour='foreground' ,font_height=FONTH, tick_length=TICKLEN, tick_radius_pc=TICK_PC)
 
-        meter=VUMeterStyle(pivot=PIVOT, endstops=ENDSTOPS, needle=NEEDLE, scale=VUscale )
+        meter=VUMeterStyle(pivot=PIVOT, endstops=ENDSTOPS, needle=NEEDLE, scale=VUscale,)
   
         SPECTRUM_STYLE = SpectrumStyle( barsize_pc = 0.3, barw_min = 10, decay = 0.2)
         BAR_STYLE      = BarStyle(led_gap=2, peak_h=2, radius=0, led_h=6)
@@ -315,33 +316,38 @@ class H5(Frame):   # comprises volume on the left, spectrum on the right
         TICK_W    = 3
         TICK_PC   = 0.1
         ARCLEN    = 0.8
-        MARKS     = {0.0: {'text':'-20', 'width': TICK_W, 'colour': 'light'},
-                     0.1: {'text':'-15', 'width': TICK_W, 'colour': 'light'},
-                     0.2: {'text':'-10', 'width': TICK_W, 'colour': 'light'},
-                     0.3: {'text':'-7', 'width': TICK_W, 'colour': 'light'},
-                     0.4: {'text':'-5', 'width': TICK_W, 'colour': 'light'},
-                     0.5: {'text':'-3', 'width': TICK_W, 'colour': 'light'},
-                     0.6: {'text':'-1', 'width': TICK_W, 'colour': 'light'},
-                     0.7: {'text':'0', 'width': TICK_W*2, 'colour': 'alert'},
-                     0.8: {'text':'+1', 'width': TICK_W*2, 'colour': 'alert'},
-                     0.9: {'text':'+2', 'width': TICK_W*2, 'colour': 'alert'},
-                     1.0: {'text':'+3', 'width': TICK_W*2, 'colour': 'alert'}
+        SCALESLEN = 0.87
+        FONTHEIGHT = 0.06
+        TICKLEN   = 0.8
+        VUTEXT    = 'foreground'
+        MARKCOLOUR = 'light'
+        MARKS     = {0.0: {'text':'-20', 'width': TICK_W, 'colour': VUTEXT},
+                     0.1: {'text':'-15', 'width': TICK_W, 'colour': VUTEXT},
+                     0.2: {'text':'-10', 'width': TICK_W, 'colour': VUTEXT},
+                     0.3: {'text':'-7', 'width': TICK_W, 'colour': VUTEXT},
+                     0.4: {'text':'-5', 'width': TICK_W, 'colour': VUTEXT},
+                     0.5: {'text':'-3', 'width': TICK_W, 'colour': VUTEXT},
+                     0.6: {'text':'-1', 'width': TICK_W, 'colour': VUTEXT},
+                     0.7: {'text':'0', 'width': TICK_W*2, 'colour': VUTEXT},
+                     0.8: {'text':'+1', 'width': TICK_W*2, 'colour': VUTEXT},
+                     0.9: {'text':'+2', 'width': TICK_W*2, 'colour': VUTEXT},
+                     1.0: {'text':'+3', 'width': TICK_W*2, 'colour': VUTEXT}
                      }
         # ARCS      = {ARCLEN    : {'width': TICK_W//2, 'colour': 'mid'},
         #              ARCLEN*(1-TICK_PC): {'width': TICK_W//2, 'colour': 'mid'} }
-        ARCS      = {ARCLEN*(1-TICK_PC): {'width': TICK_W-1, 'colour': 'foreground'} }
-        ANNOTATE  = { 'Valign':'middle', 'text':'dB', 'colour':'mid' }
+        ARCS      = {ARCLEN*(1-TICK_PC): {'width': TICK_W-1, 'colour': MARKCOLOUR} }
+        ANNOTATE  = { 'Valign':'middle', 'text':'dB', 'colour':VUTEXT }
         
         # laserneedle2 = VUNeedleStyle(colour='alert', width=4, length=1.0, radius_pc=0.9, glow_intensity=0.2, glow_colour='alert', tip_glow=True)
 
-        vuglow          = AmbientGlowStyle(colour='foreground', radius=0.2, softness=0.3, opacity=0.5)
-        vuoutline       = OutlineStyle(colour='light', width=2, opacity=1.0, radius=25, glow_intensity=0.3, softness=1.5)  
-        vubackground    = BackgroundStyle(colour='dark', colour_opacity=0.6, ambient_glow=vuglow, texture_opacity=0.0, texture_path='particles.jpg') #), texture_path='particles.jpg',texture_opacity=0.8)
+        vuglow          = AmbientGlowStyle(colour='foreground', radius=0.4, softness=0.3, opacity=0.5)
+        vuoutline       = OutlineStyle(colour='light', width=4, opacity=1.0, radius=25, glow_intensity=0.4, softness=1.5)  
+        vubackground    = BackgroundStyle(colour='dark', colour_opacity=0.5, ambient_glow=vuglow, texture_opacity=0.0, texture_path='particles.jpg') #), texture_path='particles.jpg',texture_opacity=0.8)
 
         style = VUMeterStyle(pivot=-0.7, endstops=(3*PI/4, 5*PI/4),
-                             needle=VUNeedleStyle(width=2, colour='foreground', length=0.8, radius_pc=0.75, glow_intensity=0.0, glow_colour='foreground',tip_glow=True, shadow=True),
-                             scale=VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, 
-                                                tick_width=TICK_W, tick_radius_pc=TICK_PC))
+                             needle=VUNeedleStyle(width=3, colour='foreground', length=0.8, radius_pc=0.75, glow_intensity=0.0, glow_colour='foreground',tip_glow=True, shadow=True),
+                             scale=VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, scale_radius=SCALESLEN, font_height=FONTHEIGHT, tick_length=TICKLEN,
+                                                tick_width=TICK_W, tick_radius_pc=TICK_PC, tick_colour=MARKCOLOUR))
 
         # 2 Cols: Stereo VUs, Metadata below | VolumeSource on RHS (a blank frame is used to pad)
         cols_all   = ColFramer(self, col_ratios=(10,1))

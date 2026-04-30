@@ -18,21 +18,6 @@ float circle(vec2 uv, float radius, float width) {
     return smoothstep(radius, radius + width, length(uv));
 }
 
-// radius is the outer radius of the dial, width is the thickness of the ring, progress is a value from 0 to 1 indicating how much of the dial is filled
-float progressDial(vec2 uv, float radius, float width, float progress) {
-
-    float angle = atan(uv.x, uv.y) / (2.0 * PI) + 0.5; // Normalize angle to [0,1]
-    float spread = 0.01; // Adjust this for a thicker or thinner dial
-    float t = iTime;
-
-    // Calculate distance from center and create a ring effect
-    float dist     = length(uv);
-    float dial     = step(angle, progress); // +0.25 to start from the top (12 o'clock position)
-    float ringMask = smoothstep(spread, 0.0, abs(dist - (radius - width/2.0)) - width/2.0);
-
-    return ringMask * dial;
-
-}
 
 float ring(vec2 uv, float radius, float width) {
     // Calculate distance from center and create a ring effect
@@ -41,73 +26,69 @@ float ring(vec2 uv, float radius, float width) {
     return 1.0-smoothstep(width, width + 0.01, abs(dist));
 }
 
+
+float progressDial(vec2 uv, float radius, float thickness, float progress) {
+    
+    // 1. Get the angle (-PI to PI)
+    float ang = atan(uv.x, uv.y);
+    
+    // 2. Map progress to radians, but centered around 0.0
+    // This makes the start and end of the bar symmetrical
+    float halfAngle = progress * PI;
+    
+    // 3. Rotate the UVs so the center of the progress bar is at angle 0
+    // This simplifies the math: we just check if we are within 'halfAngle' of 0
+    float currentAng = ang - halfAngle;
+    
+    // 4. Wrap the angle to stay within -PI to PI
+    // This handles the 12 o'clock "jump" perfectly
+    if (currentAng < -PI) currentAng += 2.0 * PI;
+    if (currentAng >  PI) currentAng -= 2.0 * PI;
+
+    // 5. Clamp the angle to the arc's range
+    float clampedAngle = clamp(currentAng, -halfAngle, halfAngle);
+
+    // 6. Calculate the nearest point using the adjusted angle
+    // We add the halfAngle back to restore the 12 o'clock orientation
+    float renderAngle = clampedAngle + halfAngle;
+    vec2 nearestPoint = vec2(sin(renderAngle), cos(renderAngle)) * radius;
+
+    // 7. Distance check for rounded caps
+    float dist = distance(uv, nearestPoint);
+    float capRadius = thickness * 0.5;
+
+    return smoothstep(capRadius + 0.01, capRadius, dist);
+}
+
 void main()
 {
     vec2 uv = (v_uv * 2.0 - 1.0);
     uv.x *= iResolution.x / iResolution.y;
-
+    float t = iTime;
     float progress  = fract(u_progress);
 
-    float radius    = 1.0;    // Outer radius of the dial
+    float radius    = 0.90;    // Outer radius of the dial
     float ringWidth = radius * 0.1;
-    vec3  shadowColour = u_colour*0.4;  
+    vec3  shadowColour   = u_colour*0.2;  
+    vec3  backingColour  = u_colour*0.4; 
+    vec3  progressColour = u_colour;
  
     float dialPattern = progressDial(uv, radius, ringWidth, progress);
+    float backPattern = progressDial(uv, radius, ringWidth, 1.0);
 
-    vec3 shadow  = circle(uv, radius-ringWidth, ringWidth) * shadowColour; // 3D effect
-    f_colour = vec4(u_colour+shadow, dialPattern);
+    float shadow  = (circle(uv, radius-ringWidth, ringWidth) * backPattern) * 0.2; // 3D effect
+
+    // Mixing
+    // 0. Start with a transparent base
+    vec4 finalColor = vec4(0.0);
+    
+    // Correct Mixing
+    // We start with the backing color, then mix in the progress color 
+    // based on the progress mask.
+    vec3 finalRGB = mix(backingColour+shadow, progressColour+shadow*0.9, dialPattern);
+
+    // Use backPattern for the alpha so the center remains transparent
+    f_color = vec4(finalRGB, backPattern);
+
 }
 
-// #version 330
-
-// in vec2 v_uv;
-// out vec4 f_colour;
-
-// uniform float iTime;
-// uniform vec2  iResolution;
-
-// #define PI 3.14159265
-
-// void main() {
-//     // 1. Center and Aspect Ratio
-//     vec2 uv = (v_uv * 2.0 - 1.0);
-//     uv.x *= iResolution.x / iResolution.y;
-
-//     // 2. Parameters
-//     float progress = fract(iTime * 0.2);
-//     float radius = 0.6;
-//     float thickness = 0.1;
-//     vec3 baseColor = vec3(0.0, 0.2, 0.8);
-
-//     // 3. Polar Coordinates (rotated 90 deg to start at top)
-//     // We swap x and y in atan to rotate the coordinate system
-//     float angle = atan(uv.x, uv.y) / (PI * 2.0) + 0.5; 
-    
-//     // 4. Distance Field for the Ring
-//     float d = length(uv);
-//     float ringMask = smoothstep(0.01, 0.0, abs(d - radius) - thickness);
-    
-//     // 5. Progress Mask
-//     // We use a small smoothstep here to anti-alias the tip of the progress bar
-//     float progressMask = smoothstep(progress + 0.001, progress, angle);
-    
-//     // 6. The 3D "Bevel" Effect
-//     // Calculate how far we are from the center of the ring's "pipe"
-//     float pipeDepth = 1.0 - (abs(d - radius) / thickness);
-//     pipeDepth = clamp(pipeDepth, 0.0, 1.0);
-//     float bevel = sin(pipeDepth * PI * 0.5); // Curved profile
-    
-//     // 7. Lighting
-//     float highlight = pow(bevel, 3.0) * 0.3; // Inner glow
-//     float shadow = bevel * 0.5;              // Soft base color
-    
-//     // 8. Combine
-//     vec3 backgroundRing = vec3(0.1); // Faint gray track
-//     vec3 activeColor = (baseColor * shadow) + highlight;
-    
-//     // Layering: Background Track + Active Progress
-//     vec3 finalRGB = backgroundRing * ringMask;
-//     finalRGB = mix(finalRGB, activeColor, ringMask * progressMask);
-
-//     f_colour = vec4(finalRGB, 1.0);
-// }

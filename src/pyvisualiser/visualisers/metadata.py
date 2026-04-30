@@ -137,7 +137,7 @@ class CircularProgress(Frame):
 
         start_text = self.update_text()
         self += ShaderFrame(self, shader='progressdial',colour=colour)
-        self += TextFrame(self, text=start_text, colour='light', align=Centred, update_fn=self.update_text, scalers=(0.7,0.7))
+        self += TextFrame(self, text=start_text, colour='mid', align=Centred, update_fn=self.update_text, scalers=(0.7,0.7))
 
     def update_text(self):
         minutes = self.platform.duration//60

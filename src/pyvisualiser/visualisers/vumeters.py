@@ -163,7 +163,7 @@ class VUMeter(Frame):
                 self.dB = None
             
             # Add Ticks (Line)
-            self.ticks = Line(self, width=style.scale.tick_width, endstops=style.endstops, 
+            self.ticks = Line(self, width=style.scale.tick_width, endstops=style.endstops, colour=style.scale.tick_colour,
                               tick_pc=style.scale.tick_radius_pc, centre_offset=style.pivot, 
                               radius=radius * style.scale.tick_length, theme=style.theme)
             
@@ -214,7 +214,7 @@ class VUMeter(Frame):
         current_marks = self.style.scale.marks if self.style.scale and self.style.scale.marks is not None else {}
         
         for val, mark in current_marks.items():
-            self.ticks.drawFrameCentredVector(val, colour=mark['colour'], width=mark['width'])
+            self.ticks.drawFrameCentredVector(val, width=mark['width'])
 
         for arc in self.arclines:
             arc.drawFrameCentredArc(0)

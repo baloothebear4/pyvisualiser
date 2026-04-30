@@ -221,6 +221,7 @@ class VUMeterScale:
     tick_width: int = TICK_W
     tick_length: float = TICKLEN
     tick_radius_pc: float = TICK_PC
+    tick_colour: str = 'mid'
     scale_radius: float = SCALESLEN
     font_height: float = FONTH
 
