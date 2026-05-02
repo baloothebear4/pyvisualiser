@@ -211,7 +211,7 @@ class VUNeedleStyle:
     glow_intensity: float = 0.0
     glow_colour: str = 'alert'
     tip_glow: bool = False
-    shadow: bool = False
+    shadow: bool = True
 
 @dataclass(frozen=True)
 class VUMeterScale:
@@ -235,6 +235,9 @@ class VUMeterStyle:
     pivot: float = PIVOT
     needle: VUNeedleStyle = field(default_factory=VUNeedleStyle)
     scale: VUMeterScale = field(default_factory=VUMeterScale)
+    pivotcoverpc: float = 0.1   # size of circle to cover pivot point
+    pivotcovercolour: str = 'dark'
+    pivotcoveropacity: float = 1.0
     texture_path: Optional[str] = None
     texture_opacity: float = 1.0
     theme: str = None

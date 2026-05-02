@@ -392,8 +392,8 @@ class VUMeterFrame4(Frame):
         ANNOTATE  = { 'Valign':'middle', 'text':'dB', 'colour':'mid' }
         
         laserneedle2 = VUNeedleStyle(colour='alert', width=4, length=1.0, radius_pc=0.9, glow_intensity=0.2, glow_colour='alert', tip_glow=True)
-        style = VUMeterStyle(pivot=-0.7, endstops=(3*PI/4, 5*PI/4), theme=theme,
-                             needle=VUNeedleStyle(width=2, colour='foreground', length=0.8, radius_pc=0.6, glow_intensity=0.3, glow_colour='foreground',tip_glow=True, shadow=False),
+        style = VUMeterStyle(pivot=-0.7, endstops=(3*PI/4, 5*PI/4), theme=theme, pivotcovercolour='foreground', pivotcoverpc=0.28,
+                             needle=VUNeedleStyle(width=2, colour='foreground', length=0.8, radius_pc=0.7, glow_intensity=0.3, glow_colour='foreground',tip_glow=True, shadow=True),
                              scale=VUMeterScale(marks=MARKS, arcs=ARCS, annotate=ANNOTATE, 
                                                 tick_width=TICK_W, tick_radius_pc=TICK_PC))
 

@@ -123,6 +123,10 @@ class VUMeter(Frame):
         cfg = self.config
         style = self.style
         
+        # Always set the pivot scale for the frame so abs_centre() is correct for the pivot cover
+        radius = self.abs_h * (0.5 - style.pivot)
+        self.anglescale(radius, style.endstops, style.pivot)
+
         # --- Background Setup (Image or Vector) ---
         if style.texture_path is not None:
             self.path     = get_asset_path('VU Images', style.texture_path)
@@ -132,8 +136,6 @@ class VUMeter(Frame):
         else:
             # Vector Background Setup
             self.path = None
-            radius = self.abs_h * (0.5 - style.pivot)
-            self.anglescale(radius, style.endstops, style.pivot)
 
             # Resolve scale components
             current_marks = style.scale.marks if style.scale and style.scale.marks is not None else {}
@@ -180,7 +182,6 @@ class VUMeter(Frame):
             # NOTE: Text and Line objects must add themselves to self.frames in their __init__
 
         # --- Needle Setup (common to both background types) ---
-        radius = self.abs_h * (0.5 - style.pivot)
         self.VU = VU(self.platform, cfg['channel'], decay=style.decay, smooth=style.smooth)
         
         # Needle Line
@@ -231,6 +232,9 @@ class VUMeter(Frame):
     def drawNeedle(self):
         # print("VUeter._drawNeedle", self.framestr(), "\n", self.needle.framestr())
         vu, peaks   = self.VU.read()
+
+        frame_rect = self.abs_rect()
+        frame_bottom = frame_rect[1] + frame_rect[3]
         
         # 0. Draw Shadow
         if self.style.needle.shadow:
@@ -241,8 +245,19 @@ class VUMeter(Frame):
             offset = 5
             shadow_xy = (xy[0] + offset, xy[1] + offset)
             shadow_ab = (ab[0] + offset, ab[1] + offset)
+
+            # Clip shadow base to frame boundary
+            margin = self.style.needle.width / 2.0
+            limit_y = frame_bottom - margin
+            if shadow_ab[1] > limit_y:
+                dy = shadow_xy[1] - shadow_ab[1]
+                if abs(dy) > 0.1:
+                    t = (limit_y - shadow_ab[1]) / dy
+                    if 0 <= t <= 1:
+                        shadow_ab = (shadow_ab[0] + t * (shadow_xy[0] - shadow_ab[0]), limit_y)
             
-            self.platform.renderer.draw_line((0, 0, 0, 100), shadow_ab, shadow_xy, width=self.style.needle.width, softness=1.0)
+            if shadow_ab[1] <= limit_y:
+                self.platform.renderer.draw_line((0, 0, 0, 100), shadow_ab, shadow_xy, width=self.style.needle.width, softness=1.0)
 
         # 1. Draw Glow (Behind)
         if self.style.needle.glow_intensity > 0:
@@ -264,6 +279,60 @@ class VUMeter(Frame):
             col = self.colours.get(self.style.needle.glow_colour)
             # Draw a small glowing dot at the tip
             self.platform.renderer.draw_rect(col, (tip_xy[0]-6, tip_xy[1]-6, 12, 12), border_radius=6, softness=1.0, additive=True)
+
+        # 5. Draw Pivot Cover
+        if self.style.pivotcoverpc > 0:
+            radius = self.abs_h * (0.5 - self.style.pivot)
+            pc_radius = radius * self.style.pivotcoverpc
+            cx, cy = self.abs_centre()
+
+            # 1. Calculate 3D Depth Colors
+            base_rgb = self.colours.get_rgb(self.style.pivotcovercolour)
+            opacity = int(self.style.pivotcoveropacity * 255)
+            
+            # Create highlight and shadow versions for a dome effect
+            col_light = [min(255, int(c * 1.4 + 30)) for c in base_rgb] + [opacity]
+            col_dark  = [int(c * 0.6) for c in base_rgb] + [opacity]
+
+            # Clipping logic to stay within frame bounds
+            rect_y_start = cy - pc_radius
+            rect_height = pc_radius * 2
+            
+            # Calculate clipping level (0.0 to 1.0) to hide anything below the frame bottom
+            level = (frame_bottom - rect_y_start) / rect_height
+            if level > 0:
+                rect = (cx - pc_radius, rect_y_start, pc_radius * 2, rect_height)
+                
+                # 1.5. Draw Drop Shadow (Beneath the cover, above the needle)
+                shadow_offset = 4
+                shadow_rect = (cx - pc_radius + shadow_offset, rect_y_start + shadow_offset, pc_radius * 2, rect_height)
+                shadow_level = (frame_bottom - shadow_rect[1]) / shadow_rect[3]
+                if shadow_level > 0:
+                    shadow_col = (0, 0, 0, int(100 * self.style.pivotcoveropacity))
+                    self.platform.renderer.draw_rect(shadow_col, shadow_rect, border_radius=pc_radius, 
+                                                     softness=0.8, level=min(1.0, shadow_level), axis=1.0)
+
+                # 2. Draw Base Dome (with vertical depth gradient)
+                self.platform.renderer.draw_rect(col_light, rect, border_radius=pc_radius, 
+                                                 level=min(1.0, level), axis=1.0, 
+                                                 gradient=(col_light, col_dark))
+                
+                # 2.5. Draw Metallic Rim (Outer Ring highlight)
+                # rim_col = [min(255, int(c * 1.8 + 40)) for c in base_rgb] + [opacity]
+                # self.platform.renderer.draw_rect(rim_col, rect, border_radius=pc_radius, 
+                #                                  width=1, level=min(1.0, level), axis=1.0)
+                
+                # 3. Draw Specular Shine (Catch-light at the top-left)
+                shine_r = pc_radius * 0.4
+                shine_col = (255, 255, 255, int(160 * self.style.pivotcoveropacity))
+                shine_rect = (cx - shine_r * 1.5, cy - pc_radius * 0.8, shine_r * 2, shine_r * 2)
+
+                # Calculate clipping level for the shine specifically to respect frame boundaries
+                shine_level = (frame_bottom - shine_rect[1]) / shine_rect[3]
+                if shine_level > 0:
+                    self.platform.renderer.draw_rect(shine_col, shine_rect, border_radius=shine_r, 
+                                                     softness=0.4, additive=True, 
+                                                     level=min(1.0, shine_level), axis=1.0)
 
 
 """

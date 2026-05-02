@@ -664,6 +664,20 @@ class Line(Frame):
         xy         = self.anglexy(val, self.radius,  amp_scale=amplitude, gain=gain)#, xyscale=self.xyscale)
         ab         = self.anglexy(val, self.radius*(1-tick_pc))#, xyscale=self.xyscale)
 
+        # Clip line base to frame bottom boundary to prevent bleed at extreme angles
+        frame_rect = self.abs_rect()
+        frame_bottom = frame_rect[1] + frame_rect[3]
+        
+        # Account for line thickness: corners extend width/2 from center
+        limit_y = frame_bottom - (width / 2.0)
+        
+        if ab[1] > limit_y:
+            dy = xy[1] - ab[1]
+            if abs(dy) > 0.1:
+                t = (limit_y - ab[1]) / dy
+                if 0 <= t <= 1:
+                    ab = (ab[0] + t * (xy[0] - ab[0]), limit_y)
+
         colour_index = self.colours.get(colour, opacity=opacity)  # Add a get col
         # print("Line.drawFrameCentredVector: val %f, ab %s, xy %s, yoff %f, len %d" % (val, ab, xy, self.centre_offset, self.radius))
         self.platform.renderer.draw_line(colour_index, ab, xy, width, **kwargs)
@@ -1048,29 +1062,6 @@ class Outline:
         if self.style is None: # or self.style.width <= 0:
             return [0, 0, 0, 0]
 
-        # --- 1. Modernized Glow via OutlineBlurPass ---
-        # Instead of drawing a rect, we push a RenderPass to the compositor
-        # #
-        # if self.style.glow_intensity > 0 and self.style.softness > 0:
-        #     # Check if we have a GPU context and compositor available
-        #     if hasattr(self.frame.platform.gfx_driver, 'compositor'):
-                
-        #         # Initialize the pass if it doesn't exist
-        #         if self.blur_pass is None:
-        #             # Map style attributes to the BlurPass
-        #             glow_color = self.frame.colours.get(self.style.colour)
-        #             # Convert to normalized 0.0-1.0 for OpenGL
-        #             gl_color = [c/255.0 for c in glow_color[:3]] + [self.style.opacity * self.style.glow_intensity]
-                    
-        #             self.blur_pass = OutlineBlurPass(
-        #                 self.frame.platform.gfx_driver.render_context, 
-        #                 self.frame, 
-        #                 blur_radius=self.style.softness * 15, # Scale softness to pixel radius
-        #                 glow_color=gl_color
-        #             )
-
-        #         # Add the pass to the pre-draw queue so it renders behind the frame
-        #         self.frame.platform.gfx_driver.compositor.add_pre_pass(self.blur_pass)
         if self.style.glow_intensity > 0 and self.style.softness > 0:
             gfx = getattr(self.frame.platform, 'gfx_driver', None)
             if gfx and hasattr(gfx, 'compositor'):
@@ -1105,12 +1096,13 @@ class Outline:
         # Use the standard opacity for the sharp outline
         colour_index = self.frame.colours.get(self.style.colour, opacity=self.style.opacity * 255)
         
-        self.frame.platform.renderer.draw_rect(
-            colour_index,
-            coords,
-            border_radius=self.style.radius,
-            width=self.style.width
-        )
+        if self.style.width > 0:
+            self.frame.platform.renderer.draw_rect(
+                colour_index,
+                coords,
+                border_radius=self.style.radius,
+                width=self.style.width
+            )
         
         return coords     
 

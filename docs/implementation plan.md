@@ -6,10 +6,10 @@
 - [x] Phase 2 — Background System
 - [x] Phase 3 — Unified Glow & Bloom System
 - [x] Phase 4 — Visualiser Effect Upgrades
-- [ ] Phase 5 — Album Art Integration
+- [~] Phase 5 — Album Art Integration (In Progress)
 - [ ] Phase 6 — Overlay Framework
 - [x] Phase 7 — Style System Completion
-- [ ] Phase 8 — Visualiser Profiles (Embedded HiFi Preamp & Desktop)
+- [~] Phase 8 — Visualiser Profiles (Embedded HiFi Preamp & Desktop) (In Progress)
 - [ ] Phase 9 — Hardware Porting & Performance Validation (Mac to Pi 5)
 - [ ] Phase 10 — Packaging & API Hardening
 - [ ] Phase 11 — Comprehensive Test Suite
@@ -225,6 +225,12 @@ Returns:
 
 Used by background and lighting systems.
 
+> **Review Note:** 
+> - **(a) Progress:** `MetaImages` and `ArtFrame` exist in `metadata.py`, but `media/album_loader.py` and the dedicated background processor are missing.
+> - **(b) Efficiency:** `ArtFrame` opacity is set by `opacity*255`, need to ensure it's calculated efficiently without repeated multiplications if static.
+> - **(c) Latent Defects:** Missing texture caching logic (as noted in 5.1) will severely impact the Pi 5 due to constant memory re-allocation.
+> - **(d) Recommendation:** Prioritize implementing texture caching for album art to prevent memory leaks and reduce GPU uploads before moving to Pi 5 testing.
+
 ---
 
 # Phase 6 — Overlay Framework
@@ -388,6 +394,12 @@ Replace boolean with optional styles so that blending is easier:
 Eg vignette: Union[VignetteStyle, bool] = False goes to
 vignette: Optional[VignetteStyle] = None
 
+> **Review Note:** 
+> - **(a) Progress:** `VisualiserProfile`, `ProfileControls`, and `ProfileController` are successfully implemented in `styles/profiles.py`, mapping closely to this plan. 
+> - **(b) Code Review (Consistency):** The singleton `ProfileManager` is clean but can make unit testing harder. `apply_profile` in `ProfileController` lacks type hinting for the `compositor`. 
+> - **(c) Latent Defects:** In `profiles.py`, `ProfileController.adjust()` hardcodes bounds `max(0.0, min(2.0, current + delta))`. This assumes all attributes scale between 0.0 and 2.0, which breaks parameters like `sharpness` or `vignette` that may require a `[0, 1]` or custom range.
+> - **(d) Recommendations:** Introduce a `ParameterSpec(min, max, default)` dictionary so `ProfileController` knows the valid ranges for each float parameter, allowing accurate bounding per property.
+
 ---
 
 # Phase 9 — Hardware Porting & Performance Validation
@@ -522,3 +534,25 @@ For each phase:
 6. Commit per deliverable.
 
 Never allow effects to grow organically without being formalised into the architecture.
+
+---
+
+# Architecture & Implementation Review Summary
+
+## (a) Progress Against Goals
+- **Phase 5 & 8** have seen significant code progress. `metadata.py` introduces structured text and image framing (including album art hooks), while `profiles.py` establishes the `ProfileControls` and `ProfileController` needed for Phase 8.
+- `ui/overlay.py` (Phase 6) and dedicated hardware targets (Phase 9) remain pending.
+
+## (b) Code Review Suggestions (Consistency & Efficiency)
+- **`metadata.py` (Frame instantiation):** Classes like `TextFrame` and `PlayProgressFrame` take a large number of parameters in their constructors. While `**kwargs` is partially used, standardising a `FrameConfig` dataclass could improve consistency and readability.
+- **Tight Coupling:** In `metadata.py`, the UI frames read directly from `self.platform.elapsed` or `parent.platform.track` every frame. Passing a dedicated state-manager interface rather than reaching directly into `platform` would improve testability and decouple UI from backend logic.
+
+## (c) Latent Defects
+- **Text Rendering Overhead:** In `metadata.py` (`PlayProgressFrame`), `self.elapsed.draw(...)` is called continuously. Re-generating formatting strings (`f"{int(...)}"`) and rendering text every single frame without a "dirty" check (i.e. only redrawing when the whole second changes) is a major performance drain, especially for the Pi 5 target.
+- **Hardcoded Value Bounding:** `ProfileController.adjust` in `profiles.py` clamps every adjustment to `[0.0, 2.0]`. If `vignette` or `sharpness` ever need a different scale or exceed `2.0`, the logic will fail silently.
+- **Math Edge Cases:** In `CircularProgress` inside `metadata.py`, `self.platform.duration//60` will throw an exception (or behave unexpectedly) if `duration` is `None` or `0` on startup before metadata has fully loaded from the source.
+
+## (d) Improvement Suggestions & Recommendations
+1. **Reactive UI State / Dirty Flags:** Implement a simple event system or `has_changed()` check for metadata. `PlayProgressFrame` should only update the elapsed text string and texture when the underlying value meaningfully changes.
+2. **Parameter Constraints Map:** Update `ProfileController` to use a `Dict[str, tuple[float, float]]` to define min/max constraints per parameter, replacing the hardcoded `2.0` maximum.
+3. **Component Cleanup:** The `metadata.py` file classes are getting large and mixed. Consider separating the purely UI layout components (e.g., `PlayProgressFrame`, `CircularProgress`) from the data-binding classes (`MetaData`, `MetaImages`).
