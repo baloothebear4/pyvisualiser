@@ -249,7 +249,7 @@ vec4 run_pattern(vec2 screenSize, vec2 screen_coords) {{
 SHADERS = ["baltro", "cloudflight", "discosun", "kalidoscope", "pinkball", "spiralclouds", "warping","progressdial"]
 ANALYSIS_METADATA = ["beat", "bpm","centroid", "kurtosis","flux","volume"]
 class ShaderFrame(GLSLFrame):
-    def __init__(self, parent, shader="baltro", colour='light', **kwargs):
+    def __init__(self, parent, shader="baltro", colour='mid', **kwargs):
         super().__init__(parent, shader, **kwargs)
         self.colour = colour
 

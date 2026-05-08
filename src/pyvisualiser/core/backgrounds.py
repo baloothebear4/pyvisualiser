@@ -421,7 +421,7 @@ class BackgroundRenderPass(RenderPass):
                     # Standardization of common uniforms to avoid collisions
                     # We strip these so they use the ones defined in our master template
                     common_to_strip = [
-                        'v_uv', 'iTime', 'iResolution', 
+                        'v_uv', 'iTime', 'iResolution', 'u_colour', 'u_colour_opacity',
                         'u_volume', 'u_centroid', 'u_flux', 'u_beat', 'u_kurtosis',
                         'u_vu', 'u_bass', 'u_treble'
                     ]

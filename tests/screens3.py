@@ -214,7 +214,7 @@ class H3(Frame):   # comprises volume on the left, spectrum on the right
 
         # 2 Cols: Album art on Left, MetaData centre
         # Overlayed shader, right half, volumesoure far right
-        colframe = ColFramer(self, padpc=0.0, col_ratios=(2,8,2), padding=10,background=None)
+        colframe = ColFramer(self, padpc=0.0, col_ratios=(2,8,0.8), padding=10,background=None)
 
         # Col1 VU meters
         vu_style = BarStyle(orient='vert', flip=False, tip=True, led_h=10)
@@ -232,10 +232,7 @@ class H3(Frame):   # comprises volume on the left, spectrum on the right
         # metadata_col += Frame(metadata_col)
         # metadata_col += PlayProgressFrame(metadata_col)
 
-        colframe += ShaderFrame(colframe, shader='liquidorb')
-
-
-
+        colframe += ShaderFrame(colframe, shader='liquidorb', colour='mid')
 
         colframe += Frame(colframe) # padding to prevent clash with VolumeSource
         self += VolumeSource(self)
@@ -255,14 +252,14 @@ class H4(Frame):   # comprises volume on the left, spectrum on the right
         Frame.__init__(self, platform, theme= 'hifi', padding=0, background=ScreenBackground)
 
 
-        colframe    = ColFramer(self, padpc=0.0, col_ratios=(3,4), padding=10,background=None)
+        colframe    = ColFramer(self, padpc=0.0, col_ratios=(3,4,0.8), padding=10,background=None)
 
 
         # artoutline  = OutlineStyle(colour='mid', width=5, radius=10, opacity=0.4, glow_intensity=0.1, softness=0.1)
 
 
         image = RowFramer(colframe, row_ratios=(4,1),outline=ArtOutline)
-        image += MetaImages(image, padding=10, art_type='artist', background=None,  reflection=True)  
+        image += MetaImages(image, padding=10, art_type='artist', background=BackgroundStyle(colour='background', colour_opacity=1.0),  reflection=True)  
         # image += Frame(image) # blank padding space for the reflection
         image += MetaData(image, metadata_type='artist', colour='mid',justify=('centre'))
 
@@ -280,6 +277,7 @@ class H4(Frame):   # comprises volume on the left, spectrum on the right
         # volsource     = RowFramer(colframe, row_ratios=(1,2), padding=0,padpc=0.0)
         # volsource    += MetaData(volsource, metadata_type='source', colour='light')
         # volsource    += MetaData(volsource, metadata_type='volume', colour='foreground')
+        colframe += Frame(colframe) # blank frame to pad the volume source on the right
 
         self += VolumeSource(self)
         
@@ -367,7 +365,8 @@ class H6(Frame):
         cols  = ColFramer(self, col_ratios=(4,7,1), padding=10, padpc=0.0)
 
         image = RowFramer(cols,row_ratios=(4,1), outline=None)#OutlineStyle(colour='mid',width=3, radius=10))
-        image += MetaImages(image,  'album',padding=0, reflection=True, outline=OutlineStyle(width=0, softness=1.8, glow_intensity=0.2, glow_colour='foreground'))
+        image += MetaImages(image,  'album',padding=0, reflection=True, background=BackgroundStyle(colour='background', colour_opacity=1.0),
+                            outline=OutlineStyle(width=0, softness=1.8, glow_intensity=0.2, glow_colour='foreground'))
         image += Frame(image) # blank padding space for the reflection
 
         rows  = RowFramer(cols, row_ratios=(3,1), padpc=0.05,padding=5)
@@ -471,3 +470,32 @@ class H8(Frame):
         # Column 3 - VolumeSource
         cols += Frame(cols) # blank frame to pad the volume source on the right
         self += VolumeSource(self)
+
+
+"""
+Shader heavy:
+- Balatro in the background with a low opacity and low audio reactivity
+- Pinkball shader in the foreground, 
+- overlaid on the right hand side of the screen, with the volume and source metadata overlaid on top of that.  
+- The pinkball should be quite reactive to the music, with a high decay to create a trailing effect.  
+
+"""
+
+class H9(Frame):
+
+    def __init__(self, parent):
+
+        background=BackgroundStyle(colour='background', shader='balatro',edge_light=Edge)
+        Frame.__init__(self, parent, theme='hifi', background=ScreenBackground)
+
+        cols  = ColFramer(self, col_ratios=(4,7,1), padding=10, padpc=0.0)
+
+        metadata   = RowFramer(cols,row_ratios=(4,2,7),padpc=0.0)
+        metadata  += MetaData(metadata, metadata_type='track',justify=('left'), colour='foreground')
+        metadata  += MetaData(metadata, metadata_type='artist',justify=('left'), colour='light')
+        metadata  += Frame(metadata) # blank frame to pad the volume source on the right
+
+        cols += ShaderFrame(cols, shader='pinkball', colour='light')
+
+        cols += Frame(cols) # blank frame to pad the volume source on the right
+        self += VolumeSource(self)        

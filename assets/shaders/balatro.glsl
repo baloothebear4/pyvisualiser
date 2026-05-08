@@ -9,15 +9,15 @@ uniform float iTime;
 uniform vec2 iResolution;
 uniform float u_vu;    // Volume level (0.0 to 1.0)
 uniform float u_bass;  // Bass energy (0.0 to ~1.0)
-
-
+uniform float u_bpm;   // Beats Per Minute
+uniform vec3  u_colour; // To align the colours for dynamic theming
 
 #define SPIN_ROTATION -2.0
 #define SPIN_SPEED 7.0
 #define OFFSET vec2(0.0)
-#define COLOUR_1 vec4(0.871, 0.267, 0.231, 1.0)
-#define COLOUR_2 vec4(0.0, 0.42, 0.706, 1.0)
-#define COLOUR_3 vec4(0.086, 0.137, 0.145, 1.0)
+// #define COLOUR_1 vec4(0.871, 0.267, 0.231, 1.0)
+// #define COLOUR_2 vec4(0.0, 0.42, 0.706, 1.0)
+// #define COLOUR_3 vec4(0.086, 0.137, 0.145, 1.0)
 #define CONTRAST 3.5
 #define LIGTHING 0.4
 #define SPIN_AMOUNT 0.25
@@ -31,7 +31,7 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
     vec2 uv = (floor(screen_coords.xy*(1./pixel_size))*pixel_size - 0.5*screenSize.xy)/length(screenSize.xy) - OFFSET;
     float uv_len = length(uv);
     
-    float speed = (SPIN_ROTATION*SPIN_EASE*0.2);
+    float speed = (SPIN_ROTATION*SPIN_EASE*0.8*u_bpm);
     if(IS_ROTATE){
        speed = iTime * speed;
     }
@@ -50,6 +50,12 @@ vec4 effect(vec2 screenSize, vec2 screen_coords) {
         uv  -= 1.0*cos(uv.x + uv.y) - 1.0*sin(uv.x*0.711 - uv.y);
     }
     
+    // Sort out the colours and contrast
+    vec4 COLOUR_1 = vec4(u_colour*1.0, 1.0);
+    vec4 COLOUR_2 = vec4(u_colour*0.7, 1.0);
+    vec4 COLOUR_3 = vec4(u_colour*0.5, 1.0);
+
+
     float contrast_mod = (0.25*CONTRAST + 0.5*SPIN_AMOUNT + 1.2);
     float paint_res = min(2., max(0.,length(uv)*(0.035)*contrast_mod));
     float c1p = max(0.,1. - contrast_mod*abs(1.-paint_res));

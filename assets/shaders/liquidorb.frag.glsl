@@ -4,6 +4,7 @@ out vec4 f_color;
 
 uniform float iTime;
 uniform vec2  iResolution;
+uniform vec3  u_colour; // To align the colours for dynamic theming
 
 // Audio Uniforms
 uniform float u_volume;      
@@ -11,6 +12,7 @@ uniform float u_centroid;
 uniform float u_flux;        
 uniform bool  u_beat;        
 uniform float u_kurtosis;    
+uniform float u_bpm;         
 
 mat2 rot(float a) {
     float s = sin(a), c = cos(a);
@@ -19,8 +21,19 @@ mat2 rot(float a) {
 
 // 1. THE GEOMETRY ENGINE (SDF)
 float map(vec3 p) {
-    // Spin the entire scene
-    p.xz *= rot(iTime * 0.2);
+    // Calculate floor distance using original world-space coordinates
+    float floorDist = p.y + 1.5;
+
+    // Create a local coordinate copy for the orb to isolate its rotation
+    vec3 q = p;
+
+    // Synchronize rotation to BPM. 
+    float beat_step = u_bpm * 60.0;
+    
+    // Rotate based on tempo + dynamic volume-based "kick"
+    float rot_speed = iTime * beat_step * 0.4 + (u_volume * 0.5);
+    q.xz *= rot(rot_speed);
+    q.xy *= rot(rot_speed * 0.3); // Add a subtle vertical tumble for a 3D liquid feel
     
     // Calculate Fracturing/Spiking based on Kurtosis
     // High Kurtosis = Tonal/Sharp. Low Kurtosis = Noisy/Rough.
@@ -28,23 +41,23 @@ float map(vec3 p) {
     
     // Multi-frequency displacement
     float freq = 3.0 + (u_centroid * 4.0);
-    float amp = 0.05 + (u_flux * 0.5);
+    float amp = 0.05 + (u_flux * 0.7);
     
-    // Wave displacement (The "Liquid" part)
-    float waves = sin(p.x * freq + iTime) * cos(p.y * freq + iTime) * sin(p.z * freq + iTime);
+    // Wave displacement (The "Liquid" part) - modulated by volume for responsiveness
+    float displacement_time = iTime * (1.0 + u_volume * 2.0);
+    float waves = sin(q.x * freq + displacement_time) * 
+                  cos(q.y * freq + displacement_time) * 
+                  sin(q.z * freq + displacement_time);
     
     // Spiky displacement (The "Fracture" part)
     // We use an absolute sin function to create sharp ridges
-    float spikes = abs(sin(p.x * 10.0) * sin(p.y * 10.0) * sin(p.z * 10.0));
+    float spikes = abs(sin(q.x * 10.0) * sin(q.y * 10.0) * sin(q.z * 10.0));
     
     // Mix between liquid and shattered based on Kurtosis
     float displacement = mix(waves, spikes, noise_mode) * amp;
     
-    float sphere = length(p) - (0.6 + u_volume * 0.3);
+    float sphere = length(q) - (0.6 + u_volume * 0.3);
     if(u_beat) sphere -= 0.05;
-
-    // Floor at y = -1.5
-    float floorDist = p.y + 1.5;
     
     return min(sphere + displacement, floorDist);
 }
@@ -73,7 +86,7 @@ void main() {
         t += d;
     }
 
-    vec3 background = vec3(0.0, 0.01, 0.03) * (1.0 - length(uv));
+    vec3 background = vec3(0.0, 0.00, 0.0) * (1.0 - length(uv));
     vec3 color = background;
 
     if(t < 20.0) {
@@ -81,8 +94,8 @@ void main() {
         vec3 n = getNormal(p);
         
         // Dynamic Hi-Fi Palette
-        vec3 col_a = vec3(0.0, 0.1, 0.4); // Midnight Blue
-        vec3 col_b = vec3(0.2, 0.8, 1.0); // Electric Cyan
+        vec3 col_a = u_colour*0.5;
+        vec3 col_b = u_colour*1.3;
         vec3 theme = mix(col_a, col_b, u_centroid);
 
         if(p.y < -1.49) {
@@ -112,8 +125,8 @@ void main() {
             
             color = theme * diffuse + spec * 0.5 + col_b * rim * (u_flux + 0.5);
             
-            // Beat flash core
-            // if(u_beat) color += vec3(0.2, 0.4, 0.5);
+            //Beat flash core
+            if(u_beat) color += u_colour * 0.2;
         }
     }
 
