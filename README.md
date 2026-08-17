@@ -1,18 +1,67 @@
 # pyvisualiser
-A generic music visualisation package intended for use on MacOS, Windows and linux based embedded music players &amp; preamplifiers (eg Raspberry Pi and Volumio/Moode etc). Rich api for eye-catching &amp; customisable music displays inc Spectrum Analysers, VU meters, Visualisations and Metadata (eg from  Roon  or MPD).
 
-The package is in the alpha test stage with a Roon API for use on MacOS desktop.  The first port will be to a Rasberry Pi headless display.
+> Transform your hardware project or desktop playback into a stunning visual experience. **`pyvisualiser`** is a high-performance, GPU-accelerated Python framework designed to render real-time audio visualisations. Whether you are building an eye-catching desktop visualiser or designing an embedded front-panel UI for Hi-Fi preamplifiers, custom Linux streamers (e.g., Raspberry Pi with Volumio/Moode), or smart audio equipment, `pyvisualiser` gives you total creative control.
 
-**Installation Instructions (MacOS)**
+---
+
+## ✨ Features & Capabilities
+
+* **Real-Time Audio Analysis**: Multi-band FFT spectrum analysers, responsive segmented or solid LED VU meters, classic skeuomorphic analogue needle meters, oscillograms, and concentric radial display engines ("Diamondiser").
+* **Shader & Background FX**: GPU-accelerated GLSL shader passes featuring starfields, vapor clouds, film grain, vignette, ambient glow, and audio-reactive peak flashes.
+* **Rich Media & Metadata Integration**: Render album artwork, artist portraits, dynamic track properties, and playback progress indicators with hardware-like segmented LED bars (supports audio engines like Roon and MPD).
+* **Flexible Layout Architecture**: Hierarchical layout system using declarative column/row framers (`ColFramer`, `RowFramer`) with relative coordinate scaling, automatic aspect ratio preservation, and customizable themes.
+* **Cross-Platform Rendering**: Support for OpenGL compositing on macOS/Windows/Linux as well as direct Raspberry Pi native KMS framebuffer pipelines (`pi_kms`).
+* **Endpoint integration**: Roon, [TBC- UPNP, Airplay2, Spotify]
+
+---
+
+## ⚡ Quick Start Code Example
+
+Building a multi-panel studio dashboard requires only a few lines of declarative Python code to create this
+
+
+
+### python
+
+    class ArtMetadataScreen(Frame):
+
+        def __init__(self, parent):
+            Frame.__init__(self, parent, theme='hifi', background=ScreenBackground)
+
+            ''' 2 Cols: 
+                    Reflected album art on left, 
+                    5 rows: Full MetaData, Playprogress, Spectrum. 
+                VolumeSource overlaid on right '''
+
+            cols  = ColFramer(self, col_ratios=(4,7,1), padding=10, padpc=0.0)
+
+            image = RowFramer(cols,row_ratios=(4,1), outline=None)
+            image += MetaImages(image,  'album',padding=0, reflection=True,\            
+                        background=BackgroundStyle(colour='background', colour_opacity=1.0), \
+                        outline=OutlineStyle(width=0, softness=1.8, glow_intensity=0.2,\
+                        glow_colour='foreground'))
+            image += Frame(image) # blank padding space for the reflection
+
+            rows  = RowFramer(cols, row_ratios=(3,1), padpc=0.05,padding=5)
+            rows += MetaDataFrame(rows, justify='left')
+            rows  += SpectrumFrame(rows,channel='mono', \
+                        bar_style=BarStyle(led_gap=0), \
+                        spectrum_style=SpectrumStyle(barsize_pc=4))
+
+            cols += Frame(cols) # blank frame to pad the volume source on the right
+            self += VolumeSource(self)
+## 📖 API Reference & Documentation
+For detailed architecture breakdowns, class constructors, parameters, and style configuration references, see the comprehensive API Reference Guide included in this repository.
+
+## 🛠️ Installation Instructions
+
 1. Create a home for the project
    
 `cd path/to/your/project`
 
 3. Create a virtual environment to protect your wider config
 
-`python3 -m venv venv`
-
-`virtualenv venv`
+`python3 -m venv .venv`
 
 `source venv/bin/activate`
 
@@ -26,33 +75,15 @@ The package is in the alpha test stage with a Roon API for use on MacOS desktop.
    
 8. Execute the example visualiser (NB: this is configured for roon metadata, which will require authentication in the roon display/Extensions settings)
 
-`python 3 visualiser.py`
+`python 3.11 tests/vis.py`
   
 9. The left and right arrow keys will allow you to scroll across a number of test screens,  virtually all parameters are configurable.  Spacebar will exit
 
 
-**Package overview**
-The package is intented to be easily portable to different hardware platforms, metadata sources and graphics drivers.  The Alpha version is based on MacOS, roon and pygame.  This can reaily be adapted.  The first port will be Raspberry PI/linux with ALSA & MPD.
-
-The class architecture is as follows:
-1. **Controller** - top level control logic.  For example in embedded preamplifers with physicall controls the events are used to drive the overall screen behaviours.  This is a simple event driven based control logic.  This runs a main loop at the Frames Per Second of the display after first instantiating all the display screens (each a Class).  The events then update the metadata used in each screen refresh.
-2. **Screens** - A simple geometry class manages all the positional data associated with a Frame.  A Frame is a heirarchical class, Frames of Frames is the way to construct the overall display - with the Screen being the top level class.
-3. **Frame** classes - lower down Frames comprise classes that go the conversion from realtime audio samples into graphical functions. Everything is relative which makes creating complex displays very straightforward. For example VUFrame, SpectrumFrame (based on fast fourier transforms).  This include smoothing classes that significantly improve the look of the display.
-4. **Geometry** class - this is a base class used to do all coordinate, circular, resize etc functions on a frame.  For example where a drawing component (eg text) is left/top aligned within a frame
-5. **Display Driver** classes - these comprise lower level components that use geometry too and are directly responsible for writing to the display via the graphics driver.  A rich set of drawing components including lines, bars, boxes and images.  Only this file needs to be changed to port to another graphics package eg pygame, tkinter, Kivy, PyQT etc.
-6. **ProcessAudio** classes - these use pyaudio to capture frames and process the samples into RMS values for VU or ffts for spectrum analysers.  These are configurable for the number of octaves and frequency.  Filters are available too.
-7. **Roon** classes - this is based on pyroon and creates a set of attributes for displaying metadata eg Album art, track titles etc.  An MPD version of this exists too and will be uploaded in the Beta
-
-Here are some example test screens, some screens with multiple test screens:
-<img width="1280" alt="IMG_0872" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/c34503cb-27e0-432d-b0e5-0b425baca7df">
-<img width="1278" alt="IMG_4629" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/43182ad4-0f68-4404-8bc5-1a03b75bceaa">
-<img width="1278" alt="IMG_9947" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/a27c28a6-7423-4110-b5d3-e0119ac36b31">
-<img width="1276" alt="IMG_2570" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/baa544bc-55a1-4a7d-bc03-f84d873d10c6">
-<img width="1277" alt="IMG_5514" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/c5a655c7-c769-4649-8047-7d2d8aa16d7d">
-<img width="1278" alt="IMG_6812" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/37d28da0-36f0-4493-b610-f2a7ea1cdbe7">
-<img width="1282" alt="IMG_4973" src="https://github.com/baloothebear4/pyvisualiser/assets/13680355/e6fc5ddf-9577-4c3c-969e-4ab48f587c77">
+Roon Integration: If using Roon metadata, ensure your Roon core is running and authorize pyvisualiser under Roon Settings -> Extensions.
 
 
-Collaboration welcome!
+## 🤝 Contributing & Acknowledgments
+Collaborators are welcome! Feel free to open issues or submit pull requests for new layout widgets, audio DSP drivers, or GLSL background shaders.
 
-I want to give credit to https://github.com/project-owner/PeppyMeter  for use of some of the VU images.  These have been incorporated as VU meter images
+Special thanks to the PeppyMeter project for analogue meter image assets incorporated into this package.
