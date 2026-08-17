@@ -19,7 +19,7 @@
 
 Building a multi-panel studio dashboard requires only a few lines of declarative Python code to create this
 
-
+<img width="1280" src="https://github.com/steve3-0/pyvisualiser/blob/main/assets/screenshots/pyvisualiser%20screenshot%2016-08-2026%20at%2013.14%20(2).png?raw=true">
 
 ### python
 
@@ -50,6 +50,10 @@ Building a multi-panel studio dashboard requires only a few lines of declarative
 
             cols += Frame(cols) # blank frame to pad the volume source on the right
             self += VolumeSource(self)
+
+## Example Screenshots
+
+
 ## 📖 API Reference & Documentation
 For detailed architecture breakdowns, class constructors, parameters, and style configuration references, see the comprehensive API Reference Guide included in this repository.
 
