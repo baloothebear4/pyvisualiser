@@ -6,7 +6,7 @@
     This module manages the events and screen changes
 """
 from    pyvisualiser.core.processaudio import AudioProcessor
-from    pyvisualiser.endpoints.roon import Roon
+from    pyvisualiser.endpoints.roon import RoonEndpoint
 from    pyvisualiser.core.displaydriver import GraphicsDriver
 
 from    pyvisualiser.core.framecore import ListNext
@@ -22,7 +22,7 @@ EVENTS  =  ( 'Control', 'Audio', 'KeyPress', 'Metadata', 'Screen' )
 # for an api - this needs to have inbuilt events and additional events with a binder
 
 """ Use this sub class the either stub out or setup the metadata source """
-class MetaData(Roon):
+class MetaData(RoonEndpoint):
     pass
 
 class HWInterface():
@@ -33,7 +33,7 @@ class HWInterface():
         self.audio_sample_rate    = "44.1kHz 16bit"
         self.audio_format     = "flac"
         
-
+    @property
     def volume(self, format='percent'):
         if format == 'db':
             return "%.1fdB" % self.volume_db
@@ -56,15 +56,16 @@ class HWInterface():
     def volume_db(self):
         return 20*np.log10(self.volume_pc)
 
-
+    @property
     def source(self):
         #in time a call to the base HW is needed to read the actual volume setting
         return self.audio_source
-    
+    @property
     def sample_rate(self):
         #in time a call to the base HW is needed to read the actual volume setting
         return self.audio_sample_rate
-    
+
+    @property
     def format(self):
         #in time a call to the base HW is needed to read the actual volume setting
         return self.audio_format    
@@ -136,7 +137,7 @@ class ScreenController:
         elif e == 'previous':
             self.baseScreen   = self.screenmenu.prev
             self.activeScreen = self.baseScreen
-            self.full_update  = True  # force everything to be drawn, else only draw what has changed
+            self.full_update  = True  # force everyPlatothing to be drawn, else only draw what has changed
             print("\nScreenController.self.events.Control('previous',> active screen is ", self.activeScreen)
 
         elif e == 'new_track':

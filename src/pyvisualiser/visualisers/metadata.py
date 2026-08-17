@@ -153,26 +153,28 @@ Control, Source & Quality metadata
 '''
 
 class MetaData(TextFrame):
-    def __init__(self, parent, metadata_type='artist', justify=('centre','middle'),**kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
+    def __init__(self, parent, metadata_type='artist', justify=('centre','middle'),**kwargs): 
+    #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
 
-        METADATA_UPDATE = { 'track': parent.platform.track,
-                            'album' :parent.platform.album,
-                            'artist': parent.platform.artist,
-                            'volume' : parent.platform.volume,
-                            'source' : parent.platform.source,
-                            'sample_rate' : parent.platform.sample_rate,
-                            'format' : parent.platform.format
-                           }
-
-        if  metadata_type  in METADATA_UPDATE: 
-
-            update_fn = METADATA_UPDATE[metadata_type]
-            TextFrame.__init__(self, parent, update_fn= update_fn, justify=justify,  **kwargs) 
-
-            # print("MetaDataFrame.configure>", self.metadata_type, self.wh, self.framestr() )
-        else:
-            raise ValueError("MetaData.update> Metadata type not known", self.metadata_type )   
     
+        VALID_METADATA = {'track', 'album', 'artist', 'volume', 'source', 'sample_rate', 'format'}
+
+        try:
+            if metadata_type in VALID_METADATA: 
+                # print(f"MetaData.update> Initializing metadata type '{metadata_type}', for parent '{parent.__class__.__name__}'")
+                # The lambda fetches the *current* value of the attribute whenever it is called
+                TextFrame.__init__(
+                    self, 
+                    parent, 
+                    update_fn=lambda *args: getattr(parent.platform, metadata_type), 
+                    justify=justify,  
+                    **kwargs
+                )
+            else:
+                raise ValueError(f"MetaData.update> Metadata type not known: {self.metadata_type}")
+        except Exception as e:
+            raise ValueError(f"MetaData.update> Error initializing metadata type '{metadata_type}': {e}")
+
 
 class MetaDataFrame(Frame):
     SHOW = { 'track' : {'colour' : 'foreground', 'align': ('left','middle'), 'scalers': (1.0, 1.0)}, \
@@ -219,21 +221,29 @@ class ArtFrame(Frame):
     def update_screen(self):
          self.image_container.draw(self.update_fn())
 
+ 
 
 class MetaImages(ArtFrame):
-    def __init__(self, parent, art_type='album', opacity=1.0, reflection=None, **kwargs): #colour='foreground', scalers=(1.0, 1.0), align=('centre','middle'),theme=None, same_size=True, outline=None,justify='centre'):
+    def __init__(self, parent, art_type='album', opacity=1.0, reflection=None, **kwargs):
 
-        METAART_UPDATE = {  'album':  { 'update_fn': parent.platform.album_art,  'square' : True},
-                            'artist': { 'update_fn': parent.platform.artist_art, 'square' : False} }
+        VALID_ART_TYPES = {'album', 'artist'}
 
-        if  art_type  in METAART_UPDATE: 
+        if art_type in VALID_ART_TYPES: 
+            # Dynamically construct the property name: 'album_art' or 'artist_art'
+            attr_name = f"{art_type}_art"
+            
+            # Determine if it should be square based on the art_type
+            is_square = (art_type == 'album')
 
-            update_fn = METAART_UPDATE[art_type]['update_fn']
-            ArtFrame.__init__(self, parent, update_fn= update_fn, opacity=opacity*255, reflection=reflection, square=METAART_UPDATE[art_type]['square'],  **kwargs) 
-
-            # print("MetaImages.__init__>", art_type, self.wh, self.framestr() )
+            # The lambda fetches the *current* image/art at the time it is called
+            ArtFrame.__init__(
+                self, 
+                parent, 
+                update_fn=lambda *args: getattr(parent.platform, attr_name), 
+                opacity=opacity * 255, 
+                reflection=reflection, 
+                square=is_square,  
+                **kwargs
+            ) 
         else:
-            raise ValueError("MetaImages.__init__> Meta art type not known", self.art_type )   
-    
-
-
+            raise ValueError(f"MetaImages.__init__> Meta art type not known: {art_type}")

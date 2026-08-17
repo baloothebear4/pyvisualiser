@@ -1,13 +1,32 @@
 # PyVisualiser API Reference
 
-This document provides a comprehensive guide to the core classes used for creating screens in `pyvisualiser`. The architecture is hierarchical: Screens are composed of Frames, which contain other Frames or specific visual components.
+This document provides a comprehensive guide to the core classes, layout managers, components, and style configurations used for creating custom screens and user interfaces in `pyvisualiser`.
 
-## 1. Layout & Geometry
+---
 
-The layout system is relative. Every component is a `Frame` (or subclass) that exists within a `parent` Frame. Its size and position are defined relative to that parent.
+## 1. Core Architecture
+
+The architecture of `pyvisualiser` is hierarchical: **Screens** are composed of **Frames**, which in turn contain other layout frames or specific visual elements. 
+
+### `ScreenController`
+The main orchestrator that manages screens, processes live audio feedback, captures metadata, routes keystroke events, and runs the main loop.
+
+**Constructor:**
+```python
+ScreenController(screens: list[type[Frame]], hw_platform: dict)
+```
+
+**Parameters:**
+*   **`screens`**: A list of custom `Frame` subclasses representing the screens the user can cycle through.
+*   **`hw_platform`**: A dictionary specifying hardware/driver parameters:
+    *   `"gfx"`: `"gl"` (OpenGL rendering) or `"pi_kms"` (Raspberry Pi native KMS framebuffer).
+    *   `"loopback"`: String name of the audio loopback device (e.g., `"BlackHole 2ch"`).
+    *   `"roon_zone"`: String name of the target Roon zone (e.g., `"MacViz"`).
+
+---
 
 ### `Frame` (Base Class)
-The fundamental building block. It defines a rectangular area within its parent.
+The fundamental layout block representing a relative rectangular space inside a parent container.
 
 **Constructor:**
 ```python
@@ -16,28 +35,31 @@ Frame(parent, scalers=(1.0, 1.0), align=('centre', 'middle'), square=False,
 ```
 
 **Parameters:**
-*   **`parent`**: The container Frame (or `platform` for the top-level screen).
-*   **`scalers`**: `(width_pc, height_pc)` tuple. Scaling factors relative to the parent. `(1.0, 0.5)` means full width, half height.
-*   **`align`**: `(horizontal, vertical)` tuple. Anchors the frame within the parent.
-    *   Horizontal: `'left'`, `'centre'`, `'right'`
-    *   Vertical: `'top'`, `'middle'`, `'bottom'`
-*   **`square`**: `True`/`False`. If True, forces the aspect ratio to 1:1 based on the smallest dimension.
-*   **`theme`**: String key for the colour palette (e.g., `'hifi'`, `'ocean'`, `'retro'`). Inherited by children if not specified.
-*   **`background`**: Configuration for the background.
-    *   String: Colour name (e.g., `'dark'`).
-    *   Dict: `{'image': 'filename.jpg', 'opacity': 100, 'per_frame_update': False}`.
-    *   Dict (Shadow): `{'colour': 'dark', 'shadow': {'color': (0,0,0), 'offset': (10,10), 'softness': 0.5}}`.
-*   **`outline`**: Dict defining the border. `{'colour': 'alert', 'width': 2, 'radius': 10, 'opacity': 255}`.
-*   **`padding`**: Integer pixels. Inner padding for content.
-*   **`z_order`**: Integer. Drawing order. Higher numbers draw on top of lower numbers.
+*   **`parent`**: The containing `Frame` (or `platform` for the top-level screen).
+*   **`scalers`**: `(width_pc, height_pc)` tuple representing percentages of the parent's size (e.g., `(1.0, 0.5)` is full width, half height).
+*   **`align`**: `(horizontal, vertical)` anchoring tuple:
+    *   *Horizontal:* `'left'`, `'centre'`, `'right'`
+    *   *Vertical:* `'top'`, `'middle'`, `'bottom'`
+*   **`square`**: If `True`, forces a 1:1 aspect ratio based on the smallest dimension.
+*   **`theme`**: String key of the colour palette (e.g., `'hifi'`, `'ocean'`, `'retro'`). Inherits parent's theme if `None`.
+*   **`background`**: Background style definition:
+    *   `BackgroundStyle` object for GPU-accelerated backgrounds (stars, clouds, edge lights, shaders).
+    *   String theme colour key (e.g., `'background'`, `'dark'`).
+    *   Dict for static image backgrounds: `{'image': 'file.png', 'opacity': 120}`.
+*   **`outline`**: Outline border styling:
+    *   `OutlineStyle` object.
+    *   Dict: `{'colour': 'light', 'width': 2, 'radius': 10, 'opacity': 255}`.
+*   **`padding`**: Inner padding in pixels.
+*   **`z_order`**: Integer defining the paint hierarchy (higher values draw on top).
 
 ---
 
-### `ColFramer` & `RowFramer`
-Layout managers that automatically arrange child frames in a grid.
+## 2. Layout Managers
 
-#### `ColFramer`
-Arranges children horizontally (columns).
+Layout managers are subclasses of `Frame` that dynamically distribute and resize child frames. Children are added using the `+=` operator.
+
+### `ColFramer`
+Arranges children horizontally in columns.
 
 **Constructor:**
 ```python
@@ -45,21 +67,13 @@ ColFramer(parent, col_ratios=None, padpc=0, **kwargs)
 ```
 
 **Parameters:**
-*   **`col_ratios`**: Tuple of numbers defining relative widths. `(1, 2, 1)` creates three columns where the middle is 2x wider. If `None`, infers from child scalers.
-*   **`padpc`**: Float (0.0 - 1.0). Percentage of space to reserve for gaps between columns.
-*   **`**kwargs`**: Standard `Frame` arguments (`align`, `background`, etc.).
+*   **`col_ratios`**: A tuple of numbers defining the width ratios (e.g., `(1, 2, 1)` makes the middle column twice as wide as the sides). If `None`, infers widths equally.
+*   **`padpc`**: Percentage of width (0.0 to 1.0) reserved for gaps between columns.
 
-**Example:**
-```python
-# Create 3 columns: Left (1 part), Middle (2 parts), Right (1 part)
-cols = ColFramer(self, col_ratios=(1, 2, 1), padding=10)
-cols += MetaImages(cols, ...) # Goes in col 1
-cols += SpectrumFrame(cols, ...) # Goes in col 2
-cols += TextFrame(cols, ...) # Goes in col 3
-```
+---
 
-#### `RowFramer`
-Arranges children vertically (rows).
+### `RowFramer`
+Arranges children vertically in rows.
 
 **Constructor:**
 ```python
@@ -67,58 +81,67 @@ RowFramer(parent, row_ratios=None, padpc=0, **kwargs)
 ```
 
 **Parameters:**
-*   **`row_ratios`**: Tuple defining relative heights. `(1, 1)` creates two equal rows.
-*   **`padpc`**: Float. Percentage gap between rows.
+*   **`row_ratios`**: A tuple defining the height ratios (e.g., `(1, 1)` split into two equal rows).
+*   **`padpc`**: Percentage of height (0.0 to 1.0) reserved for gaps between rows.
 
 ---
 
-## 2. Core Visual Components
+## 3. Core UI Components
 
-These frames display specific content like text, images, or metadata.
+These components are designed to present media information, lyrics, volume, or playback status.
 
 ### `TextFrame`
-Displays a single line of text, automatically scaled to fit the frame.
+Displays a single or wrapped line of text, automatically scaled to fit within the frame.
 
 **Constructor:**
 ```python
-TextFrame(parent, text='Default', justify='centre', wrap=False, colour='foreground', **kwargs)
+TextFrame(parent, text='Default Text', wrap=False, justify='centre', 
+          colour='foreground', font_size=None, update_fn=None, **kwargs)
 ```
 
 **Parameters:**
-*   **`text`**: String to display.
-*   **`justify`**: Alignment of text within the frame. `('left'|'centre'|'right', 'top'|'middle'|'bottom')`.
-*   **`wrap`**: `True`/`False`. Wraps text to a second line if it doesn't fit.
-*   **`colour`**: Theme colour key (e.g., `'light'`, `'alert'`).
+*   **`text`**: Initial text content.
+*   **`wrap`**: Wraps text onto a second line if it exceeds frame bounds.
+*   **`justify`**: Text positioning. Can be a string key or a `(horizontal, vertical)` tuple.
+*   **`colour`**: Theme colour key (e.g., `'foreground'`, `'light'`, `'alert'`).
+*   **`font_size`**: Explicit cap on the font size. If `None`, scales up to the frame height.
+*   **`update_fn`**: An optional callback function returning a string, evaluated on each update tick.
+
+---
 
 ### `MetaImages`
-Displays Album or Artist artwork from the metadata source.
+Loads and displays album artwork or artist pictures from the active media metadata.
 
 **Constructor:**
 ```python
-MetaImages(parent, art_type='album', reflection=None, opacity=255, **kwargs)
+MetaImages(parent, art_type='album', opacity=1.0, reflection=None, **kwargs)
 ```
 
 **Parameters:**
-*   **`art_type`**: `'album'` (Square) or `'artist'` (Landscape/Portrait).
-*   **`reflection`**: Adds a reflection effect below the image.
-    *   `True`: Default reflection.
-    *   Dict: `{'size': 0.3, 'opacity': 0.5}` (Size is % of image height).
-*   **`opacity`**: 0-255. Transparency of the main image.
+*   **`art_type`**: `'album'` (enforces square constraints) or `'artist'`.
+*   **`opacity`**: Float (`0.0` to `1.0`) setting texture opacity.
+*   **`reflection`**: Adds a mirrored reflection below the image:
+    *   `True` / `False` toggle.
+    *   `ReflectionStyle` / Dict mapping: `{'size': 0.3, 'opacity': 0.5}`.
+
+---
 
 ### `MetaData`
-Displays track information (Artist, Title, Album).
+Displays specific textual track information (Title, Artist, Album, Format, etc.) bound to the active platform.
 
 **Constructor:**
 ```python
-MetaData(parent, metadata_type='artist', justify='centre', **kwargs)
+MetaData(parent, metadata_type='artist', justify=('centre', 'middle'), **kwargs)
 ```
 
 **Parameters:**
-*   **`metadata_type`**: `'track'`, `'album'`, or `'artist'`.
-*   **`justify`**: Text alignment.
+*   **`metadata_type`**: one of `'track'`, `'album'`, `'artist'`, `'volume'`, `'source'`, `'sample_rate'`, `'format'`.
+*   **`justify`**: Bounding alignment.
+
+---
 
 ### `PlayProgressFrame`
-A progress bar showing elapsed/remaining time and a visual bar.
+A playback progression bar flanked by elapsed and remaining track timers.
 
 **Constructor:**
 ```python
@@ -126,97 +149,195 @@ PlayProgressFrame(parent, barsize_pc=0.5, orient='horz', led_h=1, led_gap=0, **k
 ```
 
 **Parameters:**
-*   **`barsize_pc`**: Thickness of the bar relative to the frame.
+*   **`barsize_pc`**: Percentage thickness of the progress bar relative to the frame.
 *   **`orient`**: `'horz'` or `'vert'`.
+*   **`led_h` / `led_gap`**: Segments the bar into individual LED blocks for a hardware appearance.
 
 ---
 
-## 3. Audio Visualisers
+## 4. Audio Visualisers
 
-Frames that react to audio data (VU levels or FFT spectrums).
+GPU-accelerated components that react dynamically to real-time audio.
 
-### `VUFrame` (Bar Meter)
-A highly configurable LED-style or solid bar meter.
+### `VUFrame` (LED Bar)
+A responsive segmented or solid channel level meter.
 
 **Constructor:**
 ```python
-VUFrame(parent, channel, orient='vert', flip=False, 
-        segment_size=5, segment_gap=1, corner_radius=0, edge_softness=0.05,
-        intensity_threshold=0.8, intensity_scale=2.0, intensity_blur=0.7, intensity_alpha=20,
-        **kwargs)
+VUFrame(parent, channel, orient='vert', flip=False, barsize_pc=0.7, bar_style=None, **kwargs)
 ```
 
 **Parameters:**
 *   **`channel`**: `'left'`, `'right'`, or `'mono'`.
-*   **`orient`**: `'vert'` (Vertical) or `'horz'` (Horizontal).
-*   **`flip`**: Direction.
-    *   Vert: `False` = Up, `True` = Down.
-    *   Horz: `False` = Right, `True` = Left.
-*   **Structure:**
-    *   **`segment_size`**: Height/Width of each LED block.
-    *   **`segment_gap`**: Space between blocks. Set to 0 for a solid bar.
-    *   **`corner_radius`**: Rounding of LED corners (0 = square).
-*   **Style:**
-    *   **`edge_softness`**: Blur on the edges of the bar (0.0 = sharp, 0.1+ = neon/soft).
-*   **Reaction (Glow/Bloom):**
-    *   **`intensity_threshold`**: Volume level (0.0-1.0) where the glow starts.
-    *   **`intensity_scale`**: How much the glow expands (multiplier of bar width).
-    *   **`intensity_blur`**: Softness of the glow halo.
-    *   **`intensity_alpha`**: Opacity of the glow (0-255).
+*   **`orient`**: `'vert'` (grows vertically) or `'horz'` (grows horizontally).
+*   **`flip`**: Direction. If `True`, vertical bars grow downwards, horizontal grow left.
+*   **`barsize_pc`**: Width/height of the active bar relative to the frame.
+*   **`bar_style`**: `BarStyle` configuration object.
 
-### `VUMeter` (Dial/Needle Meter)
-A skeuomorphic dial meter with needle, arcs, and ticks.
+---
+
+### `VUMeter` (Needle Dial)
+A classic skeuomorphic analogue needle meter with custom markings, glowing needles, and specular pivots.
 
 **Constructor:**
 ```python
-VUMeter(parent, channel, pivot=-0.5, endstops=(3*PI/4, 5*PI/4), 
-        needle=..., marks=..., arcs=..., bgdimage=None, **kwargs)
+VUMeter(parent, channel, style=None, **kwargs)
 ```
 
 **Parameters:**
-*   **`pivot`**: Vertical position of the needle pivot relative to frame height (-0.5 is below screen).
-*   **`endstops`**: Start and End angles in radians.
-*   **`bgdimage`**: Filename of a background image (e.g., `'blue-bgr.png'`).
-*   **`needle`**: Dict config `{ 'width':4, 'colour': 'foreground', 'length': 0.8 }`.
-*   **`marks`**: Dict of scale markings.
-*   **`arcs`**: Dict of colored arcs drawn on the dial.
+*   **`channel`**: `'left'`, `'right'`, or `'mono'`.
+*   **`style`**: `VUMeterStyle` configuration object.
 
-### `SpectrumFrame`
-An FFT-based spectrum analyser.
+---
+
+### `SpectrumFrame` (FFT Analyzer)
+A multi-band audio spectrum analyzer.
 
 **Constructor:**
 ```python
-SpectrumFrame(parent, channel, bar_space=0.5, barw_min=1, barw_max=20, 
-              led_h=5, led_gap=1, peak_h=1, decay=0.4, **kwargs)
+SpectrumFrame(parent, channel, bar_style=None, spectrum_style=None, **kwargs)
 ```
 
 **Parameters:**
-*   **`channel`**: `'left'`, `'right'`, `'mono'`.
-*   **`bar_space`**: Gap between frequency bars (relative to bar width).
-*   **`barw_min` / `barw_max`**: Constraints for dynamic bar sizing.
-*   **`led_h` / `led_gap`**: Segmentation of the frequency bars.
-*   **`peak_h`**: Height of the "peak hold" indicator (0 to disable).
-*   **`decay`**: Speed at which bars fall (lower is slower).
+*   **`channel`**: `'left'`, `'right'`, or `'mono'`.
+*   **`bar_style`**: `BarStyle` configuration.
+*   **`spectrum_style`**: `SpectrumStyle` configuration.
 
-### `Oscilogramme`
-Displays the raw audio waveform.
+---
+
+### `Oscilogramme` (Waveform)
+Displays the live modulated audio waveform.
 
 **Constructor:**
 ```python
 Oscilogramme(parent, channel, **kwargs)
 ```
 
-**Parameters:**
-*   **`channel`**: `'left'`, `'right'`, `'mono'`.
-*   **`resolution`**: (Internal) Number of points to draw (default 256 for performance).
+---
 
-### `Diamondiser`
-A circular spectrum analyser where bars radiate from the center.
+### `Diamondiser` (Concentric Radial)
+Renders a circular spectrum analyzer where neon lines project outwards from the center.
 
 **Constructor:**
 ```python
-Diamondiser(parent, channel, bar_space=1, **kwargs)
+Diamondiser(parent, channel, barsize_pc=1, **kwargs)
 ```
 
-**Parameters:**
-*   **`bar_space`**: Width of the radiating lines.
+---
+
+## 5. Style Configurations
+
+Styles are defined using immutable dataclasses to enforce standardized aesthetics across profiles.
+
+### `BackgroundStyle`
+Drives the GPU background shader pass.
+*   **`colour`**: str. Theme colour index (default: `'background'`).
+*   **`colour_opacity`**: float. Default: `1.0`.
+*   **`texture_path`**: Optional[str]. File name of background overlay.
+*   **`texture_opacity`**: float. Default: `0.5`.
+*   **`vignette`**: `VignetteStyle` or `bool`. Renders soft outer shadows.
+*   **`noise`**: `NoiseStyle` or `bool`. Adds organic analog film grain.
+*   **`ambient_glow`**: `AmbientGlowStyle` or `bool`. Radial background lighting.
+*   **`reactive_glow`**: `ReactiveGlowStyle` or `bool`. Audio-driven pulsing lights.
+*   **`peak_accent`**: `PeakAccentStyle` or `bool`. Flash effect on high audio peaks.
+*   **`starfield`**: `StarfieldStyle` or `bool`. Moving particulate stars.
+*   **`cloud`**: `CloudStyle` or `bool`. Flowing vapor clouds.
+*   **`edge_light`**: `EdgeLightStyle` or `bool`. Adds glowing ambient borders.
+*   **`shader`**: Union[str, bool]. Standard GLSL pattern name (e.g. `'balatro'`).
+
+### `BarStyle`
+Defines VU levels and spectrum columns.
+*   **`led_h`**: int. Height of LED blocks (default: `10`).
+*   **`led_gap`**: int. Gap spacing. Set to `0` for solid bars.
+*   **`peak_h`**: int. Height of floating peak points.
+*   **`flip`**: bool. Inverts growth directions.
+*   **`orient`**: str. `'vert'` or `'horz'`.
+*   **`edge_softness`**: float. Softness halo on bar shapes.
+*   **`colour_mode`**: str. `'vert'` (frequency height gradient) or `'horz'` (horizontal spread gradient).
+
+---
+
+## 6. Complete API Integration Example
+
+The following code illustrates how to build a custom multi-panel Hifi screen and launch it.
+
+```python
+import platform
+from pyvisualiser import (
+    Frame, ColFramer, RowFramer, SpectrumFrame, VUMeter, 
+    MetaDataFrame, MetaImages, PlayProgressFrame, ScreenController
+)
+from pyvisualiser.styles.presets import EmbeddedHiFiProfile
+from pyvisualiser.styles.styles import BarStyle, SpectrumStyle, BackgroundStyle
+from pyvisualiser.styles.profiles import ProfileManager
+
+# 1. Define the Custom Screen Layout
+class CustomStudioDashboard(Frame):
+    @property
+    def title(self):
+        return "Custom Studio Dashboard"
+
+    @property
+    def type(self):
+        return "Base"
+
+    def __init__(self, parent):
+        # Initialize screen Frame with a dark hifi theme
+        super().__init__(
+            parent, 
+            theme='hifi', 
+            background=BackgroundStyle(colour='dark', noise=True, vignette=True)
+        )
+        
+        # Grid: Split horizontally into 3 columns (left dial, middle meta/progress, right spectrum)
+        cols = ColFramer(self, col_ratios=(1, 2, 1), padpc=0.04)
+        
+        # Col 1: Analogue needle VU meter for Left channel
+        cols += VUMeter(cols, channel='left', outline={'colour': 'light', 'width': 1, 'radius': 12})
+        
+        # Col 2: Stack of album artwork, metadata text fields, and play progress bar
+        center_stack = RowFramer(cols, row_ratios=(4, 2, 1), padpc=0.03)
+        center_stack += MetaImages(center_stack, art_type='album', reflection={'size': 0.3, 'opacity': 0.4})
+        center_stack += MetaDataFrame(center_stack)
+        center_stack += PlayProgressFrame(center_stack, barsize_pc=0.3)
+        
+        # Col 3: Segmented neon FFT Spectrum for Right channel
+        cols += SpectrumFrame(
+            cols, 
+            channel='right', 
+            bar_style=BarStyle(led_h=6, led_gap=2, peak_h=2, tip=True),
+            spectrum_style=SpectrumStyle(barw_min=6, barsize_pc=0.5)
+        )
+
+# 2. Platform Selector Helper
+def get_hardware_platform():
+    # Detect platform dynamically
+    if platform.system() == "Darwin":
+        return {
+            "gfx": "gl",                # Use OpenGL compositor
+            "loopback": "BlackHole 2ch", # Local loopback audio
+            "roon_zone": "MacViz"       # Roon audio source
+        }
+    else:
+        return {
+            "gfx": "pi_kms",            # Pi framebuffer
+            "loopback": "loopin",
+            "roon_zone": "pre3"
+        }
+
+# 3. Main Launch Loop
+if __name__ == "__main__":
+    # Apply global profile controls
+    ProfileManager.set_profile(EmbeddedHiFiProfile)
+    
+    # Initialize and run visualiser ScreenController
+    visualiser = ScreenController(
+        screens=[CustomStudioDashboard], 
+        hw_platform=get_hardware_platform()
+    )
+
+    try:
+        visualiser.run()
+    except KeyboardInterrupt:
+        visualiser.stop()
+```

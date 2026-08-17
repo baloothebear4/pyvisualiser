@@ -29,7 +29,8 @@ from   gltest import *
 from   pyvisualiser import ScreenController
 import platform
 
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pygame.pkgdata")
 
 """ Screen types are:   Control for utility messages like vol change,  Test to exercise functionality, Base for mixed visual displays """
 # TestVUMetersScreen, TestVUScreen,  
