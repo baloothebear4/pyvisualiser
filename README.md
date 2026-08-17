@@ -59,7 +59,6 @@ Building a multi-panel studio dashboard requires only a few lines of declarative
 <img width="2566" height="802" alt="image" src="https://github.com/user-attachments/assets/ecac789f-0499-449f-82c3-1d959762d44a" />
 <img width="2562" height="796" alt="image" src="https://github.com/user-attachments/assets/4ba00265-fcff-471e-899a-d65b11fc392c" />
 <img width="2560" height="802" alt="image" src="https://github.com/user-attachments/assets/c2c87c80-b2a0-48d8-8d2f-0ba85c3cf542" />
-<img width="2564" height="796" alt="image" src="https://github.com/user-attachments/assets/f1668cc8-79d7-4f55-a956-f8cb809d26d1" />
 
 
 ## 📖 API Reference & Documentation
