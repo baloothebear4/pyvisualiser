@@ -52,6 +52,14 @@ Building a multi-panel studio dashboard requires only a few lines of declarative
             self += VolumeSource(self)
 
 ## Example Screenshots
+<img width="2560" height="802" alt="image" src="https://github.com/user-attachments/assets/64bd902c-caba-447c-9b03-e294d8dce386" />
+<img width="2560" height="802" alt="image" src="https://github.com/user-attachments/assets/d1812452-90ef-4422-8ca1-862824b289a0" />
+<img width="2564" height="798" alt="image" src="https://github.com/user-attachments/assets/c084a380-2370-4f1a-aa8e-01507f6dab0c" />
+<img width="2564" height="800" alt="image" src="https://github.com/user-attachments/assets/b1206778-5fa6-4beb-8c1f-82be9ba653e2" />
+<img width="2566" height="802" alt="image" src="https://github.com/user-attachments/assets/ecac789f-0499-449f-82c3-1d959762d44a" />
+<img width="2562" height="796" alt="image" src="https://github.com/user-attachments/assets/4ba00265-fcff-471e-899a-d65b11fc392c" />
+<img width="2560" height="802" alt="image" src="https://github.com/user-attachments/assets/c2c87c80-b2a0-48d8-8d2f-0ba85c3cf542" />
+<img width="2564" height="796" alt="image" src="https://github.com/user-attachments/assets/f1668cc8-79d7-4f55-a956-f8cb809d26d1" />
 
 
 ## 📖 API Reference & Documentation
